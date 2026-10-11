@@ -10,5 +10,5 @@ export default () =>
       ? 'Switch Anthropic accounts'
       : 'Sign in with your Anthropic account',
     isEnabled: () => !isEnvTruthy(process.env.DISABLE_LOGIN_COMMAND),
-    load: () => import('./login.js'),
+    load: () => import('./login.tsx'),
   }) satisfies Command

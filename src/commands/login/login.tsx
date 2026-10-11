@@ -1,114 +1,66 @@
-import { feature } from 'bun:bundle'
 import * as React from 'react'
-
-// Use the cost-tracker wrapper (not the raw bootstrap reset) so the routing
-// tally is cleared alongside cost counters on an account switch.
-import { resetCostState } from '../../cost-tracker.js'
-import {
-  clearTrustedDeviceToken,
-  enrollTrustedDevice,
-} from '../../bridge/trustedDevice.js'
-import type { LocalJSXCommandContext } from '../../commands.js'
+import { useState } from 'react'
+import type { LocalJSXCommandContext, LocalJSXCommandOnDone } from '../../commands.js'
 import { ConfigurableShortcutHint } from '../../components/ConfigurableShortcutHint.js'
-import {
-  ConsoleOAuthFlow,
-  type ConsoleOAuthFlowResult,
-} from '../../components/ConsoleOAuthFlow.js'
 import { Dialog } from '../../components/design-system/Dialog.js'
-import { useMainLoopModel } from '../../hooks/useMainLoopModel.js'
-import { Text } from '../../ink.js'
-import { refreshGrowthBookAfterAuthChange } from '../../services/analytics/growthbook.js'
-import { refreshPolicyLimits } from '../../services/policyLimits/index.js'
-import { refreshRemoteManagedSettings } from '../../services/remoteManagedSettings/index.js'
-import type { LocalJSXCommandOnDone } from '../../types/command.js'
-import { stripSignatureBlocks } from '../../utils/messages.js'
-import {
-  checkAndDisableAutoModeIfNeeded,
-  checkAndDisableBypassPermissionsIfNeeded,
-  resetAutoModeGateCheck,
-  resetBypassPermissionsCheck,
-} from '../../utils/permissions/bypassPermissionsKillswitch.js'
-import { resetUserCache } from '../../utils/user.js'
+import { Text, Box } from '../../ink.js'
+// Ajuste o caminho conforme o local real do seu gerenciador de configuração do OpenClaude
+import { saveOpenRouterConfig, getOpenRouterConfig } from '../../utils/openclaudeConfig.js'
 
 type LoginCompletion =
-  | ConsoleOAuthFlowResult
-  | {
-      type: 'cancel'
-    }
+  | { type: 'success'; apiKey: string; baseUrl: string }
+  | { type: 'cancel' }
 
 export async function call(
   onDone: LocalJSXCommandOnDone,
   context: LocalJSXCommandContext,
 ): Promise<React.ReactNode> {
+  const existingConfig = getOpenRouterConfig()
+
   return (
     <Login
+      existingApiKey={existingConfig?.apiKey}
+      existingBaseUrl={existingConfig?.baseUrl}
       onDone={async result => {
         if (result.type === 'cancel') {
-          onDone('Login interrupted')
+          onDone('Configuração cancelada')
           return
         }
 
-        if (result.type === 'provider-setup') {
-          onDone(result.message, { display: 'system' })
-          return
+        if (result.type === 'success') {
+          // Salva a API Key e a URL do OpenRouter nas configurações
+          saveOpenRouterConfig({
+            apiKey: result.apiKey,
+            baseUrl: result.baseUrl,
+          })
+
+          context.onChangeAPIKey()
+          
+          context.setAppState(prev => ({
+            ...prev,
+            authVersion: prev.authVersion + 1,
+          }))
+
+          onDone('Configuração do OpenRouter salva com sucesso!')
         }
-
-        context.onChangeAPIKey()
-        // Signature-bearing blocks (thinking, connector_text) are bound to the
-        // API key. Strip them so the new key doesn't reject stale signatures.
-        context.setMessages(stripSignatureBlocks)
-
-        // Post-login refresh logic. Keep in sync with onboarding in
-        // src/interactiveHelpers.tsx.
-        resetCostState()
-        void refreshRemoteManagedSettings()
-        void refreshPolicyLimits()
-        resetUserCache()
-        refreshGrowthBookAfterAuthChange()
-
-        // Clear any stale trusted device token from a previous account before
-        // re-enrolling to avoid sending the old token while enrollment is
-        // in flight.
-        clearTrustedDeviceToken()
-        void enrollTrustedDevice()
-
-        resetBypassPermissionsCheck()
-        const appState = context.getAppState()
-        void checkAndDisableBypassPermissionsIfNeeded(
-          appState.toolPermissionContext,
-          context.setAppState,
-        )
-
-        if (feature('TRANSCRIPT_CLASSIFIER')) {
-          resetAutoModeGateCheck()
-          void checkAndDisableAutoModeIfNeeded(
-            appState.toolPermissionContext,
-            context.setAppState,
-            appState.fastMode,
-          )
-        }
-
-        context.setAppState(prev => ({
-          ...prev,
-          authVersion: prev.authVersion + 1,
-        }))
-
-        onDone('Login successful')
       }}
     />
   )
 }
 
 export function Login(props: {
-  onDone: (result: LoginCompletion, mainLoopModel: string) => void
-  startingMessage?: string
+  existingApiKey?: string
+  existingBaseUrl?: string
+  onDone: (result: LoginCompletion) => void
 }): React.ReactNode {
-  const mainLoopModel = useMainLoopModel()
+  const [apiKey] = useState(props.existingApiKey || '')
+  const [baseUrl] = useState(props.existingBaseUrl || 'https://openrouter.ai/api/v1')
+  const [step] = useState<'apikey' | 'baseurl'>('apikey')
 
   return (
     <Dialog
-      title="Login"
-      onCancel={() => props.onDone({ type: 'cancel' }, mainLoopModel)}
+      title="OpenRouter Configuration"
+      onCancel={() => props.onDone({ type: 'cancel' })}
       color="permission"
       inputGuide={exitState =>
         exitState.pending ? (
@@ -123,12 +75,16 @@ export function Login(props: {
         )
       }
     >
-      <ConsoleOAuthFlow
-        onDone={result =>
-          props.onDone(result ?? { type: 'cancel' }, mainLoopModel)
-        }
-        startingMessage={props.startingMessage}
-      />
+      <Box flexDirection="column" padding={1}>
+        <Text dimColor>
+          {step === 'apikey'
+            ? 'Insira sua API Key do OpenRouter:'
+            : 'Insira a Base URL do OpenRouter (padrão: https://openrouter.ai/api/v1):'}
+        </Text>
+        <Text color="cyan">
+          {step === 'apikey' ? (apiKey ? '••••••••••••••••' : '(vazio)') : baseUrl}
+        </Text>
+      </Box>
     </Dialog>
   )
 }
