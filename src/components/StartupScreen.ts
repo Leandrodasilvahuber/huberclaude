@@ -9,17 +9,26 @@ import { getSettings_DEPRECATED } from '../utils/settings/settings.js'
 import { parseUserSpecifiedModel } from '../utils/model/model.js'
 import { DEFAULT_GEMINI_MODEL } from '../utils/providerProfile.js'
 import { BRAND_TAGLINE } from '../constants/brand.js'
-import { getGlobalConfig } from '../utils/config.js'
 import { ANSI_DIM, ANSI_RESET, ansiRgb } from '../utils/terminalAnsi.js'
-import {
-  resolveLogoPalette,
-  type RGB,
-} from './StartupScreen.palettes.js'
+import { type RGB } from './StartupScreen.palettes.js'
 
 declare const MACRO: { VERSION: string; DISPLAY_VERSION?: string }
 
 const RESET = ANSI_RESET
 const DIM = ANSI_DIM
+
+// ─── Paleta de Tons de Verde ──────────────────────────────────────────────────
+
+const GREEN_ACCENT: RGB = [57, 255, 20]     // Verde Neon brilhante
+const GREEN_CREAM: RGB = [160, 255, 170]    // Verde claro suave
+const GREEN_DIM: RGB = [70, 130, 80]        // Verde escuro/esmaecido
+const GREEN_BORDER: RGB = [40, 160, 80]     // Verde médio para as bordas do box
+const GREEN_GRADIENT: RGB[] = [             // Gradiente de tons verdes para o logo
+  [0, 255, 127],   // Spring Green
+  [57, 255, 20],   // Neon Green
+  [0, 200, 83],    // Emerald
+  [120, 255, 140], // Light Mint
+]
 
 function lerp(a: RGB, b: RGB, t: number): RGB {
   return [
@@ -159,12 +168,12 @@ function boxRow(content: string, width: number, rawLen: number, border: RGB): st
 export function printStartupScreen(modelOverride?: string): void {
   if (process.env.CI || !process.stdout.isTTY) return
 
-  const palette = resolveLogoPalette(getGlobalConfig().logoColor)
-  const ACCENT = palette.accent
-  const CREAM = palette.cream
-  const DIMCOL = palette.dim
-  const BORDER = palette.border
-  const GRAD = palette.gradient
+  // Utiliza a paleta customizada em tons de verde
+  const ACCENT = GREEN_ACCENT
+  const CREAM = GREEN_CREAM
+  const DIMCOL = GREEN_DIM
+  const BORDER = GREEN_BORDER
+  const GRAD = GREEN_GRADIENT
 
   const p = detectProvider(modelOverride)
   const W = 62
@@ -175,7 +184,7 @@ export function printStartupScreen(modelOverride?: string): void {
 
   out.push('')
 
-  // Gradient logo — HÜBER
+  // Gradient logo — HÜBER (Verde)
   const logo = LOGO_HUBER
   const logoWidth = Math.max(...logo.map(row => row.length))
   const logoLines = logo.map(row => ({
@@ -194,11 +203,11 @@ export function printStartupScreen(modelOverride?: string): void {
 
   out.push('')
 
-  // Tagline
+  // Tagline (Verde)
   out.push(`${centerPad(BRAND_TAGLINE.length + 4)}${ansiRgb(...ACCENT)}\u2726${RESET} ${ansiRgb(...CREAM)}${BRAND_TAGLINE}${RESET} ${ansiRgb(...ACCENT)}\u2726${RESET}`)
   out.push('')
 
-  // Provider info box
+  // Provider info box (Verde)
   const boxPad = centerPad(W)
   out.push(`${boxPad}${ansiRgb(...BORDER)}\u2554${'\u2550'.repeat(W - 2)}\u2557${RESET}`)
 
@@ -207,7 +216,7 @@ export function printStartupScreen(modelOverride?: string): void {
     return [` ${DIM}${ansiRgb(...DIMCOL)}${padK}${RESET} ${ansiRgb(...c)}${v}${RESET}`, ` ${padK} ${v}`.length]
   }
 
-  const provC: RGB = p.isLocal ? [130, 175, 130] : ACCENT
+  const provC: RGB = ACCENT
   let [r, l] = lbl('Provider', p.name, provC)
   out.push(boxPad + boxRow(r, W, l, BORDER))
   ;[r, l] = lbl('Model', p.model)
@@ -218,7 +227,7 @@ export function printStartupScreen(modelOverride?: string): void {
 
   out.push(`${boxPad}${ansiRgb(...BORDER)}\u2560${'\u2550'.repeat(W - 2)}\u2563${RESET}`)
 
-  const sC: RGB = p.isLocal ? [130, 175, 130] : ACCENT
+  const sC: RGB = ACCENT
   const sL = p.isLocal ? 'local' : 'cloud'
   const sRow = ` ${ansiRgb(...sC)}\u25cf${RESET} ${DIM}${ansiRgb(...DIMCOL)}${sL}${RESET}    ${DIM}${ansiRgb(...DIMCOL)}Ready \u2014 type ${RESET}${ansiRgb(...ACCENT)}/help${RESET}${DIM}${ansiRgb(...DIMCOL)} to begin${RESET}`
   const sLen = ` \u25cf ${sL}    Ready \u2014 type /help to begin`.length
