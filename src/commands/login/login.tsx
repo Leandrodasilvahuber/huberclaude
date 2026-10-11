@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { useState } from 'react'
 import type { LocalJSXCommandContext, LocalJSXCommandOnDone } from '../../commands.js'
+import type { ToolUseContext } from '../../Tool.js'
 import { ConfigurableShortcutHint } from '../../components/ConfigurableShortcutHint.js'
 import { Dialog } from '../../components/design-system/Dialog.js'
 import { Text, Box } from '../../ink.js'
@@ -10,10 +11,12 @@ import { saveOpenRouterConfig, getOpenRouterConfig } from '../../utils/openclaud
 type LoginCompletion =
   | { type: 'success'; apiKey: string; baseUrl: string }
   | { type: 'cancel' }
+  | string
 
 export async function call(
   onDone: LocalJSXCommandOnDone,
-  context: LocalJSXCommandContext,
+  context: ToolUseContext & LocalJSXCommandContext,
+  args: string,
 ): Promise<React.ReactNode> {
   const existingConfig = getOpenRouterConfig()
 
