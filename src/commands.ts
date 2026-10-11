@@ -34,7 +34,6 @@ import init from './commands/init.js'
 import initVerifiers from './commands/init-verifiers.js'
 import keybindings from './commands/keybindings/index.js'
 import lsp from './commands/lsp/index.js'
-import login from './commands/login/index.js'
 import logout from './commands/logout/index.js'
 import installGitHubApp from './commands/install-github-app/index.js'
 import installSlackApp from './commands/install-slack-app/index.js'
@@ -75,7 +74,6 @@ import bughunterPerf from './commands/bughunter-perf/index.js'
 import terminalSetup from './commands/terminalSetup/index.js'
 import usage from './commands/usage/index.js'
 import theme from './commands/theme/index.js'
-import logo from './commands/logo/index.js'
 import vim from './commands/vim/index.js'
 import { feature } from 'bun:bundle'
 import { isBuddyEnabled } from './buddy/feature.js'
@@ -350,7 +348,6 @@ const COMMANDS = memoize((): Command[] => [
   stickers,
   tag,
   theme,
-  logo,
   feedback,
   goal,
   review,
@@ -383,7 +380,7 @@ const COMMANDS = memoize((): Command[] => [
   hooks,
   exportCommand,
   sandboxToggle,
-  ...(!isUsing3PServices() ? [logout, login].filter(Boolean) : []),
+  ...(!isUsing3PServices() ? [logout].filter(Boolean) : []),
   passes,
   ...(peersCmd ? [peersCmd] : []),
   tasks,
@@ -678,7 +675,6 @@ export const REMOTE_SAFE_COMMANDS: Set<Command> = new Set([
   clear, // Clear screen
   help, // Show help
   theme, // Change terminal theme
-  logo, // Change startup logo color scheme
   color, // Change agent color
   vim, // Toggle vim mode
   cost, // Show session cost (local cost tracking)
