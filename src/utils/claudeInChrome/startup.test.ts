@@ -49,7 +49,7 @@ test('isolated Claude-in-Chrome setup', async () => {
 
   if (mode === 'missing') {
     expect(() => setupClaudeInChrome()).toThrow(
-      'Unable to resolve the current OpenClaude CLI entrypoint',
+      'Unable to resolve the current HüberClaude CLI entrypoint',
     )
     const wrapperName = process.platform === 'win32'
       ? 'chrome-native-host.bat'

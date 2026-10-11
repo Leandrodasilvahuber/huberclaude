@@ -16,7 +16,7 @@ const INSTRUMENTATION_PATH = join(
 const PACKAGE_VERSION = JSON.parse(
   readFileSync(join(REPO_ROOT, 'package.json'), 'utf8'),
 ).version
-const EXPECTED_VERSION_OUTPUT = `${PACKAGE_VERSION} (OpenClaude)\n`
+const EXPECTED_VERSION_OUTPUT = `${PACKAGE_VERSION} (HüberClaude)\n`
 
 type LauncherResult = {
   status: number | null

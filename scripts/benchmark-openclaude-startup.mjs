@@ -16,7 +16,7 @@ const BUNDLE_PATH = join(REPO_ROOT, 'dist', 'cli.mjs')
 const PACKAGE_VERSION = JSON.parse(
   readFileSync(join(REPO_ROOT, 'package.json'), 'utf8'),
 ).version
-const EXPECTED_VERSION_OUTPUT = `${PACKAGE_VERSION} (OpenClaude)`
+const EXPECTED_VERSION_OUTPUT = `${PACKAGE_VERSION} (HüberClaude)`
 
 function readPositiveInteger(name, fallback) {
   const index = process.argv.indexOf(name)

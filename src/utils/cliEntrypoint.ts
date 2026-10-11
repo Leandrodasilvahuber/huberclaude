@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import { isAbsolute, resolve } from 'node:path'
 
 const MISSING_CLI_ENTRYPOINT_MESSAGE =
-  'Unable to resolve the current OpenClaude CLI entrypoint. Start OpenClaude through its installed launcher and try again.'
+  'Unable to resolve the current HüberClaude CLI entrypoint. Start HüberClaude through its installed launcher and try again.'
 
 export function resolveCurrentCliEntrypoint({
   argv1 = process.argv[1],

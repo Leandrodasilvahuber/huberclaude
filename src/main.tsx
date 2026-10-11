@@ -3654,7 +3654,7 @@ async function run(): Promise<CommanderCommand> {
         pendingHookMessages
       }, renderAndRun);
     }
-  }).version(`${MACRO.DISPLAY_VERSION ?? MACRO.VERSION} (OpenClaude)`, '-v, --version', 'Output the version number');
+  }).version(`${MACRO.DISPLAY_VERSION ?? MACRO.VERSION} (HüberClaude)`, '-v, --version', 'Output the version number');
 
   program.addOption(new Option(`${BACKGROUND_PROCESS_MARKER_FLAG} <marker>`, 'Internal background process identity marker').argParser(value => {
     if (!isValidBackgroundProcessMarker(value)) {

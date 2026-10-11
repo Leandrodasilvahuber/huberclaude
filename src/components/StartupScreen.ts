@@ -1,10 +1,3 @@
-/**
- * OpenClaude startup screen — filled-block text logo with sunset gradient.
- * Called once at CLI startup before the Ink UI renders.
- *
- * Addresses: https://github.com/Gitlawb/openclaude/issues/55
- */
-
 import { isLocalProviderUrl, resolveProviderRequest } from '../services/api/providerConfig.js'
 import {
   getRouteLabel,
@@ -47,32 +40,22 @@ function gradAt(stops: readonly RGB[], t: number): RGB {
 export function paintLine(text: string, stops: readonly RGB[], lineT: number): string {
   let out = ''
   for (let i = 0; i < text.length; i++) {
-    const t = text.length > 1 ? lineT * 0.5 + (i / (text.length - 1)) * 0.5 : lineT
+    const t = text.length > 1 ? lineT - 0.5 + (i / (text.length - 1)) * 0.5 : lineT
     const [r, g, b] = gradAt(stops, t)
     out += `${ansiRgb(r, g, b)}${text[i]}`
   }
   return out + RESET
 }
 
-// ─── Filled Block Text Logo ───────────────────────────────────────────────────
+// ─── Filled Block Text Logo (HÜBER) ──────────────────────────────────────────
 
-// ANSI Shadow figlet letterforms, one space between letters.
-const LOGO_OPEN = [
-  ' \u2588\u2588\u2588\u2588\u2588\u2588\u2557  \u2588\u2588\u2588\u2588\u2588\u2588\u2557  \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2557   \u2588\u2588\u2557',
-  '\u2588\u2588\u2554\u2550\u2550\u2550\u2588\u2588\u2557 \u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557 \u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255d \u2588\u2588\u2588\u2588\u2557  \u2588\u2588\u2551',
-  '\u2588\u2588\u2551   \u2588\u2588\u2551 \u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255d \u2588\u2588\u2588\u2588\u2588\u2557   \u2588\u2588\u2554\u2588\u2588\u2557 \u2588\u2588\u2551',
-  '\u2588\u2588\u2551   \u2588\u2588\u2551 \u2588\u2588\u2554\u2550\u2550\u2550\u255d  \u2588\u2588\u2554\u2550\u2550\u255d   \u2588\u2588\u2551\u255a\u2588\u2588\u2557\u2588\u2588\u2551',
-  '\u255a\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255d \u2588\u2588\u2551      \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2551 \u255a\u2588\u2588\u2588\u2588\u2551',
-  ' \u255a\u2550\u2550\u2550\u2550\u2550\u255d  \u255a\u2550\u255d      \u255a\u2550\u2550\u2550\u2550\u2550\u2550\u255d \u255a\u2550\u255d  \u255a\u2550\u2550\u2550\u255d',
-]
-
-const LOGO_CLAUDE = [
-  ' \u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2557       \u2588\u2588\u2588\u2588\u2588\u2557  \u2588\u2588\u2557   \u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2557  \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557',
-  '\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255d \u2588\u2588\u2551      \u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557 \u2588\u2588\u2551   \u2588\u2588\u2551 \u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557 \u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255d',
-  '\u2588\u2588\u2551      \u2588\u2588\u2551      \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2551 \u2588\u2588\u2551   \u2588\u2588\u2551 \u2588\u2588\u2551  \u2588\u2588\u2551 \u2588\u2588\u2588\u2588\u2588\u2557  ',
-  '\u2588\u2588\u2551      \u2588\u2588\u2551      \u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2551 \u2588\u2588\u2551   \u2588\u2588\u2551 \u2588\u2588\u2551  \u2588\u2588\u2551 \u2588\u2588\u2554\u2550\u2550\u255d  ',
-  '\u255a\u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2551  \u2588\u2588\u2551 \u255a\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255d \u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255d \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557',
-  ' \u255a\u2550\u2550\u2550\u2550\u2550\u255d \u255a\u2550\u2550\u2550\u2550\u2550\u2550\u255d \u255a\u2550\u255d  \u255a\u2550\u255d  \u255a\u2550\u2550\u2550\u2550\u2550\u255d  \u255a\u2550\u2550\u2550\u2550\u2550\u255d  \u255a\u2550\u2550\u2550\u2550\u2550\u2550\u255d',
+const LOGO_HUBER = [
+  ' \u2588\u2588\u2557  \u2588\u2588\u2557\u2588\u2588\u2557  \u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2588\u2557 ',
+  ' \u2588\u2588\u2551  \u2588\u2588\u2551\u2588\u2588\u2551  \u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255d\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557',
+  ' \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2551\u2588\u2588\u2551  \u2588\u2588\u2551\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255d\u2588\u2588\u2588\u2588\u2588\u2557  \u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255d',
+  ' \u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2551\u2588\u2588\u2551  \u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2554\u2550\u2550\u255d  \u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557',
+  ' \u2588\u2588\u2551  \u2588\u2588\u2551\u255a\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255d\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255d\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2551  \u2588\u2588\u2551',
+  ' \u255a\u2550\u255d  \u255a\u2550\u255d \u255a\u2550\u2550\u2550\u2550\u2550\u255d \u255a\u2550\u2550\u2550\u2550\u2550\u255d \u255a\u2550\u2550\u2550\u2550\u2550\u2550\u255d\u255a\u2550\u255d  \u255a\u2550\u255d',
 ]
 
 // ─── Provider detection ───────────────────────────────────────────────────────
@@ -112,7 +95,7 @@ export function detectProvider(modelOverride?: string): { name: string; model: s
     const isLocal = isLocalProviderUrl(baseUrl)
     const routeId = resolveRouteIdFromBaseUrl(baseUrl)
     let name = 'OpenAI'
-    // Explicit dedicated-provider env flags win.
+
     if (process.env.NVIDIA_NIM) name = 'NVIDIA NIM'
     else if (process.env.MINIMAX_API_KEY) name = 'MiniMax'
     else if (
@@ -120,9 +103,6 @@ export function detectProvider(modelOverride?: string): { name: string; model: s
       baseUrl.includes('chatgpt.com/backend-api/codex')
     )
       name = 'Codex'
-    // Base URL is authoritative — must precede rawModel checks so aggregators
-    // (OpenRouter/Together/Groq) aren't mislabelled as DeepSeek/Kimi/etc.
-    // when routed to models whose IDs contain a vendor prefix. See issue #855.
     else if (/openrouter/i.test(baseUrl)) name = 'OpenRouter'
     else if (/together/i.test(baseUrl)) name = 'Together AI'
     else if (/groq/i.test(baseUrl)) name = 'Groq'
@@ -136,7 +116,6 @@ export function detectProvider(modelOverride?: string): { name: string; model: s
     else if (/deepseek/i.test(baseUrl)) name = 'DeepSeek'
     else if (/mistral/i.test(baseUrl)) name = 'Mistral'
     else if (/atlascloud/i.test(baseUrl)) name = 'Atlas Cloud'
-    // rawModel fallback — fires only when base URL is generic/custom.
     else if (/nvidia/i.test(rawModel)) name = 'NVIDIA NIM'
     else if (/minimax/i.test(rawModel)) name = 'MiniMax'
     else if (/\bkimi-for-coding\b/i.test(rawModel))
@@ -151,7 +130,6 @@ export function detectProvider(modelOverride?: string): { name: string; model: s
     else if (/atlas\.cloud/i.test(rawModel)) name = 'Atlas Cloud'
     else if (isLocal) name = getLocalOpenAICompatibleProviderLabel(baseUrl)
     
-    // Resolve model alias to actual model name + reasoning effort
     let displayModel = resolvedRequest.resolvedModel
     if (resolvedRequest.reasoning?.effort) {
       displayModel = `${displayModel} (${resolvedRequest.reasoning.effort})`
@@ -160,7 +138,6 @@ export function detectProvider(modelOverride?: string): { name: string; model: s
     return { name, model: displayModel, baseUrl, isLocal }
   }
 
-  // Default: Anthropic - check settings.model first, then env vars
   const settings = getSettings_DEPRECATED() || {}
   const modelSetting = modelOverride || process.env.ANTHROPIC_MODEL || process.env.CLAUDE_MODEL || settings.model || 'claude-sonnet-4-6'
   const resolvedModel = parseUserSpecifiedModel(modelSetting)
@@ -180,7 +157,6 @@ function boxRow(content: string, width: number, rawLen: number, border: RGB): st
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export function printStartupScreen(modelOverride?: string): void {
-  // Skip in non-interactive / CI / print mode
   if (process.env.CI || !process.stdout.isTTY) return
 
   const palette = resolveLogoPalette(getGlobalConfig().logoColor)
@@ -199,25 +175,13 @@ export function printStartupScreen(modelOverride?: string): void {
 
   out.push('')
 
-  // Gradient logo \u2014 OPEN and CLAUDE side by side on one centered row; falls
-  // back to the stacked two-block layout when the terminal is too narrow.
-  // Each block is centered as a unit (one pad per block) so rows stay aligned.
-  const open = LOGO_OPEN
-  const claude = LOGO_CLAUDE
-  const openWidth = Math.max(...open.map(row => row.length))
-  const claudeWidth = Math.max(...claude.map(row => row.length))
-  const oneRowWidth = openWidth + 2 + claudeWidth
-  const fitsOneRow = columns >= oneRowWidth
-  const logoLines = fitsOneRow
-    ? open.map((row, i) => ({
-        pad: centerPad(oneRowWidth),
-        text: `${row.padEnd(openWidth)}  ${claude[i]}`.trimEnd(),
-      }))
-    : [
-        ...open.map(row => ({ pad: centerPad(openWidth), text: row })),
-        { pad: '', text: '' },
-        ...claude.map(row => ({ pad: centerPad(claudeWidth), text: row.trimEnd() })),
-      ]
+  // Gradient logo — HÜBER
+  const logo = LOGO_HUBER
+  const logoWidth = Math.max(...logo.map(row => row.length))
+  const logoLines = logo.map(row => ({
+    pad: centerPad(logoWidth),
+    text: row,
+  }))
   const total = logoLines.length
   for (let i = 0; i < total; i++) {
     const t = total > 1 ? i / (total - 1) : 0
@@ -261,8 +225,8 @@ export function printStartupScreen(modelOverride?: string): void {
   out.push(boxPad + boxRow(sRow, W, sLen, BORDER))
 
   out.push(`${boxPad}${ansiRgb(...BORDER)}\u255a${'\u2550'.repeat(W - 2)}\u255d${RESET}`)
-  const versionText = `openclaude v${MACRO.DISPLAY_VERSION ?? MACRO.VERSION}`
-  out.push(`${centerPad(versionText.length)}${DIM}${ansiRgb(...DIMCOL)}openclaude ${RESET}${ansiRgb(...ACCENT)}v${MACRO.DISPLAY_VERSION ?? MACRO.VERSION}${RESET}`)
+  const versionText = `huberclaude v${MACRO.DISPLAY_VERSION ?? MACRO.VERSION}`
+  out.push(`${centerPad(versionText.length)}${DIM}${ansiRgb(...DIMCOL)}HüberClaude ${RESET}${ansiRgb(...ACCENT)}v${MACRO.DISPLAY_VERSION ?? MACRO.VERSION}${RESET}`)
   out.push('')
 
   process.stdout.write(out.join('\n') + '\n')

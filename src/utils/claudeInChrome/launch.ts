@@ -67,7 +67,7 @@ export async function createWrapperScript(
 ): Promise<string> {
   if (launch.requiredEntrypoint && !existsSync(launch.requiredEntrypoint)) {
     throw new Error(
-      'Unable to create the Claude-in-Chrome native host wrapper because the OpenClaude CLI entrypoint is unavailable.',
+      'Unable to create the Claude-in-Chrome native host wrapper because the HüberClaude CLI entrypoint is unavailable.',
     )
   }
 

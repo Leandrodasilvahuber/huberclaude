@@ -105,7 +105,7 @@ describe('resolveCurrentCliEntrypoint', () => {
     }
 
     expect(caught?.message).toContain(
-      'Unable to resolve the current OpenClaude CLI entrypoint',
+      'Unable to resolve the current HüberClaude CLI entrypoint',
     )
     expect(caught?.message).not.toContain(missing)
     expect(caught?.message).not.toContain(basename(missing))

@@ -565,8 +565,8 @@ function checkBinBoots(scenario: string, prefix: string, home: string, expectedV
   const version = runBin(prefix, home, ['--version'])
   if (version.status !== 0) {
     fail(scenario, `\`openclaude --version\` exited ${version.status}: ${version.stderr}`)
-  } else if (expectedVersion && version.stdout.trim() !== `${expectedVersion} (OpenClaude)`) {
-    fail(scenario, `--version printed "${version.stdout.trim()}", expected "${expectedVersion} (OpenClaude)"`)
+  } else if (expectedVersion && version.stdout.trim() !== `${expectedVersion} (HüberClaude)`) {
+    fail(scenario, `--version printed "${version.stdout.trim()}", expected "${expectedVersion} (HüberClaude)"`)
   } else if (version.stderr.trim().length > 0) {
     fail(scenario, `--version wrote to stderr: "${version.stderr.trim()}"`)
   } else {
