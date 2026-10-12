@@ -1,69 +1,139 @@
 import * as React from 'react'
 import { useState } from 'react'
-import type { LocalJSXCommandContext, LocalJSXCommandOnDone } from '../../commands.js'
-import type { ToolUseContext } from '../../Tool.js'
-import { ConfigurableShortcutHint } from '../../components/ConfigurableShortcutHint.js'
 import { Dialog } from '../../components/design-system/Dialog.js'
-import { Text, Box } from '../../ink.js'
+import TextInput from '../../components/TextInput.js'
+import { Box, Text } from '../../ink.js'
+import type { LocalJSXCommandCall } from '../../types/command.js'
+import {
+  applyOpenRouterConfigToEnv,
+  DEFAULT_OPENROUTER_BASE_URL,
+  getOpenRouterConfig,
+  saveOpenRouterConfig,
+} from '../../utils/openclaudeConfig.js'
 
-type LoginCompletion =
-  | { type: 'success'; apiKey: string; baseUrl: string }
-  | { type: 'cancel' }
-  | string
-
-export async function call(
-  onDone: LocalJSXCommandOnDone,
-  context: ToolUseContext & LocalJSXCommandContext,
-  args: string,
-): Promise<React.ReactNode> {
+export const call: LocalJSXCommandCall = async (onDone, context) => {
   return (
     <Login
-      onDone={async result => {
-        if (result.type === 'cancel') {
-          onDone('Configuração cancelada')
-          return
+      onDone={success => {
+        if (success) {
+          context.onChangeAPIKey()
         }
-
-        if (result.type === 'success') {
-          onDone('Configuração salva com sucesso!')
-        }
+        onDone(
+          success
+            ? 'OpenRouter configuration saved'
+            : 'OpenRouter configuration cancelled',
+          { display: 'system' },
+        )
       }}
     />
   )
 }
 
+/**
+ * OpenRouter setup: API key, then base URL. Saves to ~/.openclaude/config.json
+ * and points the running session at OpenRouter.
+ */
 export function Login(props: {
-  onDone: (result: LoginCompletion) => void
+  startingMessage?: string
+  onDone: (success: boolean) => void
 }): React.ReactNode {
-  const [step] = useState<'apikey' | 'baseurl'>('apikey')
+  const saved = getOpenRouterConfig()
+  const [step, setStep] = useState<'apikey' | 'baseurl'>('apikey')
+  const [apiKey, setApiKey] = useState('')
+  const [baseUrl, setBaseUrl] = useState(
+    saved.baseUrl || DEFAULT_OPENROUTER_BASE_URL,
+  )
+  const [cursorOffset, setCursorOffset] = useState(0)
+  const [error, setError] = useState<string | null>(null)
+
+  function submitApiKey(): void {
+    const trimmed = apiKey.trim()
+    if (!trimmed) {
+      if (saved.apiKey) {
+        // Empty input keeps the saved key.
+        setApiKey(saved.apiKey)
+      } else {
+        setError('API key is required')
+        return
+      }
+    }
+    setError(null)
+    setCursorOffset(baseUrl.length)
+    setStep('baseurl')
+  }
+
+  function submitBaseUrl(): void {
+    const url = baseUrl.trim() || DEFAULT_OPENROUTER_BASE_URL
+    if (!/^https?:\/\//.test(url)) {
+      setError('Base URL must start with http:// or https://')
+      return
+    }
+    try {
+      saveOpenRouterConfig({
+        apiKey: apiKey.trim() || saved.apiKey,
+        baseUrl: url.replace(/\/+$/, ''),
+      })
+    } catch (err) {
+      setError(`Failed to save configuration: ${(err as Error).message}`)
+      return
+    }
+    applyOpenRouterConfigToEnv()
+    props.onDone(true)
+  }
 
   return (
     <Dialog
-      title="OpenRouter Configuration"
-      onCancel={() => props.onDone({ type: 'cancel' })}
+      title="OpenRouter configuration"
+      onCancel={() => props.onDone(false)}
       color="permission"
-      inputGuide={exitState =>
-        exitState.pending ? (
-          <Text>Press {exitState.keyName} again to exit</Text>
-        ) : (
-          <ConfigurableShortcutHint
-            action="confirm:no"
-            context="Confirmation"
-            fallback="Esc"
-            description="cancel"
-          />
-        )
-      }
     >
-      <Box flexDirection="column" padding={1}>
-        <Text dimColor>
-          {step === 'apikey'
-            ? 'Insira sua API Key do OpenRouter:'
-            : 'Insira a Base URL do OpenRouter (padrão: https://openrouter.ai/api/v1):'}
-        </Text>
-        <Text color="cyan">
-          {step === 'apikey' ? '(vazio)' : 'https://openrouter.ai/api/v1'}
-        </Text>
+      <Box flexDirection="column" gap={1}>
+        {props.startingMessage ? (
+          <Text dimColor>{props.startingMessage}</Text>
+        ) : null}
+        {step === 'apikey' ? (
+          <>
+            <Text>
+              OpenRouter API key
+              {saved.apiKey ? ' (Enter keeps the saved key)' : ''}:
+            </Text>
+            <Box flexDirection="row" gap={1}>
+              <Text>›</Text>
+              <TextInput
+                value={apiKey}
+                onChange={setApiKey}
+                onSubmit={submitApiKey}
+                focus
+                showCursor
+                mask="*"
+                placeholder="sk-or-v1-…"
+                columns={80}
+                cursorOffset={cursorOffset}
+                onChangeCursorOffset={setCursorOffset}
+              />
+            </Box>
+            <Text dimColor>Get a key at https://openrouter.ai/settings/keys</Text>
+          </>
+        ) : (
+          <>
+            <Text>OpenRouter base URL:</Text>
+            <Box flexDirection="row" gap={1}>
+              <Text>›</Text>
+              <TextInput
+                value={baseUrl}
+                onChange={setBaseUrl}
+                onSubmit={submitBaseUrl}
+                focus
+                showCursor
+                placeholder={DEFAULT_OPENROUTER_BASE_URL}
+                columns={80}
+                cursorOffset={cursorOffset}
+                onChangeCursorOffset={setCursorOffset}
+              />
+            </Box>
+          </>
+        )}
+        {error ? <Text color="error">{error}</Text> : null}
       </Box>
     </Dialog>
   )

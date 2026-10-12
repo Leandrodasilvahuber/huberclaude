@@ -141,6 +141,23 @@ export async function showSetupScreens(root: Root, permissionMode: PermissionMod
     });
   }
 
+  // HuberClaude only talks to OpenRouter, so a key is mandatory. Ask for it
+  // before the REPL mounts; Esc exits.
+  const {
+    applyOpenRouterConfigToEnv,
+    resolveOpenRouterApiKey
+  } = await import('./utils/openclaudeConfig.js');
+  if (!resolveOpenRouterApiKey()) {
+    const {
+      Login
+    } = await import('./commands/login/login.js');
+    const configured = await showSetupDialog<boolean>(root, done => <Login startingMessage="HuberClaude needs an OpenRouter API key to start." onDone={done} />);
+    if (!configured) {
+      return exitWithError(root, 'HuberClaude needs an OpenRouter API key. Run huberclaude again to configure it.');
+    }
+  }
+  applyOpenRouterConfigToEnv();
+
   // Always show the trust dialog in interactive sessions, regardless of permission mode.
   // The trust dialog is the workspace trust boundary — it warns about untrusted repos
   // and checks CLAUDE.md external includes. bypassPermissions mode

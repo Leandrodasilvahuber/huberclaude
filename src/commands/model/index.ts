@@ -6,9 +6,9 @@ export default {
   type: 'local-jsx',
   name: 'model',
   get description() {
-    return `Set the AI model for OpenClaude (currently ${renderModelName(getMainLoopModel())})`
+    return `Choose an OpenRouter model (currently ${renderModelName(getMainLoopModel())})`
   },
-  argumentHint: '[model]',
+  argumentHint: '[openrouter-model-id]',
   get immediate() {
     return shouldInferenceConfigCommandBeImmediate()
   },
