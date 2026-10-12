@@ -368,6 +368,7 @@ async function renderModelCommandWithCapturedPicker(
   options?: {
     initialState?: unknown
     onDone?: (message?: string, options?: { display?: string }) => void
+    args?: string
   },
 ): Promise<{
   getCapturedProps: () => CapturedModelPickerPropsForTest
@@ -385,7 +386,11 @@ async function renderModelCommandWithCapturedPicker(
   }))
 
   const { call } = await importFreshModelModule(suffix)
-  const element = await call(options?.onDone ?? (() => {}), {} as never, '')
+  const element = await call(
+    options?.onDone ?? (() => {}),
+    {} as never,
+    options?.args ?? '',
+  )
   const { AppStateProvider } = await import('../../state/AppState.js')
   const { render } = await import('../../ink.js')
   const stdout = new PassThrough()
@@ -1310,7 +1315,7 @@ test('/model applies providerProfileModelPickerMode profile override on descript
   const { call } = await importFreshModelModule(
     'descriptor-picker-settings-profile-mode',
   )
-  const element = await call(() => {}, {} as never, '')
+  const element = await call(() => {}, {} as never, 'internal')
   const { AppStateProvider } = await import('../../state/AppState.js')
   const { render } = await import('../../ink.js')
   const stdout = new PassThrough()
@@ -1373,6 +1378,7 @@ test('/model applies auto profile surface for multi-model descriptor profiles', 
 
   const rendered = await renderModelCommandWithCapturedPicker(
     'descriptor-picker-auto-profile-mode',
+    { args: 'internal' },
   )
   try {
     expect(rendered.getCapturedProps().optionsOverride).toEqual([
@@ -1430,6 +1436,7 @@ test('/model applies auto provider surface for single-model descriptor profiles'
 
   const rendered = await renderModelCommandWithCapturedPicker(
     'descriptor-picker-auto-provider-mode',
+    { args: 'internal' },
   )
   try {
     expect(rendered.getCapturedProps().optionsOverride).toEqual([
@@ -1521,6 +1528,7 @@ test('/model discovery override still surfaces inactive-profile switch options (
 
   const rendered = await renderModelCommandWithCapturedPicker(
     'descriptor-picker-inactive-switch-options',
+    { args: 'internal' },
   )
   try {
     const override = rendered.getCapturedProps()
@@ -1856,6 +1864,7 @@ test('/model applies providerProfileModelPickerMode provider override on descrip
 
   const rendered = await renderModelCommandWithCapturedPicker(
     'descriptor-picker-settings-provider-mode',
+    { args: 'internal' },
   )
   try {
     expect(rendered.getCapturedProps().optionsOverride).toEqual([
@@ -3280,6 +3289,7 @@ test('interactive model picker refresh keeps descriptor options allowlist-filter
 
   const rendered = await renderModelCommandWithCapturedPicker(
     'descriptor-picker-refresh-allowlist',
+    { args: 'internal' },
   )
   try {
     expect(rendered.getCapturedProps().optionsOverride).toEqual([

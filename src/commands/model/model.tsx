@@ -86,6 +86,7 @@ import {
   setActiveProviderProfile,
 } from '../../utils/providerProfiles.js'
 import { parseModelList } from '../../utils/providerModels.js'
+import { OpenRouterModelPicker } from './OpenRouterModelPicker.js'
 import { getInitialSettings } from '../../utils/settings/settings.js'
 
 export type ProviderProfileModelPickerMode = 'auto' | 'profile' | 'provider'
@@ -1355,6 +1356,59 @@ async function refreshModelsAndSummarize(): Promise<string> {
   }
 }
 
+function OpenRouterModelPickerWrapper({
+  onDone,
+}: {
+  onDone: (result?: string, options?: { display?: CommandResultDisplay }) => void
+}) {
+  const mainLoopModel = useAppState((s: AppState) => s.mainLoopModel)
+  const isFastMode = useAppState((s: AppState) => s.fastMode)
+  const setAppState = useSetAppState()
+
+  const handleSelect = (model: string) => {
+    if (!isModelAllowed(model)) {
+      onDone(
+        `Model '${model}' is not available. Your organization restricts model selection.`,
+        { display: 'system' },
+      )
+      return
+    }
+
+    logEvent('tengu_model_command_menu', {
+      action: 'openrouter' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
+    })
+
+    const fastModeResult = reconcileFastModeForSwitch(model, isFastMode ?? false)
+    setAppState(prev => ({
+      ...prev,
+      mainLoopModel: model,
+      mainLoopModelForSession: null,
+      ...(fastModeResult === 'off' ? { fastMode: false } : {}),
+    }))
+
+    let message = `Set model to ${chalk.bold(model)}`
+    if (fastModeResult === 'on') {
+      message += ' · Fast mode ON'
+    } else if (fastModeResult === 'off') {
+      message += ' · Fast mode OFF'
+    }
+    onDone(message)
+  }
+
+  return (
+    <OpenRouterModelPicker
+      currentModel={mainLoopModel}
+      onSelect={handleSelect}
+      onCancel={() =>
+        onDone(`Kept model as ${chalk.bold(renderModelLabel(mainLoopModel))}`, {
+          display: 'system',
+        })
+      }
+      onError={message => onDone(message, { display: 'system' })}
+    />
+  )
+}
+
 export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
   const trimmedArgs = args?.trim() || ''
 
@@ -1367,12 +1421,21 @@ export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
 
   if (COMMON_HELP_ARGS.includes(trimmedArgs)) {
     onDone(
-      'Run /model to open the model selection menu, /model refresh to reload provider models, or /model [modelName] to set the model.',
+      'Run /model to open the model selection menu (OpenRouter models with price and context when OpenRouter is active), /model openrouter to browse OpenRouter models, /model internal for the provider model picker, /model refresh to reload provider models, or /model [modelName] to set the model.',
       {
         display: 'system',
       },
     )
     return
+  }
+
+  if (trimmedArgs === 'openrouter') {
+    return <OpenRouterModelPickerWrapper onDone={onDone} />
+  }
+
+  if (trimmedArgs === 'internal') {
+    const discoveryContext = await loadModelDiscoveryContext()
+    return <ModelPickerWrapper discoveryContext={discoveryContext} onDone={onDone} />
   }
 
   if (trimmedArgs === 'refresh') {
@@ -1387,6 +1450,12 @@ export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
       args: trimmedArgs as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     })
     return <SetModelAndClose args={trimmedArgs} onDone={onDone} />
+  }
+
+  // On the OpenRouter route the catalog is large, so show the searchable
+  // picker with per-model price and context instead of the generic list.
+  if (getActiveRouteId() === 'openrouter') {
+    return <OpenRouterModelPickerWrapper onDone={onDone} />
   }
 
   const discoveryContext = await loadModelDiscoveryContext()
