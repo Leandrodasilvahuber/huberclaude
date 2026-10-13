@@ -174,6 +174,6 @@ export function getUsageDescriptor(
 export default {
   type: 'local-jsx',
   name: 'usage',
-  description: 'Show plan usage limits',
+  description: 'Show OpenRouter balance and spend',
   load: () => import('./usage.js'),
 } satisfies Command

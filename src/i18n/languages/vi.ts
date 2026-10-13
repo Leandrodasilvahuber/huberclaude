@@ -85,7 +85,7 @@ export const vi = {
   'commands.terminal-setup.description':
     'Cài đặt phím tắt Shift+Enter để xuống dòng',
   'commands.theme.description': 'Đổi giao diện',
-  'commands.usage.description': 'Hiện giới hạn sử dụng gói',
+  'commands.usage.description': 'Hiện số dư và chi tiêu OpenRouter',
   'commands.vim.description': 'Chuyển đổi giữa chế độ Vim và Normal',
   'commands.wiki.description':
     'Khởi tạo và kiểm tra wiki dự án OpenClaude',
