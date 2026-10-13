@@ -1273,7 +1273,7 @@ async function run(): Promise<CommanderCommand> {
     // HuberClaude is OpenRouter-only; interactive sessions prompt for the key
     // in showSetupScreens, print/SDK sessions cannot.
     if (isNonInteractiveSession && !resolveOpenRouterApiKey()) {
-      process.stderr.write(chalk.red('Error: No OpenRouter API key configured. Run huberclaude once interactively to configure it, or set OPENROUTER_API_KEY.\n'));
+      process.stderr.write(chalk.red('Error: No OpenRouter API key configured. Run huberclaude once interactively to configure it, or set HUBERCLAUDE_OPENROUTER_API_KEY.\n'));
       process.exit(1);
     }
 

@@ -60,11 +60,19 @@ export function saveOpenRouterConfig(config: OpenRouterConfig): void {
   fs.chmodSync(configFile, 0o600)
 }
 
-/** Saved key first, then OPENROUTER_API_KEY from the environment. */
+/**
+ * Saved key first, then HUBERCLAUDE_OPENROUTER_API_KEY. The generic
+ * OPENROUTER_API_KEY is deliberately ignored so an unrelated export (or a
+ * provider test fixture) cannot switch the whole session to OpenRouter.
+ */
 export function resolveOpenRouterApiKey(
   env: NodeJS.ProcessEnv = process.env,
 ): string | undefined {
-  return getOpenRouterConfig().apiKey?.trim() || env.OPENROUTER_API_KEY?.trim() || undefined
+  return (
+    getOpenRouterConfig().apiKey?.trim() ||
+    env.HUBERCLAUDE_OPENROUTER_API_KEY?.trim() ||
+    undefined
+  )
 }
 
 /**

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
+import { afterAll, afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 import {
   getClientType,
   getMainLoopModelOverride,
@@ -14,6 +14,14 @@ import {
 } from './settings/settingsCache.js'
 import * as realSettings from './settings/settings.js'
 import type { SettingsJson } from './settings/types.js'
+
+// Bun's mock.restore() does not undo mock.module(), so put the real
+// providers module back once this file is done; otherwise its mocks leak
+// into every later test file in the same process.
+const realProvidersSnapshot = { ...(await import('./model/providers.js')) }
+afterAll(() => {
+  mock.module('./model/providers.js', () => realProvidersSnapshot)
+})
 
 const actualSettings = { ...realSettings }
 

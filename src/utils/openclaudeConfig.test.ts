@@ -63,11 +63,17 @@ describe('openclaudeConfig', () => {
     })
   })
 
-  test('falls back to OPENROUTER_API_KEY and the default model', () => {
-    const env: NodeJS.ProcessEnv = { OPENROUTER_API_KEY: 'sk-or-env' }
+  test('falls back to HUBERCLAUDE_OPENROUTER_API_KEY and the default model', () => {
+    const env: NodeJS.ProcessEnv = { HUBERCLAUDE_OPENROUTER_API_KEY: 'sk-or-env' }
     expect(applyOpenRouterConfigToEnv(env)).toBe(true)
     expect(env.OPENAI_API_KEY).toBe('sk-or-env')
     expect(env.OPENAI_MODEL).toBe('qwen/qwen3-coder')
+  })
+
+  test('ignores the generic OPENROUTER_API_KEY', () => {
+    const env: NodeJS.ProcessEnv = { OPENROUTER_API_KEY: 'sk-or-other' }
+    expect(applyOpenRouterConfigToEnv(env)).toBe(false)
+    expect(env.CLAUDE_CODE_USE_OPENAI).toBeUndefined()
   })
 })
 

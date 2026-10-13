@@ -138,10 +138,13 @@ describe('interactive REPL max-turn cap', () => {
 
     try {
       expect(resolveReplMaxTurns()).toBe(DEFAULT_REPL_MAX_TURNS)
-      expect(logSpy).toHaveBeenCalledTimes(1)
-      const logged = logSpy.mock.calls.flat().join(' ')
-      expect(logged).toContain('OPENCLAUDE_MAX_TURNS has an invalid value')
-      expect(logged).not.toContain(invalidValue)
+      // Count only max-turn logs: timers left by earlier test files in the
+      // same process can also hit the shared debug logger.
+      const maxTurnLogs = logSpy.mock.calls
+        .map(call => call.join(' '))
+        .filter(line => line.includes('OPENCLAUDE_MAX_TURNS has an invalid value'))
+      expect(maxTurnLogs.length).toBeGreaterThan(0)
+      expect(logSpy.mock.calls.flat().join(' ')).not.toContain(invalidValue)
     } finally {
       logSpy.mockRestore()
     }

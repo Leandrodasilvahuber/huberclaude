@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterAll, afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 import figures from 'figures'
 import type { StatusNoticeContext } from './statusNoticeDefinitions.js'
 import {
@@ -6,6 +6,14 @@ import {
   statusNoticeDefinitions,
 } from './statusNoticeDefinitions.js'
 import { renderToString } from './staticRender.js'
+
+// Bun's mock.restore() does not undo mock.module(), so put the real
+// providers module back once this file is done; otherwise its mocks leak
+// into every later test file in the same process.
+const realProvidersSnapshot = { ...(await import('./model/providers.js')) }
+afterAll(() => {
+  mock.module('./model/providers.js', () => realProvidersSnapshot)
+})
 
 // Regression coverage for issue #244 — the two safety-related status notices
 // that warn 3P users when they are running without the AI classifier or with

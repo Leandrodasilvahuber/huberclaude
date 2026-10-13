@@ -1,4 +1,8 @@
-import { getOpenRouterConfig } from '../../utils/openclaudeConfig.js'
+import { createCombinedAbortSignal } from '../../utils/combinedAbortSignal.js'
+import {
+  getOpenRouterConfig,
+  resolveOpenRouterApiKey,
+} from '../../utils/openclaudeConfig.js'
 
 export type OpenRouterModel = {
   id: string
@@ -58,16 +62,23 @@ export function parseOpenRouterModels(payload: unknown): OpenRouterModel[] {
 export async function fetchOpenRouterModels(): Promise<OpenRouterModel[]> {
   const config = getOpenRouterConfig()
   const baseUrl = (config.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '')
-  const apiKey = config.apiKey || process.env.OPENROUTER_API_KEY
+  const apiKey = resolveOpenRouterApiKey()
 
-  const response = await fetch(`${baseUrl}/models`, {
-    headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : {},
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  const { signal, cleanup } = createCombinedAbortSignal(undefined, {
+    timeoutMs: FETCH_TIMEOUT_MS,
   })
-  if (!response.ok) {
-    throw new Error(`OpenRouter returned HTTP ${response.status}`)
+  try {
+    const response = await fetch(`${baseUrl}/models`, {
+      headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : {},
+      signal,
+    })
+    if (!response.ok) {
+      throw new Error(`OpenRouter returned HTTP ${response.status}`)
+    }
+    return parseOpenRouterModels(await response.json())
+  } finally {
+    cleanup()
   }
-  return parseOpenRouterModels(await response.json())
 }
 
 export function isFreeOpenRouterModel(model: OpenRouterModel): boolean {

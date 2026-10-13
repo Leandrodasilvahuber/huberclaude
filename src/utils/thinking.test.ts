@@ -1,9 +1,17 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterAll, afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 import {
   acquireSharedMutationLock,
   releaseSharedMutationLock,
 } from '../test/sharedMutationLock.js'
 import { resetSettingsCache } from './settings/settingsCache.js'
+
+// Bun's mock.restore() does not undo mock.module(), so put the real
+// providers module back once this file is done; otherwise its mocks leak
+// into every later test file in the same process.
+const realProvidersSnapshot = { ...(await import('./model/providers.js')) }
+afterAll(() => {
+  mock.module('./model/providers.js', () => realProvidersSnapshot)
+})
 
 const ENV_KEYS = [
   'CLAUDE_CODE_USE_OPENAI',

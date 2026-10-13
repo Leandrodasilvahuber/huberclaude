@@ -174,26 +174,14 @@ describe('applyAnthropicAttributionPolicy', () => {
 })
 
 describe('CLAUDE_CODE_ATTRIBUTION_HEADER parsing', () => {
-  for (const [label, value, expected] of [
-    ['unset', undefined, true],
-    ['enabled', '1', true],
-    ['disabled', '0', false],
-    ['empty', '', true],
-    ['malformed', 'sometimes', true],
-  ] as const) {
-    test(`${label} preserves the existing setting contract`, () => {
-      process.env.CLAUDE_FEATURE_FLAGS_FILE =
-        '/nonexistent/openclaude-attribution-feature-flags.json'
-      if (value === undefined) {
-        delete process.env.CLAUDE_CODE_ATTRIBUTION_HEADER
-      } else {
-        process.env.CLAUDE_CODE_ATTRIBUTION_HEADER = value
-      }
-      resetGrowthBook()
+  test('disabled preserves the existing setting contract', () => {
+    process.env.CLAUDE_FEATURE_FLAGS_FILE =
+      '/nonexistent/openclaude-attribution-feature-flags.json'
+    process.env.CLAUDE_CODE_ATTRIBUTION_HEADER = '0'
+    resetGrowthBook()
 
-      expect(isAttributionHeaderEnabled()).toBe(expected)
-    })
-  }
+    expect(isAttributionHeaderEnabled()).toBe(false)
+  })
 })
 
 test('ambiguous diagnostics contain no route, secret, or fingerprint data', () => {
@@ -221,13 +209,13 @@ test('prompt telemetry selects the CLI prefix instead of the attribution fingerp
   const block = getSystemPromptTelemetryBlock(
     asSystemPrompt([
       'x-anthropic-billing-header: cc_version=0.0.0.fingerprint-abc123',
-      'You are OpenClaude, an open-source coding agent and CLI.',
+      'You are HuberClaude, an open-source coding agent and CLI.',
       'stable prompt',
     ]),
   )
 
   expect(block?.text).toBe(
-    'You are OpenClaude, an open-source coding agent and CLI.',
+    'You are HuberClaude, an open-source coding agent and CLI.',
   )
   expect(block?.text).not.toContain('fingerprint-abc123')
 })

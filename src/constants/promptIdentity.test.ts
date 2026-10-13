@@ -77,13 +77,13 @@ afterEach(() => {
   clearSystemPromptSections()
 })
 
-test('CLI identity prefixes describe OpenClaude instead of Claude Code', () => {
-  expect(getCLISyspromptPrefix()).toContain('OpenClaude')
+test('CLI identity prefixes describe HuberClaude instead of Claude Code', () => {
+  expect(getCLISyspromptPrefix()).toContain('HuberClaude')
   expect(getCLISyspromptPrefix()).not.toContain('Claude Code')
   expect(getCLISyspromptPrefix()).not.toContain("Anthropic's official CLI for Claude")
 
   for (const prefix of CLI_SYSPROMPT_PREFIXES) {
-    expect(prefix).toContain('OpenClaude')
+    expect(prefix).toContain('HuberClaude')
     expect(prefix).not.toContain('Claude Code')
     expect(prefix).not.toContain("Anthropic's official CLI for Claude")
   }

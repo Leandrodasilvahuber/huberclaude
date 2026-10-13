@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, mock, test } from 'bun:test'
+import { afterAll, afterEach, beforeEach, expect, mock, test } from 'bun:test'
 
 import { DEFAULT_CODEX_BASE_URL } from '../services/api/providerConfig.js'
 import {
@@ -7,6 +7,36 @@ import {
 } from '../test/sharedMutationLock.js'
 
 const ORIGINAL_ENV = { ...process.env }
+
+// Bun's mock.restore() does not undo mock.module(), so module mocks leak into
+// every later test file in the same process. Mock with the real exports
+// spread in, and put the real modules back once this file is done.
+const realProviders = { ...(await import('./model/providers.js')) }
+const realMTLS = { ...(await import('./mtls.js')) }
+
+function mockProviders(provider: string): void {
+  mock.module('./model/providers.js', () => ({
+    ...realProviders,
+    getAPIProvider: () => provider,
+    getAPIProviderForStatsig: () => provider,
+    isFirstPartyAnthropicBaseUrl: () => true,
+    isGithubNativeAnthropicMode: () => false,
+  }))
+}
+
+function mockMTLSConfig(config: { cert: string; key: string } | undefined): void {
+  mock.module('./mtls.js', () => ({
+    ...realMTLS,
+    getMTLSConfig: Object.assign(() => config, {
+      cache: realMTLS.getMTLSConfig.cache,
+    }),
+  }))
+}
+
+afterAll(() => {
+  mock.module('./model/providers.js', () => realProviders)
+  mock.module('./mtls.js', () => realMTLS)
+})
 
 function restoreEnv(): void {
   for (const key of Object.keys(process.env)) {
@@ -37,12 +67,7 @@ async function readPropertyValue(
     | 'minimax',
 ): Promise<unknown> {
   mock.restore()
-  mock.module('./model/providers.js', () => ({
-    getAPIProvider: () => provider,
-    getAPIProviderForStatsig: () => provider,
-    isFirstPartyAnthropicBaseUrl: () => true,
-    isGithubNativeAnthropicMode: () => false,
-  }))
+  mockProviders(provider)
   const nonce = `${Date.now()}-${Math.random()}`
   const { buildAPIProviderProperties } = await import(`./status.js?ts=${nonce}`)
   return buildAPIProviderProperties().find(property => property.label === label)
@@ -60,15 +85,8 @@ async function readAPIProviderProperties(
     | 'mistral',
 ) {
   mock.restore()
-  mock.module('./model/providers.js', () => ({
-    getAPIProvider: () => provider,
-    getAPIProviderForStatsig: () => provider,
-    isFirstPartyAnthropicBaseUrl: () => true,
-    isGithubNativeAnthropicMode: () => false,
-  }))
-  mock.module('./mtls.js', () => ({
-    getMTLSConfig: () => undefined,
-  }))
+  mockProviders(provider)
+  mockMTLSConfig(undefined)
   const nonce = `${Date.now()}-${Math.random()}`
   const { buildAPIProviderProperties } = await import(`./status.js?ts=${nonce}`)
   return buildAPIProviderProperties()
@@ -296,19 +314,9 @@ test('buildAPIProviderProperties redacts proxy credentials and mTLS paths', asyn
   process.env.CLAUDE_CODE_CLIENT_KEY = `${home}/.config/client.key`
 
   mock.restore()
-  mock.module('./model/providers.js', () => ({
-    getAPIProvider: () => 'openai',
-    getAPIProviderForStatsig: () => 'openai',
-    isFirstPartyAnthropicBaseUrl: () => true,
-    isGithubNativeAnthropicMode: () => false,
-  }))
+  mockProviders('openai')
   // getProxyUrl accepts env directly (not memoized), so no stub needed.
-  mock.module('./mtls.js', () => ({
-    getMTLSConfig: () => ({
-      cert: 'loaded-cert',
-      key: 'loaded-key',
-    }),
-  }))
+  mockMTLSConfig({ cert: 'loaded-cert', key: 'loaded-key' })
 
   const nonce = `${Date.now()}-${Math.random()}`
   const { buildAPIProviderProperties } = await import(`./status.js?ts=${nonce}`)
@@ -354,15 +362,8 @@ test('buildAPIProviderProperties redacts proxy credentials from lowercase https_
   process.env.https_proxy = 'https://bob:hunter2@proxy.example.com:9090'
 
   mock.restore()
-  mock.module('./model/providers.js', () => ({
-    getAPIProvider: () => 'openai',
-    getAPIProviderForStatsig: () => 'openai',
-    isFirstPartyAnthropicBaseUrl: () => true,
-    isGithubNativeAnthropicMode: () => false,
-  }))
-  mock.module('./mtls.js', () => ({
-    getMTLSConfig: () => undefined,
-  }))
+  mockProviders('openai')
+  mockMTLSConfig(undefined)
 
   const nonce = `${Date.now()}-${Math.random()}`
   const { buildAPIProviderProperties } = await import(`./status.js?ts=${nonce}`)

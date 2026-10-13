@@ -54,7 +54,7 @@ describe('composeCombiningMark', () => {
 
     const stepTwo = composeCombiningMark(stepOne!.text, stepOne!.offset, '\u0301')
     expect(stepTwo?.text).toBe('tiế')
-    expect([...(stepTwo?.text ?? '')].length).toBe(4)
+    expect([...(stepTwo?.text ?? '')].length).toBe(3)
   })
 
   test('composes mid-text without disturbing trailing characters', () => {
@@ -87,7 +87,7 @@ describe('composeCombiningMark', () => {
 describe('replacePreviousWithChar', () => {
   test('replaces the previous character with the composed replacement', () => {
     expect(replacePreviousWithChar('xin cha', 7, 'ò')).toEqual({
-      text: 'xin chà',
+      text: 'xin chò',
       offset: 7,
     })
   })
@@ -421,7 +421,7 @@ describe('useTextInput IME composition regression (#2018)', () => {
       key: { backspace: true },
     })
 
-    expect(result.value).toBe('xin chà')
+    expect(result.value).toBe('xin chò')
     expect(result.cursorOffset).toBe(7)
   })
 

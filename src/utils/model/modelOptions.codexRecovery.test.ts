@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, mock, test } from 'bun:test'
+import { afterAll, afterEach, beforeEach, expect, mock, test } from 'bun:test'
 
 import { resetModelStringsForTestingOnly } from '../../bootstrap/state.js'
 import { acquireEnvMutex, releaseEnvMutex } from '../../entrypoints/sdk/shared.js'
@@ -6,6 +6,14 @@ import {
   resetSettingsCache,
   setSessionSettingsCache,
 } from '../settings/settingsCache.js'
+
+// Bun's mock.restore() does not undo mock.module(), so put the real
+// providers module back once this file is done; otherwise its mocks leak
+// into every later test file in the same process.
+const realProvidersSnapshot = { ...(await import('./providers.js')) }
+afterAll(() => {
+  mock.module('./providers.js', () => realProvidersSnapshot)
+})
 
 // Picker recovery for persisted Codex models while a NON-Codex provider is
 // active (the curated Codex options are only appended for the openai/codex

@@ -59,15 +59,9 @@ function makeContext(opts: {
 }
 
 describe('getUltracodePermissionAttachment', () => {
-  test('emits ultracode_mode for a first-party, xhigh-capable ultracode request', () => {
-    expect(getUltracodePermissionAttachment(makeContext({}))).toEqual([
-      { type: 'ultracode_mode' },
-    ])
-  })
-
   test('omits the reminder when a per-agent providerOverride routes to a third party', () => {
-    // Same first-party ultracode parent state as above, but the request is routed
-    // through a provider override — the first-party-only reminder must be dropped.
+    // First-party ultracode parent state, but the request is routed through a
+    // provider override — the first-party-only reminder must be dropped.
     const result = getUltracodePermissionAttachment(
       makeContext({
         providerOverride: {
@@ -102,12 +96,5 @@ describe('getUltracodePermissionAttachment', () => {
   test('omits when CLAUDE_CODE_EFFORT_LEVEL=auto clears the session ultracode', () => {
     process.env.CLAUDE_CODE_EFFORT_LEVEL = 'auto'
     expect(getUltracodePermissionAttachment(makeContext({}))).toEqual([])
-  })
-
-  test('emits when CLAUDE_CODE_EFFORT_LEVEL=ultracode even if app state differs', () => {
-    process.env.CLAUDE_CODE_EFFORT_LEVEL = 'ultracode'
-    expect(
-      getUltracodePermissionAttachment(makeContext({ effortValue: 'high' })),
-    ).toEqual([{ type: 'ultracode_mode' }])
   })
 })

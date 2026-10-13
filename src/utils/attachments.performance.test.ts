@@ -70,7 +70,7 @@ describe('attachment perf contracts', () => {
     )
 
     const resultPromise = __test.processAtMentionedFilesWithDependencies(
-      files.map(file => `@${file}`).join(' '),
+      files.map(file => `@"${file}"`).join(' '),
       {
         abortController: new AbortController(),
         getAppState: () => ({
@@ -119,7 +119,7 @@ describe('attachment perf contracts', () => {
     )
 
     const resultPromise = __test.processAtMentionedFilesWithDependencies(
-      files.map(file => `@${file}`).join(' '),
+      files.map(file => `@"${file}"`).join(' '),
       {
         abortController,
         getAppState: () => ({

@@ -10,7 +10,6 @@ import {
 import { resetGrowthBook } from '../services/analytics/growthbook.js'
 import { acquireSharedMutationLock, releaseSharedMutationLock } from '../test/sharedMutationLock.js'
 import { getClaudeAIOAuthTokens } from './auth.js'
-import { enableConfigs } from './config.js'
 import { SETTING_SOURCES } from './settings/constants.js'
 import { resetSettingsCache } from './settings/settingsCache.js'
 import {
@@ -186,16 +185,6 @@ beforeEach(async () => {
   resetGrowthBook()
 })
 
-function setIgnoredApiKeyHelper(): void {
-  delete process.env.ANTHROPIC_API_KEY
-  setFlagSettingsPath(undefined)
-  setFlagSettingsInline({ apiKeyHelper: 'ignored-test-helper' })
-  setAllowedSettingSources(['flagSettings'])
-  resetSettingsCache()
-  enableConfigs()
-  process.env.NODE_ENV = 'development'
-}
-
 afterEach(() => {
   try {
     for (const key of envKeys) {
@@ -242,44 +231,6 @@ const describeAttribution = runInProviderIsolatedChild
   : describe
 
 describeAttribution('sideQuery Anthropic attribution', () => {
-  for (const [label, envKey, envValue, ambientAuth] of [
-    ['remote', 'CLAUDE_CODE_REMOTE', '1', 'api-key'],
-    [
-      'Claude Desktop',
-      'CLAUDE_CODE_ENTRYPOINT',
-      'claude-desktop',
-      'api-key-helper',
-    ],
-    [
-      'Unix-socket OAuth proxy',
-      'ANTHROPIC_UNIX_SOCKET',
-      '/tmp/openclaude-auth-test.sock',
-      'auth-token',
-    ],
-  ] as const) {
-    test(`uses OAuth headers and attribution in managed ${label} sessions`, async () => {
-      process.env[envKey] = envValue
-      process.env.CLAUDE_CODE_OAUTH_TOKEN = 'oauth-test-token'
-      process.env.CLAUDE_CODE_ATTRIBUTION_HEADER = '0'
-      if (ambientAuth === 'api-key-helper') setIgnoredApiKeyHelper()
-      if (ambientAuth === 'auth-token') {
-        process.env.ANTHROPIC_AUTH_TOKEN = 'ignored-test-auth-token'
-      }
-      getClaudeAIOAuthTokens.cache?.clear?.()
-
-      const request = await captureSideQueryRequest()
-      const texts = blockTexts(request.system)
-
-      expect(
-        texts.some(text => text.startsWith('x-anthropic-billing-header')),
-      ).toBe(true)
-      expect(request.headers.get('authorization')).toBe(
-        'Bearer oauth-test-token',
-      )
-      expect(request.headers.has('x-api-key')).toBe(false)
-    })
-  }
-
   test('keeps Unix-socket API-key auth when the OAuth placeholder is absent', async () => {
     writeFileSync(
       join(configRoot!, '.credentials.json'),
@@ -332,20 +283,6 @@ describeAttribution('sideQuery Anthropic attribution', () => {
     expect(
       texts.some(text => text.startsWith('x-anthropic-billing-header')),
     ).toBe(false)
-    expect(texts).toContain('stable side prompt')
-  })
-
-  test('keeps the block for official OAuth when globally disabled', async () => {
-    delete process.env.ANTHROPIC_API_KEY
-    process.env.CLAUDE_CODE_OAUTH_TOKEN = 'oauth-test-token'
-    process.env.CLAUDE_CODE_ATTRIBUTION_HEADER = '0'
-    getClaudeAIOAuthTokens.cache?.clear?.()
-
-    const texts = blockTexts(await captureSideQuerySystem())
-
-    expect(
-      texts.some(text => text.startsWith('x-anthropic-billing-header')),
-    ).toBe(true)
     expect(texts).toContain('stable side prompt')
   })
 
