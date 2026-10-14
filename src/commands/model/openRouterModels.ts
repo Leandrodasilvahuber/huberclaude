@@ -97,6 +97,41 @@ export function formatOpenRouterPrice(model: OpenRouterModel): string {
   return `$${formatPrice(model.promptPrice)}/$${formatPrice(model.completionPrice)} per 1M`
 }
 
+export const MODEL_COLUMN_WIDTHS = {
+  context: 7,
+  price: 10,
+} as const
+
+/** Pads or truncates (with "…") `text` to exactly `width` cells. */
+export function fitColumn(text: string, width: number): string {
+  if (width <= 0) return ''
+  if (text.length > width) return `${text.slice(0, width - 1)}…`
+  return text.padEnd(width)
+}
+
+/**
+ * The fixed-width cells of one /model row: context and the input/output price
+ * per 1M tokens, each right-aligned so digits line up across rows.
+ */
+export function formatOpenRouterModelColumns(model: OpenRouterModel): {
+  context: string
+  input: string
+  output: string
+} {
+  const free = isFreeOpenRouterModel(model)
+  const price = (value: number | null) =>
+    (free ? 'free' : value === null ? '?' : `$${formatPrice(value)}`).padStart(
+      MODEL_COLUMN_WIDTHS.price,
+    )
+  return {
+    context: formatContextLength(model.contextLength).padStart(
+      MODEL_COLUMN_WIDTHS.context,
+    ),
+    input: price(model.promptPrice),
+    output: price(model.completionPrice),
+  }
+}
+
 /** e.g. "128K", "1M", "?". */
 export function formatContextLength(tokens: number | null): string {
   if (!tokens) return '?'

@@ -1,17 +1,25 @@
 import * as React from 'react'
 import { FuzzyPicker } from '../../components/design-system/FuzzyPicker.js'
 import { LoadingState } from '../../components/design-system/LoadingState.js'
+import { useTerminalSize } from '../../hooks/useTerminalSize.js'
 import { Box, Text } from '../../ink.js'
 import {
   fetchOpenRouterModels,
   filterOpenRouterModels,
+  fitColumn,
   formatContextLength,
+  formatOpenRouterModelColumns,
   formatOpenRouterPrice,
   isFreeOpenRouterModel,
+  MODEL_COLUMN_WIDTHS,
   type OpenRouterModel,
 } from './openRouterModels.js'
 
-const ID_COLUMN_WIDTH = 48
+const MIN_ID_COLUMN_WIDTH = 20
+const MAX_ID_COLUMN_WIDTH = 56
+// Pane padding + list pointer, plus the " (current)" marker after the columns.
+const ROW_CHROME_WIDTH = 6 + ' (current)'.length
+const COLUMN_GAP = '  '
 
 export function OpenRouterModelPicker({
   currentModel,
@@ -26,6 +34,7 @@ export function OpenRouterModelPicker({
 }): React.ReactNode {
   const [models, setModels] = React.useState<OpenRouterModel[] | null>(null)
   const [query, setQuery] = React.useState('')
+  const { columns } = useTerminalSize()
 
   React.useEffect(() => {
     let cancelled = false
@@ -57,13 +66,29 @@ export function OpenRouterModelPicker({
     [models, query],
   )
 
+  const idWidth = React.useMemo(() => {
+    const longest = Math.max(
+      MIN_ID_COLUMN_WIDTH,
+      ...(models ?? []).map(model => model.id.length),
+    )
+    const fixed =
+      MODEL_COLUMN_WIDTHS.context +
+      2 * MODEL_COLUMN_WIDTHS.price +
+      3 * COLUMN_GAP.length +
+      ROW_CHROME_WIDTH
+    return Math.max(
+      MIN_ID_COLUMN_WIDTH,
+      Math.min(longest, MAX_ID_COLUMN_WIDTH, columns - fixed),
+    )
+  }, [models, columns])
+
   if (!models) {
     return <LoadingState message="Loading OpenRouter models…" />
   }
 
   return (
     <FuzzyPicker
-      title={`OpenRouter models (${models.length}) · price input/output per 1M tokens`}
+      title={`OpenRouter models (${models.length}) · prices in USD per 1M tokens`}
       placeholder="Type to filter (e.g. claude, free, qwen coder)…"
       items={items}
       getKey={model => model.id}
@@ -73,20 +98,33 @@ export function OpenRouterModelPicker({
       onCancel={onCancel}
       emptyMessage={q => `No OpenRouter models match "${q}"`}
       matchLabel={query ? `${items.length} matches` : undefined}
+      header={
+        <Text dimColor>
+          {'  '}
+          {fitColumn('Model', idWidth)}
+          {COLUMN_GAP}
+          {'Context'.padStart(MODEL_COLUMN_WIDTHS.context)}
+          {COLUMN_GAP}
+          {'Input'.padStart(MODEL_COLUMN_WIDTHS.price)}
+          {COLUMN_GAP}
+          {'Output'.padStart(MODEL_COLUMN_WIDTHS.price)}
+        </Text>
+      }
       renderItem={(model, isFocused) => {
-        const id =
-          model.id.length > ID_COLUMN_WIDTH
-            ? `${model.id.slice(0, ID_COLUMN_WIDTH - 1)}…`
-            : model.id.padEnd(ID_COLUMN_WIDTH)
-        const isCurrent = model.id === currentModel
+        const cells = formatOpenRouterModelColumns(model)
+        const priceColor = isFreeOpenRouterModel(model) ? 'success' : undefined
         return (
           <Text color={isFocused ? 'suggestion' : undefined}>
-            {id} <Text dimColor={!isFocused}>{formatContextLength(model.contextLength).padStart(6)} ctx</Text>
-            {'  '}
-            <Text color={isFreeOpenRouterModel(model) ? 'success' : undefined}>
-              {formatOpenRouterPrice(model)}
-            </Text>
-            {isCurrent ? <Text dimColor> (current)</Text> : null}
+            {fitColumn(model.id, idWidth)}
+            {COLUMN_GAP}
+            <Text dimColor={!isFocused}>{cells.context}</Text>
+            {COLUMN_GAP}
+            <Text color={priceColor}>{cells.input}</Text>
+            {COLUMN_GAP}
+            <Text color={priceColor}>{cells.output}</Text>
+            {model.id === currentModel ? (
+              <Text dimColor> (current)</Text>
+            ) : null}
           </Text>
         )
       }}

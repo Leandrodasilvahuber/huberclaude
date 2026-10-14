@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 
 import {
-  buildGauge,
+  buildSevenSegment,
   formatUsd,
-  groupGaugeRow,
+  groupSegmentRow,
   parseOpenRouterCredits,
   parseOpenRouterKeyUsage,
 } from './openRouterUsage.js'
@@ -75,56 +75,69 @@ describe('formatUsd', () => {
   })
 })
 
-describe('buildGauge', () => {
-  function zones(fraction: number) {
-    return buildGauge(fraction).flat().map(cell => cell.zone)
+describe('buildSevenSegment', () => {
+  function render(text: string, minDigits?: number) {
+    return buildSevenSegment(text, minDigits).map(row =>
+      row.map(cell => (cell.lit ? cell.char : ' ')).join(''),
+    )
   }
 
-  test('an empty gauge is all track with a hub', () => {
-    const z = zones(0)
-    expect(z).not.toContain('low')
-    expect(z).toContain('track')
-    expect(z).toContain('needle')
+  test('draws an 8 with every segment lit', () => {
+    expect(render('8')).toEqual([
+      ' ━━━ ',
+      '┃   ┃',
+      ' ━━━ ',
+      '┃   ┃',
+      ' ━━━ ',
+    ])
   })
 
-  test('a full gauge fills every zone and leaves no track', () => {
-    const z = zones(1)
-    expect(z).toContain('low')
-    expect(z).toContain('mid')
-    expect(z).toContain('high')
-    expect(z).not.toContain('track')
+  test('draws a 1 with only the right segments lit', () => {
+    expect(render('1')).toEqual([
+      '     ',
+      '    ┃',
+      '     ',
+      '    ┃',
+      '     ',
+    ])
   })
 
-  test('half way reaches the mid zone but not the high zone', () => {
-    const z = zones(0.5)
-    expect(z).toContain('mid')
-    expect(z).not.toContain('high')
+  test('keeps unlit segments as ghost cells', () => {
+    const cells = buildSevenSegment('1').flat()
+    expect(cells.some(cell => cell.char === '╌' && !cell.lit)).toBe(true)
   })
 
-  test('clamps out-of-range and non-finite fractions', () => {
-    expect(zones(5)).toEqual(zones(1))
-    expect(zones(Number.NaN)).toEqual(zones(0))
+  test('renders the decimal point on the bottom row', () => {
+    const rows = render('0.5')
+    expect(rows[4]).toContain('●')
+    expect(rows[0]).not.toContain('●')
   })
 
-  test('rows have equal width', () => {
-    const widths = new Set(buildGauge(0.3).map(row => row.length))
-    expect(widths.size).toBe(1)
+  test('pads the integer part to minDigits with blank digits', () => {
+    const rows = buildSevenSegment('1.00', 3)
+    const unpadded = buildSevenSegment('1.00')
+    expect(rows[0]!.length).toBe(unpadded[0]!.length + 2 * 6)
+    expect(new Set(rows.map(row => row.length)).size).toBe(1)
+  })
+
+  test('draws a minus sign with the middle segment', () => {
+    expect(render('-')[2]).toBe(' ━━━ ')
+    expect(render('-')[0]).toBe('     ')
   })
 })
 
-describe('groupGaugeRow', () => {
-  test('merges consecutive cells of the same zone', () => {
+describe('groupSegmentRow', () => {
+  test('merges consecutive cells with the same lit state', () => {
     expect(
-      groupGaugeRow([
-        { char: '█', zone: 'low' },
-        { char: '█', zone: 'low' },
-        { char: ' ', zone: 'empty' },
-        { char: '░', zone: 'track' },
+      groupSegmentRow([
+        { char: '━', lit: true },
+        { char: '━', lit: true },
+        { char: ' ', lit: false },
+        { char: '┃', lit: false },
       ]),
     ).toEqual([
-      { text: '██', zone: 'low' },
-      { text: ' ', zone: 'empty' },
-      { text: '░', zone: 'track' },
+      { text: '━━', lit: true },
+      { text: ' ┃', lit: false },
     ])
   })
 })

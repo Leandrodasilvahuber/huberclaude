@@ -59,12 +59,15 @@ type Props<T> = {
    * Caller decides when to show it — pass undefined to hide.
    */
   matchLabel?: string;
+  /** Row rendered directly above the list, e.g. column headings. */
+  header?: React.ReactNode;
   selectAction?: string;
   extraHints?: React.ReactNode;
 };
 const DEFAULT_VISIBLE = 8;
 // Pane (paddingTop + Divider) + title + 3 gaps + SearchBox (rounded border = 3
-// rows) + hints. matchLabel adds +1 when present, accounted for separately.
+// rows) + hints. matchLabel and header add +1 each when present, accounted
+// for separately.
 const CHROME_ROWS = 10;
 const MIN_VISIBLE = 2;
 export function FuzzyPicker<T>({
@@ -86,6 +89,7 @@ export function FuzzyPicker<T>({
   onCancel,
   emptyMessage = 'No results',
   matchLabel,
+  header,
   selectAction = 'select',
   extraHints
 }: Props<T>): React.ReactNode {
@@ -99,7 +103,7 @@ export function FuzzyPicker<T>({
   // Cap visibleCount so the picker never exceeds the terminal height. When it
   // overflows, each re-render (arrow key, ctrl+p) mis-positions the cursor-up
   // by the overflow amount and a previously-drawn line flashes blank.
-  const visibleCount = Math.max(MIN_VISIBLE, Math.min(requestedVisible, rows - CHROME_ROWS - (matchLabel ? 1 : 0)));
+  const visibleCount = Math.max(MIN_VISIBLE, Math.min(requestedVisible, rows - CHROME_ROWS - (matchLabel ? 1 : 0) - (header ? 1 : 0)));
 
   // Full hint row with onTab+onShiftTab is ~100 chars and wraps inconsistently
   // below that. Compact mode drops shift+tab and shortens labels.
@@ -180,8 +184,9 @@ export function FuzzyPicker<T>({
   // Structure must not depend on preview truthiness — when focused goes
   // undefined (e.g. delete clears matches), switching row→fragment would
   // change both layout AND gap count, bouncing the searchBox below.
-  const listGroup = renderPreview && previewPosition === 'right' ? <Box flexDirection="row" gap={2} height={visibleCount + (matchLabel ? 1 : 0)}>
+  const listGroup = renderPreview && previewPosition === 'right' ? <Box flexDirection="row" gap={2} height={visibleCount + (matchLabel ? 1 : 0) + (header ? 1 : 0)}>
         <Box flexDirection="column" flexShrink={0}>
+          {header}
           {listBlock}
           {matchLabel && <Text dimColor>{matchLabel}</Text>}
         </Box>
@@ -191,6 +196,7 @@ export function FuzzyPicker<T>({
   // between list/matchLabel/preview — that read as extra space above the
   // prompt in direction='up'.
   <Box flexDirection="column">
+        {header}
         {listBlock}
         {matchLabel && <Text dimColor>{matchLabel}</Text>}
         {preview}

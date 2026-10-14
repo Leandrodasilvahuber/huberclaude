@@ -4,56 +4,62 @@ import { LoadingState } from '../../components/design-system/LoadingState.js'
 import { Box, Text, useInput } from '../../ink.js'
 import type { Theme } from '../../utils/theme.js'
 import {
-  buildGauge,
+  buildSevenSegment,
   fetchOpenRouterUsage,
   formatUsd,
-  type GaugeZone,
-  groupGaugeRow,
+  groupSegmentRow,
   type OpenRouterUsageSnapshot,
 } from './openRouterUsage.js'
 
-const ZONE_COLORS: Partial<Record<GaugeZone, keyof Theme>> = {
-  low: 'success',
-  mid: 'warning',
-  high: 'error',
-  needle: 'text',
-}
-
-function Gauge({
+/** Old digital-clock style readout: lit segments in color, unlit as ghosts. */
+function LcdDisplay({
   title,
-  fraction,
+  value,
+  color,
   caption,
 }: {
   title: string
-  fraction: number
+  value: number
+  color: keyof Theme
   caption: string
 }): React.ReactNode {
-  const rows = React.useMemo(() => buildGauge(fraction), [fraction])
-  const percent = Math.round(Math.min(1, Math.max(0, fraction)) * 100)
-  const percentColor: keyof Theme =
-    percent < 34 ? 'success' : percent < 67 ? 'warning' : 'error'
+  const rows = React.useMemo(
+    () => buildSevenSegment(value.toFixed(2), 3),
+    [value],
+  )
   return (
     <Box flexDirection="column" alignItems="center">
       <Text bold>{title}</Text>
-      {rows.map((row, index) => (
-        <Text key={index}>
-          {groupGaugeRow(row).map((run, runIndex) => (
-            <Text
-              key={runIndex}
-              color={ZONE_COLORS[run.zone]}
-              dimColor={run.zone === 'track'}
-            >
-              {run.text}
-            </Text>
-          ))}
-        </Text>
-      ))}
-      <Text bold color={percentColor}>
-        {percent}%
-      </Text>
+      <Box
+        flexDirection="column"
+        borderStyle="round"
+        borderColor={color}
+        paddingX={1}
+      >
+        {rows.map((row, index) => (
+          <Text key={index}>
+            <Text color={color}>{index === 2 ? '$ ' : '  '}</Text>
+            {groupSegmentRow(row).map((run, runIndex) =>
+              run.lit ? (
+                <Text key={runIndex} color={color} bold>
+                  {run.text}
+                </Text>
+              ) : (
+                <Text key={runIndex} color="inactive" dimColor>
+                  {run.text}
+                </Text>
+              ),
+            )}
+          </Text>
+        ))}
+      </Box>
       <Text dimColor>{caption}</Text>
     </Box>
   )
+}
+
+function percentOf(used: number, total: number): number {
+  return total > 0 ? Math.round((used / total) * 100) : 0
 }
 
 function Stat({
@@ -86,23 +92,21 @@ export function UsageBody({
 
   return (
     <Box flexDirection="column" gap={1}>
-      <Box flexDirection="row" gap={6} justifyContent="center">
-        {credits ? (
-          <Gauge
-            title="Créditos usados"
-            fraction={
-              credits.totalCredits > 0
-                ? credits.totalUsage / credits.totalCredits
-                : 0
-            }
-            caption={`${formatUsd(credits.totalUsage)} de ${formatUsd(credits.totalCredits)}`}
+      <Box flexDirection="row" gap={4} justifyContent="center">
+        {credits && balance !== null ? (
+          <LcdDisplay
+            title="Saldo"
+            value={balance}
+            color={balance <= 0 ? 'error' : 'success'}
+            caption={`${percentOf(credits.totalUsage, credits.totalCredits)}% de ${formatUsd(credits.totalCredits)} usado`}
           />
         ) : null}
-        {key && keyLimit ? (
-          <Gauge
-            title="Limite da key"
-            fraction={key.usage / keyLimit}
-            caption={`${formatUsd(key.usage)} de ${formatUsd(keyLimit)}`}
+        {key && keyLimit && key.limitRemaining !== null ? (
+          <LcdDisplay
+            title="Restante da key"
+            value={key.limitRemaining}
+            color={key.limitRemaining <= 0 ? 'error' : 'warning'}
+            caption={`${percentOf(key.usage, keyLimit)}% de ${formatUsd(keyLimit)} usado`}
           />
         ) : null}
       </Box>

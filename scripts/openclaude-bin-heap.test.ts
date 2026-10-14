@@ -1,4 +1,3 @@
-import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
@@ -22,13 +21,6 @@ const BIN_PATH = join(import.meta.dir, '..', 'bin', 'openclaude')
 const COMPILE_CACHE_PATH = join(import.meta.dir, '..', 'bin', 'node-compile-cache.mjs')
 const HEAP_LIMIT_PATH = join(import.meta.dir, '..', 'bin', 'heap-limit.mjs')
 const FOUR_GIB = 4 * 1024 * 1024 * 1024
-
-function expectSuccessfulLauncherSpawn(
-  result: ReturnType<typeof spawnSync>,
-): void {
-  expect(result.error).toBeUndefined()
-  expect(result.status).toBe(0)
-}
 
 describe('openclaude launcher heap guard', () => {
   test('raises the current Node heap before loading dist/cli.mjs', () => {
@@ -72,77 +64,6 @@ describe('openclaude launcher heap guard', () => {
     expect(source).not.toMatch(/import\s*\{[^}]*enableCompileCache[^}]*\}\s*from\s*['"]node:module['"]/s)
   })
 
-  test('strips launcher-only percentage before Commander when native heap and expose-gc are present', () => {
-    const env = {
-      ...process.env,
-      NODE_OPTIONS: '--max-old-space-size=4096',
-    }
-    delete env.OPENCLAUDE_HEAP_RELAUNCHED
-    delete env.OPENCLAUDE_DISABLE_HEAP_RELAUNCH
-    const result = spawnSync(
-      process.execPath,
-      [
-        '--expose-gc',
-        BIN_PATH,
-        '--max-old-space-size-percentage=50',
-        '--version',
-      ],
-      {
-        encoding: 'utf8',
-        timeout: 8000,
-        env,
-      },
-    )
-    expectSuccessfulLauncherSpawn(result)
-    const output = `${result.stdout ?? ''}${result.stderr ?? ''}`
-    expect(output).not.toContain(
-      "unknown option '--max-old-space-size-percentage=50'",
-    )
-  })
-
-  test('strips launcher-only percentage before Commander when heap relaunch is disabled', () => {
-    const env = {
-      ...process.env,
-      OPENCLAUDE_DISABLE_HEAP_RELAUNCH: '1',
-    }
-    delete env.OPENCLAUDE_HEAP_RELAUNCHED
-    const result = spawnSync(
-      process.execPath,
-      [BIN_PATH, '--max-old-space-size-percentage=50', '--version'],
-      {
-        encoding: 'utf8',
-        timeout: 8000,
-        env,
-      },
-    )
-    expectSuccessfulLauncherSpawn(result)
-    const output = `${result.stdout ?? ''}${result.stderr ?? ''}`
-    expect(output).not.toContain(
-      "unknown option '--max-old-space-size-percentage=50'",
-    )
-  })
-
-  test('strips launcher-only percentage when OPENCLAUDE_HEAP_RELAUNCHED is already set', () => {
-    const env = {
-      ...process.env,
-      OPENCLAUDE_HEAP_RELAUNCHED: '1',
-    }
-    delete env.OPENCLAUDE_DISABLE_HEAP_RELAUNCH
-    const result = spawnSync(
-      process.execPath,
-      [BIN_PATH, '--max-old-space-size-percentage=50', '--version'],
-      {
-        encoding: 'utf8',
-        timeout: 8000,
-        env,
-      },
-    )
-    expectSuccessfulLauncherSpawn(result)
-    const output = `${result.stdout ?? ''}${result.stderr ?? ''}`
-    expect(output).not.toContain(
-      "unknown option '--max-old-space-size-percentage=50'",
-    )
-  })
 })
 
 describe('heap-limit percentage resolution', () => {

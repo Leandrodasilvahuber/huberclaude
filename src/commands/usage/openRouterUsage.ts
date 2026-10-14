@@ -139,78 +139,98 @@ export function formatUsd(value: number | null): string {
   return `${value < 0 ? '-' : ''}$${abs.toFixed(digits)}`
 }
 
-export type GaugeZone = 'low' | 'mid' | 'high' | 'track' | 'needle' | 'empty'
+export type SegmentCell = { char: string; lit: boolean }
 
-export type GaugeCell = { char: string; zone: GaugeZone }
+// Segments: a=top, b=top-right, c=bottom-right, d=bottom, e=bottom-left,
+// f=top-left, g=middle.
+const DIGIT_SEGMENTS: Record<string, string> = {
+  '0': 'abcdef',
+  '1': 'bc',
+  '2': 'abdeg',
+  '3': 'abcdg',
+  '4': 'bcfg',
+  '5': 'acdfg',
+  '6': 'acdefg',
+  '7': 'abc',
+  '8': 'abcdefg',
+  '9': 'abcdfg',
+  '-': 'g',
+  ' ': '',
+}
+
+const SEGMENT_ROWS = 5
+
+function digitCells(segments: string): SegmentCell[][] {
+  const on = (segment: string) => segments.includes(segment)
+  const blank: SegmentCell = { char: ' ', lit: false }
+  const horizontal = (segment: string): SegmentCell[] => [
+    blank,
+    ...Array.from({ length: 3 }, () =>
+      on(segment) ? { char: '━', lit: true } : { char: '╌', lit: false },
+    ),
+    blank,
+  ]
+  const side = (segment: string): SegmentCell =>
+    on(segment) ? { char: '┃', lit: true } : { char: '╎', lit: false }
+  const vertical = (left: string, right: string): SegmentCell[] => [
+    side(left),
+    blank,
+    blank,
+    blank,
+    side(right),
+  ]
+  return [
+    horizontal('a'),
+    vertical('f', 'b'),
+    horizontal('g'),
+    vertical('e', 'c'),
+    horizontal('d'),
+  ]
+}
 
 /**
- * Speedometer arc as a character grid. `fraction` (clamped to 0..1) sweeps the
- * needle from left (0) to right (1). Cells up to the needle are colored by zone
- * (green/yellow/red thirds); cells beyond it are the dim track. Columns are
- * doubled horizontally because terminal cells are about twice as tall as wide.
+ * Renders `text` (digits, '-', '.', ' ') as a seven-segment LCD, like an old
+ * digital clock. Every digit position draws all seven segments; unlit ones
+ * use thin dashed glyphs with `lit: false` so they read as faint "ghost"
+ * segments even without color. The integer part is left-padded with blank digits up to
+ * `minDigits` so the display keeps a fixed width.
  */
-export function buildGauge(fraction: number, radius = 7): GaugeCell[][] {
-  const f = Number.isFinite(fraction) ? Math.min(1, Math.max(0, fraction)) : 0
-  const outer = radius
-  const inner = radius - 1.6
-  const width = radius * 4 + 1
-  const center = radius * 2
-  // The needle angle: π (left) → 0 (right).
-  const needleAngle = Math.PI * (1 - f)
-
-  const rows: GaugeCell[][] = []
-  for (let row = 0; row <= radius; row++) {
-    const y = radius - row
-    const cells: GaugeCell[] = []
-    for (let col = 0; col < width; col++) {
-      const x = (col - center) / 2
-      const dist = Math.hypot(x, y)
-      const angle = Math.atan2(y, x)
-      const progress = 1 - angle / Math.PI
-
-      if (dist >= inner && dist <= outer + 0.3) {
-        if (f > 0 && progress <= f) {
-          const zone: GaugeZone =
-            progress < 1 / 3 ? 'low' : progress < 2 / 3 ? 'mid' : 'high'
-          cells.push({ char: '█', zone })
-        } else {
-          cells.push({ char: '░', zone: 'track' })
-        }
-        continue
-      }
-
-      // Needle: points within half a cell of the needle ray, inside the arc.
-      if (dist < inner - 0.4) {
-        const perp = Math.abs(
-          x * Math.sin(needleAngle) - y * Math.cos(needleAngle),
-        )
-        const along = x * Math.cos(needleAngle) + y * Math.sin(needleAngle)
-        if (along >= 0 && perp <= 0.45) {
-          cells.push({ char: '●', zone: 'needle' })
-          continue
-        }
-      }
-      cells.push({ char: ' ', zone: 'empty' })
+export function buildSevenSegment(
+  text: string,
+  minDigits = 0,
+): SegmentCell[][] {
+  const intLength = text.split('.')[0]!.length
+  const padded = ' '.repeat(Math.max(0, minDigits - intLength)) + text
+  const rows: SegmentCell[][] = Array.from({ length: SEGMENT_ROWS }, () => [])
+  padded.split('').forEach((char, index) => {
+    if (index > 0) rows.forEach(row => row.push({ char: ' ', lit: false }))
+    if (char === '.') {
+      rows.forEach((row, rowIndex) =>
+        row.push(
+          rowIndex === SEGMENT_ROWS - 1
+            ? { char: '●', lit: true }
+            : { char: ' ', lit: false },
+        ),
+      )
+      return
     }
-    rows.push(cells)
-  }
-  // Hub of the needle sits on the bottom row.
-  const lastRow = rows[rows.length - 1]!
-  lastRow[center] = { char: '◉', zone: 'needle' }
+    const cells = digitCells(DIGIT_SEGMENTS[char] ?? '')
+    cells.forEach((cellRow, rowIndex) => rows[rowIndex]!.push(...cellRow))
+  })
   return rows
 }
 
-/** Groups consecutive cells sharing a zone so each run renders as one <Text>. */
-export function groupGaugeRow(
-  row: readonly GaugeCell[],
-): { text: string; zone: GaugeZone }[] {
-  const runs: { text: string; zone: GaugeZone }[] = []
+/** Groups consecutive cells sharing `lit` so each run renders as one <Text>. */
+export function groupSegmentRow(
+  row: readonly SegmentCell[],
+): { text: string; lit: boolean }[] {
+  const runs: { text: string; lit: boolean }[] = []
   for (const cell of row) {
     const last = runs[runs.length - 1]
-    if (last && last.zone === cell.zone) {
+    if (last && last.lit === cell.lit) {
       last.text += cell.char
     } else {
-      runs.push({ text: cell.char, zone: cell.zone })
+      runs.push({ text: cell.char, lit: cell.lit })
     }
   }
   return runs

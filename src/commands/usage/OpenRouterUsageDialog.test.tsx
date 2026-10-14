@@ -5,7 +5,7 @@ import { renderToString } from '../../utils/staticRender.js'
 import { UsageBody } from './OpenRouterUsageDialog.js'
 
 describe('UsageBody', () => {
-  test('renders balance, key spend and both gauges', async () => {
+  test('renders balance, key spend and both LCD displays', async () => {
     const output = await renderToString(
       <UsageBody
         snapshot={{
@@ -24,8 +24,8 @@ describe('UsageBody', () => {
       />,
       100,
     )
-    expect(output).toContain('Créditos usados')
-    expect(output).toContain('Limite da key')
+    expect(output).toContain('━')
+    expect(output).toContain('Restante da key')
     expect(output).toContain('-$0.03')
     expect(output).toContain('100%')
     expect(output).toContain('Últimos 30 dias')
@@ -52,6 +52,6 @@ describe('UsageBody', () => {
     )
     expect(output).toContain('Saldo da conta indisponível')
     expect(output).toContain('sem limite')
-    expect(output).not.toContain('Limite da key')
+    expect(output).not.toContain('━')
   })
 })

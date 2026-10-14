@@ -1,8 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 import {
   filterOpenRouterModels,
+  fitColumn,
   formatContextLength,
+  formatOpenRouterModelColumns,
   formatOpenRouterPrice,
+  MODEL_COLUMN_WIDTHS,
   parseOpenRouterModels,
 } from './openRouterModels.js'
 
@@ -59,5 +62,57 @@ describe('openRouterModels', () => {
     ])
     expect(filterOpenRouterModels(models, '')).toHaveLength(2)
     expect(filterOpenRouterModels(models, 'gpt claude')).toHaveLength(0)
+  })
+})
+
+describe('formatOpenRouterModelColumns', () => {
+  const base = { name: 'x', contextLength: 128000 }
+
+  test('right-aligns context and prices to fixed widths', () => {
+    const paid = formatOpenRouterModelColumns({
+      ...base,
+      id: 'a',
+      promptPrice: 2.5,
+      completionPrice: 10,
+    })
+    const cheap = formatOpenRouterModelColumns({
+      ...base,
+      id: 'b',
+      contextLength: 1_048_576,
+      promptPrice: 0.0042,
+      completionPrice: null,
+    })
+    expect(paid).toEqual({
+      context: '   128K',
+      input: '     $2.50',
+      output: '    $10.00',
+    })
+    expect(cheap.context).toBe('     1M')
+    expect(cheap.input).toBe('   $0.0042')
+    expect(cheap.output).toBe('         ?')
+    for (const cells of [paid, cheap]) {
+      expect(cells.context.length).toBe(MODEL_COLUMN_WIDTHS.context)
+      expect(cells.input.length).toBe(MODEL_COLUMN_WIDTHS.price)
+      expect(cells.output.length).toBe(MODEL_COLUMN_WIDTHS.price)
+    }
+  })
+
+  test('labels free models in both price columns', () => {
+    const cells = formatOpenRouterModelColumns({
+      ...base,
+      id: 'c',
+      promptPrice: 0,
+      completionPrice: 0,
+    })
+    expect(cells.input.trim()).toBe('free')
+    expect(cells.output.trim()).toBe('free')
+  })
+})
+
+describe('fitColumn', () => {
+  test('pads short text and truncates long text with an ellipsis', () => {
+    expect(fitColumn('abc', 5)).toBe('abc  ')
+    expect(fitColumn('abcdefgh', 5)).toBe('abcd…')
+    expect(fitColumn('abc', 0)).toBe('')
   })
 })
