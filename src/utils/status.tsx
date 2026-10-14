@@ -6,7 +6,7 @@ import type { MCPServerConnection } from '../services/mcp/types.js';
 import { getAccountInformation, isClaudeAISubscriber } from './auth.js';
 import { getLargeMemoryFiles, getMemoryFiles, MAX_MEMORY_CHARACTER_COUNT } from './claudemd.js';
 import { getDoctorDiagnostic } from './doctorDiagnostic.js';
-import { getAWSRegion, getDefaultVertexRegion, isEnvTruthy } from './envUtils.js';
+import { isEnvTruthy } from './envUtils.js';
 import { getDisplayPath } from './file.js';
 import { formatNumber } from './format.js';
 import { getIdeClientName, type IDEExtensionInstallationStatus, isJetBrainsIde, toIDEDisplayName } from './ide.js';
@@ -38,18 +38,7 @@ export type Property = {
 export type Diagnostic = React.ReactNode;
 
 const API_PROVIDER_LABELS: Partial<Record<APIProvider, string>> = {
-  bedrock: 'AWS Bedrock',
-  vertex: 'Google Vertex AI',
-  foundry: 'Microsoft Foundry',
   openai: 'OpenAI-compatible',
-  codex: 'Codex',
-  gemini: 'Google AI / Gemini',
-  github: 'GitHub Models',
-  'nvidia-nim': 'NVIDIA NIM',
-  minimax: 'MiniMax',
-  mistral: 'Mistral',
-  xai: 'xAI',
-  'xiaomi-mimo': 'Xiaomi MiMo',
 };
 
 const OPENAI_COMPATIBLE_STATUS_METADATA: Partial<
@@ -64,23 +53,6 @@ const OPENAI_COMPATIBLE_STATUS_METADATA: Partial<
   openai: {
     baseUrlLabel: 'OpenAI base URL',
     resolveModelMetadata: true,
-  },
-  codex: {
-    baseUrlLabel: 'Codex base URL',
-    resolveModelMetadata: true,
-  },
-  'nvidia-nim': {
-    baseUrlLabel: 'NVIDIA NIM base URL',
-  },
-  minimax: {
-    baseUrlLabel: 'MiniMax base URL',
-  },
-  xai: {
-    baseUrlLabel: 'xAI base URL',
-    resolveModelMetadata: true,
-  },
-  'xiaomi-mimo': {
-    baseUrlLabel: 'Xiaomi MiMo base URL',
   },
 };
 
@@ -666,64 +638,6 @@ export function buildAPIProviderProperties(): Property[] {
       process.env.ANTHROPIC_BASE_URL,
       secretSource,
     );
-  } else if (apiProvider === 'bedrock') {
-    pushRedactedUrlProperty(
-      properties,
-      'Bedrock base URL',
-      process.env.BEDROCK_BASE_URL,
-      secretSource,
-    );
-    properties.push({
-      label: 'AWS region',
-      value: getAWSRegion()
-    });
-    if (isEnvTruthy(process.env.CLAUDE_CODE_SKIP_BEDROCK_AUTH)) {
-      properties.push({
-        value: 'AWS auth skipped'
-      });
-    }
-  } else if (apiProvider === 'vertex') {
-    pushRedactedUrlProperty(
-      properties,
-      'Vertex base URL',
-      process.env.VERTEX_BASE_URL,
-      secretSource,
-    );
-    const gcpProject = process.env.ANTHROPIC_VERTEX_PROJECT_ID;
-    if (gcpProject) {
-      properties.push({
-        label: 'GCP project',
-        value: gcpProject
-      });
-    }
-    properties.push({
-      label: 'Default region',
-      value: getDefaultVertexRegion()
-    });
-    if (isEnvTruthy(process.env.CLAUDE_CODE_SKIP_VERTEX_AUTH)) {
-      properties.push({
-        value: 'GCP auth skipped'
-      });
-    }
-  } else if (apiProvider === 'foundry') {
-    pushRedactedUrlProperty(
-      properties,
-      'Microsoft Foundry base URL',
-      process.env.ANTHROPIC_FOUNDRY_BASE_URL,
-      secretSource,
-    );
-    const foundryResource = process.env.ANTHROPIC_FOUNDRY_RESOURCE;
-    if (foundryResource) {
-      properties.push({
-        label: 'Microsoft Foundry resource',
-        value: foundryResource
-      });
-    }
-    if (isEnvTruthy(process.env.CLAUDE_CODE_SKIP_FOUNDRY_AUTH)) {
-      properties.push({
-        value: 'Microsoft Foundry auth skipped'
-      });
-    }
   } else if (apiProvider in OPENAI_COMPATIBLE_STATUS_METADATA) {
     const metadata =
       OPENAI_COMPATIBLE_STATUS_METADATA[apiProvider]!;
@@ -768,16 +682,6 @@ export function buildAPIProviderProperties(): Property[] {
         });
       }
     }
-  } else if (apiProvider === 'gemini') {
-    const geminiBaseUrl = process.env.GEMINI_BASE_URL;
-    pushRedactedUrlProperty(properties, 'Gemini base URL', geminiBaseUrl, secretSource);
-    const geminiModel = process.env.GEMINI_MODEL;
-    pushRedactedProperty(properties, 'Model', geminiModel, secretSource);
-  } else if (apiProvider === 'mistral') {
-    const mistralBaseUrl = process.env.MISTRAL_BASE_URL;
-    pushRedactedUrlProperty(properties, 'Mistral base URL', mistralBaseUrl, secretSource);
-    const mistralModel = process.env.MISTRAL_MODEL;
-    pushRedactedProperty(properties, 'Model', mistralModel, secretSource);
   }
   const proxyUrl = getProxyUrl();
   pushRedactedUrlProperty(properties, 'Proxy', proxyUrl, secretSource);
