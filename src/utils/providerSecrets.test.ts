@@ -121,26 +121,6 @@ describe('getKnownProviderSecretEnvKeys', () => {
     }
   })
 
-  test('covers representative provider keys declared across the registry', () => {
-    const known = new Set(getKnownProviderSecretEnvKeys())
-    const representative = [
-      'OPENAI_API_KEY',
-      'ANTHROPIC_API_KEY',
-      'GEMINI_API_KEY',
-      'OPENGATEWAY_API_KEY',
-      'OPENROUTER_API_KEY',
-      'FIREWORKS_API_KEY',
-      'GROQ_API_KEY',
-      'MIMO_API_KEY',
-      'OPENCODE_API_KEY',
-      'NEARAI_API_KEY',
-      'DEEPSEEK_API_KEY',
-      'DASHSCOPE_API_KEY',
-    ]
-    const missing = representative.filter((key) => !known.has(key))
-    expect(missing, `representative provider keys missing from redaction set: ${missing.join(', ')}`).toEqual([])
-  })
-
   test('does not statically import the heavy descriptor artifacts at module load', async () => {
     // Regression guard: providerSecrets sits on the bootstrap startup path
     // (bootstrap -> providerConfig -> providerProfile -> providerSecrets), so a

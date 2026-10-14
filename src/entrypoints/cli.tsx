@@ -256,13 +256,12 @@ type CliEntrypointImporters = {
   bg: () => Promise<typeof import('../cli/bg.js')>
   bgFinalizer: () => Promise<typeof import('../cli/bgFinalizer.js')>
   providerFlag: () => Promise<typeof import('../utils/providerFlag.js')>
-  envFile: () => Promise<typeof import('../utils/envFile.js')>
-  config: () => Promise<typeof import('../utils/config.js')>
-  managedEnv: () => Promise<typeof import('../utils/managedEnv.js')>
-  providerProfile: () => Promise<typeof import('../utils/providerProfile.js')>
   providerValidation: () => Promise<
     typeof import('../utils/providerValidation.js')
   >
+  envFile: () => Promise<typeof import('../utils/envFile.js')>
+  config: () => Promise<typeof import('../utils/config.js')>
+  managedEnv: () => Promise<typeof import('../utils/managedEnv.js')>
   flagSettings: () => Promise<
     typeof import('../utils/settings/flagSettings.js')
   >
@@ -287,11 +286,10 @@ const defaultCliEntrypointImporters: CliEntrypointImporters = {
   bg: () => import('../cli/bg.js'),
   bgFinalizer: () => import('../cli/bgFinalizer.js'),
   providerFlag: () => import('../utils/providerFlag.js'),
+  providerValidation: () => import('../utils/providerValidation.js'),
   envFile: () => import('../utils/envFile.js'),
   config: () => import('../utils/config.js'),
   managedEnv: () => import('../utils/managedEnv.js'),
-  providerProfile: () => import('../utils/providerProfile.js'),
-  providerValidation: () => import('../utils/providerValidation.js'),
   flagSettings: () => import('../utils/settings/flagSettings.js'),
   settingsCache: () => import('../utils/settings/settingsCache.js'),
   agentRouting: () => import('../services/api/agentRouting.js'),
@@ -427,7 +425,6 @@ export async function main(
 
   // --provider: set provider env vars early so saved-profile resolution,
   // validation, and the startup banner all see the intended provider/model.
-  let appliedExplicitAnthropic = false
   const requestedProvider = parseRootOptionValue(args, '--provider')
   if (requestedProvider) {
     const {
@@ -435,15 +432,11 @@ export async function main(
       reapplyRememberedProviderFlag,
     } = await importers.providerFlag()
     reapplyProviderFlagValues = reapplyRememberedProviderFlag
-    const result = applyProviderFlagFromArgs(args, {
-      rememberForSettingsEnv: true,
-    });
+    const result = applyProviderFlagFromArgs(args);
     if (result?.error) {
       // biome-ignore lint/suspicious/noConsole:: intentional error output
       console.error(`Error: ${result.error}`);
       process.exit(1);
-    } else if (result && requestedProvider === 'anthropic') {
-      appliedExplicitAnthropic = true
     }
   }
 
@@ -484,29 +477,6 @@ export async function main(
     (await importers.providerFlag()).parseModelFlag(modelOptionArgs) ?? undefined
   const hasRootModelOption = parsedRootModel !== undefined
 
-  const { applyStartupEnvFromProfile } = await importers.providerProfile()
-  let startupProfileWarning: string | undefined
-  // Built-in Anthropic has no positive CLAUDE_CODE_USE_* flag, so process-env
-  // inference cannot preserve an explicit `--provider anthropic` selection.
-  // Other providers retain their existing profile/credential recovery path.
-  const startupProfileError = appliedExplicitAnthropic
-    ? null
-    : await applyStartupEnvFromProfile({
-        processEnv: process.env,
-        modelOverride: parsedRootModel,
-        onValidationError: message => {
-          startupProfileWarning = message
-        },
-      })
-  let startupProfileIsCommandcodeModelError = false
-  if (parsedRootModel && startupProfileError) {
-    const { getCommandcodeChatCompletionsModelError } = await import(
-      '../integrations/gateways/commandcode.js'
-    )
-    startupProfileIsCommandcodeModelError =
-      startupProfileError ===
-      getCommandcodeChatCompletionsModelError(parsedRootModel)
-  }
   reapplyExplicitProviderInputs()
 
   // Pane/window teammates are launched as fresh CLI processes. If the parent
@@ -541,21 +511,6 @@ export async function main(
       appliedTeammateModel = providerOverride.model
       appliedTeammateProviderOverride = true
     }
-  }
-
-  if (
-    startupProfileIsCommandcodeModelError &&
-    !appliedTeammateProviderOverride
-  ) {
-    console.error(`Error: ${startupProfileError}`)
-    process.exit(1)
-    return
-  }
-  if (
-    startupProfileWarning &&
-    !(startupProfileIsCommandcodeModelError && appliedTeammateProviderOverride)
-  ) {
-    console.error(startupProfileWarning)
   }
 
   // Fast-path for `--bg`/`--background` after profile routing has been applied

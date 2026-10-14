@@ -8,7 +8,7 @@ import {
   __resetInterruptionTraceForTests,
   __waitForInterruptionTraceFlushForTests,
 } from '../../../utils/interruptionTrace.js'
-import type { AnthropicStreamEvent, ShimCreateParams } from '../codexShim.js'
+import type { AnthropicStreamEvent, ShimCreateParams } from './types.js'
 import {
   createShimRequest,
   headersWithRequestUrl,
@@ -46,10 +46,6 @@ function makeDependencies(
   calls: string[],
   overrides: Partial<ClientDispatchDependencies> = {},
 ): ClientDispatchDependencies {
-  const converter = (name: string) => async function* () {
-    calls.push(name)
-    yield { type: name }
-  }
   return {
     providerOverride: {
       model: 'test-model',
@@ -58,15 +54,11 @@ function makeDependencies(
     },
     doRequest: async () => response,
     convertNonStreamingResponse: data => ({ converted: 'openai', data }),
-    convertGeminiResponse: data => ({ converted: 'gemini', data }),
-    codexStreamToAnthropic: converter('codex'),
-    collectCodexCompletedResponse: async () => ({}) as never,
-    convertCodexResponseToAnthropicMessage: data => ({ converted: 'codex', data }),
     createStreamAbortError: () => new DOMException('Aborted', 'AbortError'),
-    anthropicSsePassthrough: converter('messages'),
-    geminiSseToAnthropic: converter('gemini'),
-    openaiStreamToAnthropic: converter('openai'),
-    isGithubModelsMode: () => false,
+    openaiStreamToAnthropic: async function* () {
+      calls.push('openai')
+      yield { type: 'openai' }
+    },
     makeMessageId: () => 'msg_test',
     ...overrides,
   }
@@ -230,76 +222,24 @@ test('OpenAIShimStream does not relabel a provider exception as consumer closure
   }
 })
 
-test.each([
-  ['messages', 'https://provider.example/v1/messages'],
-  ['gemini', 'https://generativelanguage.googleapis.com/v1beta/models/gemini-test:streamGenerateContent'],
-  ['codex', 'https://provider.example/v1/responses'],
-  ['openai', 'https://provider.example/v1/chat/completions'],
-])('dispatches a %s stream by response URL', async (expected, url) => {
+test('dispatches a streaming chat-completions response through the injected converter', async () => {
   const calls: string[] = []
-  const request = createShimRequest(
+  const stream = await createShimRequest(
     makeParams(true),
     undefined,
     makeDependencies(
-      responseAt(url, 'data: [DONE]\n\n', {
+      responseAt('https://provider.example/v1/chat/completions', 'data: [DONE]\n\n', {
         headers: { 'content-type': 'text/event-stream' },
       }),
       calls,
     ),
-  )
-  const stream = await request as AsyncIterable<AnthropicStreamEvent>
-  expect((await collect(stream)).map(event => event.type)).toEqual([expected])
-  expect(calls).toEqual([expected])
-})
-
-test('dispatches a Codex transport stream through the injected converter', async () => {
-  const calls: string[] = []
-  const stream = await createShimRequest(
-    makeParams(true, 'gpt-5.6-sol'),
-    undefined,
-    makeDependencies(
-      responseAt('https://api.openai.com/v1/chat/completions'),
-      calls,
-      { providerOverride: undefined, processEnv: {} },
-    ),
   ) as AsyncIterable<AnthropicStreamEvent>
-  expect((await collect(stream)).map(event => event.type)).toEqual(['codex'])
-  expect(calls).toEqual(['codex'])
+  expect((await collect(stream)).map(event => event.type)).toEqual(['openai'])
+  expect(calls).toEqual(['openai'])
 })
 
-test('passes Anthropic Messages JSON through without conversion', async () => {
-  const calls: string[] = []
-  const payload = { id: 'msg_provider', type: 'message', content: [] }
+test('dispatches a non-streaming JSON response through the injected converter', async () => {
   const result = await createShimRequest(
-    makeParams(false),
-    undefined,
-    makeDependencies(
-      responseAt('https://provider.example/v1/messages', JSON.stringify(payload), {
-        headers: { 'content-type': 'application/json' },
-      }),
-      calls,
-    ),
-  )
-  expect(result).toEqual(payload)
-  expect(calls).toEqual([])
-})
-
-test('dispatches Gemini and generic non-streaming JSON conversion', async () => {
-  const gemini = await createShimRequest(
-    makeParams(false),
-    undefined,
-    makeDependencies(
-      responseAt(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-test:generateContent',
-        '{"candidates":[]}',
-        { headers: { 'content-type': 'application/json' } },
-      ),
-      [],
-    ),
-  )
-  expect(gemini).toEqual({ converted: 'gemini', data: { candidates: [] } })
-
-  const openai = await createShimRequest(
     makeParams(false),
     undefined,
     makeDependencies(
@@ -311,42 +251,7 @@ test('dispatches Gemini and generic non-streaming JSON conversion', async () => 
       [],
     ),
   )
-  expect(openai).toEqual({ converted: 'openai', data: { choices: [] } })
-})
-
-test('dispatches Responses JSON with output through the injected Codex converter', async () => {
-  const calls: string[] = []
-  const result = await createShimRequest(
-    makeParams(false),
-    undefined,
-    makeDependencies(
-      responseAt(
-        'https://provider.example/v1/responses',
-        '{"output":[]}',
-        { headers: { 'content-type': 'application/json' } },
-      ),
-      calls,
-    ),
-  )
-  expect(result).toEqual({ converted: 'codex', data: { output: [] } })
-  expect(calls).toEqual([])
-})
-
-test('dispatches a Codex response through the injected collector', async () => {
-  const result = await createShimRequest(
-    makeParams(false, 'gpt-5.6-sol'),
-    undefined,
-    makeDependencies(
-      responseAt('https://api.openai.com/v1/chat/completions'),
-      [],
-      {
-        providerOverride: undefined,
-        processEnv: {},
-        collectCodexCompletedResponse: async () => ({ output: [] }) as never,
-      },
-    ),
-  )
-  expect(result).toEqual({ converted: 'codex', data: { output: [] } })
+  expect(result).toEqual({ converted: 'openai', data: { choices: [] } })
 })
 
 test('withResponse exposes the exact HTTP response and request id', async () => {

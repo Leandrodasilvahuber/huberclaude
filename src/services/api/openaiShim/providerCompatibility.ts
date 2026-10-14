@@ -1,9 +1,3 @@
-import { isEnvTruthy } from '../../../utils/envUtils.js'
-
-export function isGithubModelsMode(): boolean {
-  return isEnvTruthy(process.env.CLAUDE_CODE_USE_GITHUB)
-}
-
 export function filterAnthropicHeaders(
   headers: Record<string, string> | undefined,
 ): Record<string, string> {
@@ -30,19 +24,6 @@ export function filterAnthropicHeaders(
   return filtered
 }
 
-export function hasGeminiApiHost(
-  baseUrl: string | undefined,
-  expectedHost: string,
-): boolean {
-  if (!baseUrl) return false
-
-  try {
-    return new URL(baseUrl).hostname.toLowerCase() === expectedHost
-  } catch {
-    return false
-  }
-}
-
 export function isGeminiModelName(model: string | undefined): boolean {
   const normalized = model?.trim().toLowerCase()
   return (
@@ -53,15 +34,8 @@ export function isGeminiModelName(model: string | undefined): boolean {
 
 export function shouldPreserveGeminiThoughtSignature(
   model: string | undefined,
-  baseUrl: string | undefined,
-  isGeminiMode: boolean,
-  geminiApiHost: string,
 ): boolean {
-  return (
-    isGeminiMode ||
-    hasGeminiApiHost(baseUrl, geminiApiHost) ||
-    isGeminiModelName(model)
-  )
+  return isGeminiModelName(model)
 }
 
 export function geminiThoughtSignatureFromExtraContent(
@@ -87,63 +61,4 @@ export function mergeGeminiThoughtSignature(
     ...extraContent,
     google: { ...existingGoogle, thought_signature: signature },
   }
-}
-
-export function hasCerebrasApiHost(baseUrl: string | undefined): boolean {
-  if (!baseUrl) return false
-
-  try {
-    const host = new URL(baseUrl).hostname.toLowerCase()
-    return host === 'api.cerebras.ai' || host.endsWith('.cerebras.ai')
-  } catch {
-    return false
-  }
-}
-
-export function hasMistralApiHost(baseUrl: string | undefined): boolean {
-  if (!baseUrl) return false
-
-  try {
-    const host = new URL(baseUrl).hostname.toLowerCase()
-    return host === 'api.mistral.ai' || host.endsWith('.mistral.ai')
-  } catch {
-    return false
-  }
-}
-
-function hasNvidiaNimApiHost(baseUrl: string | undefined): boolean {
-  if (!baseUrl) return false
-
-  try {
-    return new URL(baseUrl).hostname.toLowerCase() === 'integrate.api.nvidia.com'
-  } catch {
-    return false
-  }
-}
-
-export function maybeSetNvidiaNimChatTemplateThinking(
-  body: Record<string, unknown>,
-  baseUrl: string | undefined,
-  reasoningRequestPlan: {
-    thinkingType?: string
-    reasoningEffort?: string
-  },
-): void {
-  if (!hasNvidiaNimApiHost(baseUrl)) return
-  if (
-    reasoningRequestPlan.thinkingType === 'disabled' ||
-    (reasoningRequestPlan.thinkingType !== 'enabled' &&
-      !reasoningRequestPlan.reasoningEffort)
-  ) {
-    return
-  }
-
-  const existing = body.chat_template_kwargs
-  const kwargs =
-    existing && typeof existing === 'object' && !Array.isArray(existing)
-      ? { ...(existing as Record<string, unknown>) }
-      : {}
-  kwargs.thinking = true
-  kwargs.enable_thinking = true
-  body.chat_template_kwargs = kwargs
 }

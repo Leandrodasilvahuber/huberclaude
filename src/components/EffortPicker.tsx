@@ -14,7 +14,6 @@ import {
   openAIEffortToStandard,
 } from '../utils/effort.js'
 import { getAPIProvider } from '../utils/model/providers.js'
-import { getReasoningEffortForModel } from '../services/api/providerConfig.js'
 import { Select } from './CustomSelect/select.js'
 import { effortLevelToSymbol } from './EffortIndicator.js'
 import { KeyboardShortcutHint } from './design-system/KeyboardShortcutHint.js'
@@ -42,7 +41,7 @@ export function EffortPicker({ onSelect, onCancel }: Props) {
   const currentDisplayedLevel = getDisplayedEffortLevel(model, appStateEffort)
 
   // For OpenAI/Codex, get the model's default reasoning effort
-  const modelReasoningEffort = usesOpenAIEffort ? getReasoningEffortForModel(model) : undefined
+  const modelReasoningEffort = undefined
   const options: EffortOption[] = [
     {
       label: <EffortOptionLabel level="auto" text="Auto" isCurrent={false} />,

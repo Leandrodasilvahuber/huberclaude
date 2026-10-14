@@ -11,17 +11,7 @@ import { sendNotification } from '../services/notifier.js';
 import { OAuthService } from '../services/oauth/index.js';
 import { getOauthAccountInfo, validateForceLoginOrg } from '../utils/auth.js';
 import { logError } from '../utils/log.js';
-import { getEnvProviderOption } from '../utils/envProviderOption.js';
-import { getLocalOpenAICompatibleProviderLabel } from '../utils/providerDiscovery.js';
-import { type ProviderProfile } from '../utils/config.js';
-import {
-  addProviderProfile,
-  getProviderProfiles,
-  setActiveProviderProfile,
-  updateProviderProfile,
-} from '../utils/providerProfiles.js';
 import { getSettings_DEPRECATED } from '../utils/settings/settings.js';
-import { ProviderManager } from './ProviderManager.js';
 import { Select } from './CustomSelect/select.js';
 import { KeyboardShortcutHint } from './design-system/KeyboardShortcutHint.js';
 import { Spinner } from './Spinner.js';
@@ -42,13 +32,6 @@ type Props = {
 type OAuthStatus = {
   state: 'idle';
 } // Initial state, waiting to select login method
-| {
-  state: 'platform_setup';
-} // Show third-party provider setup flow
-| {
-  state: 'platform_setup_complete';
-  message: string;
-}
 | {
   state: 'ready_to_start';
 } // Flow started, waiting for browser to open
@@ -143,20 +126,6 @@ export function ConsoleOAuthFlow({
   }, {
     context: 'Confirmation',
     isActive: oauthStatus.state === 'success' && mode !== 'setup-token'
-  });
-
-  // Handle Enter to continue after third-party provider setup
-  useKeybinding('confirm:yes', () => {
-    if (oauthStatus.state !== 'platform_setup_complete') {
-      return;
-    }
-    onDone({
-      type: 'provider-setup',
-      message: oauthStatus.message
-    });
-  }, {
-    context: 'Confirmation',
-    isActive: oauthStatus.state === 'platform_setup_complete'
   });
 
   // Handle Enter to retry on error state
@@ -395,44 +364,7 @@ function OAuthStatusMessage({
         startingMessage ||
         'OpenClaude can be used with your Claude subscription or billed based on API usage through your Console account.'
 
-      // OPENAI_BASE_URL/OPENAI_MODEL in the environment signal an
-      // OpenAI-compatible setup the user already has — offer to adopt it as
-      // the active provider profile instead of walking them through login for
-      // an account they may never have wanted. Env vars alone do NOT activate
-      // the route (resolveActiveRouteIdFromEnv requires CLAUDE_CODE_USE_OPENAI
-      // or a saved profile), so selecting this saves + activates a profile.
-      // Endpoint + model gate the option; dedicated-only routes additionally
-      // require their route-owned credential so an incomplete env is not saved.
-      // getEnvProviderOption owns the secret-disclosure boundary: only
-      // `displayBaseUrl` (redacted) may be rendered — the raw `baseUrl`
-      // exists solely for profile creation/activation. See its tests for
-      // the credential cases.
-      const {
-        available: envConfigAvailable,
-        varName: envBaseUrlVarName,
-        baseUrl: envBaseUrl,
-        apiKey: envApiKey,
-        displayBaseUrl: envBaseUrlForDisplay,
-        model: envModel,
-      } = getEnvProviderOption()
-
       const loginOptions = [
-        ...(envConfigAvailable
-          ? [
-              {
-                label: (
-                  <Text>
-                    Use current environment configuration ·{' '}
-                    <Text dimColor>
-                      {envBaseUrlVarName}={envBaseUrlForDisplay}
-                    </Text>
-                    {'\n'}
-                  </Text>
-                ),
-                value: 'environment' as const,
-              },
-            ]
-          : []),
         {
           label: (
             <Text>
@@ -453,16 +385,6 @@ function OAuthStatusMessage({
           ),
           value: 'console' as const,
         },
-        {
-          label: (
-            <Text>
-              3rd-party platform ·{' '}
-              <Text dimColor>OpenAI, Gemini, Bedrock, Ollama, and more</Text>
-              {'\n'}
-            </Text>
-          ),
-          value: 'platform' as const,
-        },
       ]
 
       return (
@@ -473,81 +395,6 @@ function OAuthStatusMessage({
             <Select
               options={loginOptions}
               onChange={value => {
-                if (value === 'environment') {
-                  // Re-entering this flow with the same env must not stack
-                  // near-identical profiles: reuse (and activate) an existing
-                  // profile matching the env base URL + model before creating
-                  // a new one. setActiveProviderProfile also re-applies the
-                  // profile env and syncs the startup profile file.
-                  const existing = getProviderProfiles().find(
-                    profile =>
-                      profile.baseUrl?.trim() === envBaseUrl?.trim() &&
-                      profile.model?.trim() === envModel?.trim(),
-                  )
-                  let saved: ProviderProfile | null
-                  if (existing) {
-                    // Refresh the stored credential from the environment
-                    // before activating: the env is the source of truth the
-                    // user just chose, so a rotated route-owned credential must
-                    // not leave the profile running on a stale key. Keep the
-                    // existing key when the env no longer carries one rather
-                    // than blanking a working credential.
-                    //
-                    // updateProviderProfile REPLACES the profile (toProfile
-                    // builds a fresh object, it does not merge), so spread
-                    // the existing profile first — otherwise a configured
-                    // apiFormat / auth header / customHeaders / context
-                    // length would be silently dropped on refresh.
-                    const refreshed = updateProviderProfile(
-                      existing.id,
-                      {
-                        ...existing,
-                        apiKey: envApiKey ?? existing.apiKey,
-                      },
-                      { credentialSource: 'environment' },
-                    )
-                    if (!refreshed) {
-                      // The env values failed profile validation. Activating
-                      // now would claim a refresh that did not happen, so send
-                      // the user to guided setup instead of silently running
-                      // on the stale credential.
-                      setOAuthStatus({ state: 'platform_setup' })
-                      return
-                    }
-                    saved = setActiveProviderProfile(existing.id)
-                  } else {
-                    saved = addProviderProfile(
-                      {
-                        name: getLocalOpenAICompatibleProviderLabel(envBaseUrl),
-                        baseUrl: envBaseUrl as string,
-                        model: envModel as string,
-                        apiKey: envApiKey,
-                      },
-                      {
-                        makeActive: true,
-                        credentialSource: 'environment',
-                      },
-                    )
-                  }
-                  if (!saved) {
-                    // Env values failed profile validation — fall back to the
-                    // guided provider setup with fields prefilled from env.
-                    setOAuthStatus({ state: 'platform_setup' })
-                    return
-                  }
-                  logEvent('tengu_oauth_env_config_selected', {})
-                  setOAuthStatus({
-                    state: 'platform_setup_complete',
-                    message: `${existing ? 'Activated' : 'Saved'} ${saved.name} (${envBaseUrlForDisplay}) as your active provider.`,
-                  })
-                  return
-                }
-                if (value === 'platform') {
-                  logEvent('tengu_oauth_platform_selected', {})
-                  setOAuthStatus({ state: 'platform_setup' })
-                  return
-                }
-
                 setOAuthStatus({ state: 'ready_to_start' })
                 if (value === 'claudeai') {
                   logEvent('tengu_oauth_claudeai_selected', {})
@@ -562,34 +409,6 @@ function OAuthStatusMessage({
         </Box>
       )
     }
-
-    case 'platform_setup':
-      return (
-        <ProviderManager
-          mode="first-run"
-          onDone={result => {
-            if (!result || result.action !== 'saved' || !result.message) {
-              setOAuthStatus({ state: 'idle' })
-              return
-            }
-
-            setOAuthStatus({
-              state: 'platform_setup_complete',
-              message: result.message,
-            })
-          }}
-        />
-      )
-
-    case 'platform_setup_complete':
-      return (
-        <Box flexDirection="column" gap={1}>
-          <Text color="success">{oauthStatus.message}</Text>
-          <Text dimColor>
-            Press <Text bold>Enter</Text> to continue.
-          </Text>
-        </Box>
-      )
 
     case 'waiting_for_login':
       return (

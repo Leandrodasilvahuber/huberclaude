@@ -11,7 +11,6 @@ import {
 import { getCanonicalName } from './model/model.js'
 import { getModelCapability } from './model/modelCapabilities.js'
 import { resolveAntModel } from './model/antModels.js'
-import { getActiveProviderProfile } from './providerProfiles.js'
 
 // Model context window size (200k tokens for all models right now)
 export const MODEL_CONTEXT_WINDOW_DEFAULT = 200_000
@@ -43,8 +42,6 @@ export const CAPPED_DEFAULT_MAX_TOKENS = 8_000
 export const ESCALATED_MAX_TOKENS = 64_000
 
 const warnedUnknownIntegrationRuntimeLimitKeys = new Set<string>()
-const PROFILE_ENV_APPLIED_FLAG = 'CLAUDE_CODE_PROVIDER_PROFILE_ENV_APPLIED'
-const PROFILE_ENV_APPLIED_ID = 'CLAUDE_CODE_PROVIDER_PROFILE_ENV_APPLIED_ID'
 
 // Session-scoped context window overrides (abordagem C: module-level state)
 // Key: normalized model name (lowercase, prefix stripped)
@@ -160,32 +157,10 @@ export function modelSupports1M(model: string): boolean {
   )
 }
 
-function getAppliedActiveProfileProvider(
-  processEnv: NodeJS.ProcessEnv = process.env,
-): string | undefined {
-  if (processEnv[PROFILE_ENV_APPLIED_FLAG] !== '1') {
-    return undefined
-  }
-
-  const activeProfile = getActiveProviderProfile()
-  if (!activeProfile) {
-    return undefined
-  }
-
-  const appliedId = processEnv[PROFILE_ENV_APPLIED_ID]?.trim()
-  if (appliedId && appliedId !== activeProfile.id) {
-    return undefined
-  }
-
-  return activeProfile.provider
-}
-
 export function shouldUseIntegrationRuntimeLimits(
   processEnv: NodeJS.ProcessEnv = process.env,
 ): boolean {
-  const routeId = resolveActiveRouteIdFromEnv(processEnv, {
-    activeProfileProvider: getAppliedActiveProfileProvider(processEnv),
-  })
+  const routeId = resolveActiveRouteIdFromEnv(processEnv)
   const transportKind = routeId ? getTransportKindForRoute(routeId) : null
 
   return (
@@ -205,9 +180,7 @@ export function shouldUseIntegrationRuntimeLimits(
  */
 function warnUnknownIntegrationRuntimeLimits(model: string): void {
   const routeId =
-    resolveActiveRouteIdFromEnv(process.env, {
-      activeProfileProvider: getAppliedActiveProfileProvider(process.env),
-    }) ?? 'unknown-route'
+    resolveActiveRouteIdFromEnv(process.env) ?? 'unknown-route'
   const warningKey = `${routeId}:${model}`
   if (warnedUnknownIntegrationRuntimeLimitKeys.has(warningKey)) return
 
@@ -258,7 +231,6 @@ export function getContextWindowForModel(
   if (runtimeLimits?.contextWindow !== undefined || shouldUseIntegrationRuntimeLimits()) {
     const resolvedRuntimeLimits = runtimeLimits ?? resolveModelRuntimeLimits({
       model,
-      activeProfileProvider: getAppliedActiveProfileProvider(),
     })
     if (resolvedRuntimeLimits.contextWindow !== undefined) {
       return resolvedRuntimeLimits.contextWindow
@@ -364,7 +336,6 @@ export function getModelMaxOutputTokens(model: string): {
   if (shouldUseIntegrationRuntimeLimits()) {
     const runtimeLimits = resolveModelRuntimeLimits({
       model,
-      activeProfileProvider: getAppliedActiveProfileProvider(),
     })
     if (runtimeLimits.maxOutputTokens !== undefined) {
       return {

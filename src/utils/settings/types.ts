@@ -942,15 +942,6 @@ export const SettingsSchema = lazySchema(() =>
             'simpleModel/strongModel are agentModels keys (or bare model ids). ' +
             'Example: { "enabled": true, "simpleModel": "mini", "strongModel": "main" }',
         ),
-      providerFallbackChain: z
-        .array(z.string())
-        .optional()
-        .describe(
-          'Ordered list of providerProfile ids. When the active provider returns a rate-limit ' +
-            'or quota error, OpenClaude advances to the next profile in this list (starting after ' +
-            'the currently-active id) and retries the turn. ' +
-            'Example: ["provider_anthropic", "provider_openai", "provider_ollama"]',
-        ),
       modelLimits: z
         .record(
           z.string(),

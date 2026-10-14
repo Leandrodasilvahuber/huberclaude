@@ -81,13 +81,6 @@ function userMessage(estimatedTokens: number): Message {
 }
 
 describe('snip nudge policy', () => {
-  test('keeps GLM-5.2 nudges out of mid-sized generic-model ranges', () => {
-    useZaiGlmRuntime()
-
-    expect(getSnipNudgeStartThreshold('glm-5.2')).toBeGreaterThan(500_000)
-    expect(getSnipNudgeRepeatInterval('glm-5.2')).toBeGreaterThan(50_000)
-  })
-
   test('keeps small effective windows eligible for early nudges', () => {
     process.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW = '40000'
 

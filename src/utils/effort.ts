@@ -6,7 +6,6 @@ import { getFeatureValue_CACHED_MAY_BE_STALE } from 'src/services/analytics/grow
 import { getAPIProvider } from './model/providers.js'
 import { get3PModelCapabilityOverride } from './model/modelSupportOverrides.js'
 import { getAntModelOverrideConfig, resolveAntModel } from './model/antModels.js'
-import { baseUrlSupportsResponsesAutoRoute, supportsCodexReasoningEffort } from '../services/api/providerConfig.js'
 import {
   ensureIntegrationsLoaded,
   getCatalogEntriesForRoute,
@@ -101,6 +100,8 @@ function getReasoningApiProvider(
   return context?.apiProvider ?? getAPIProvider()
 }
 
+const GPT5_FAMILY_RE = /^gpt-5(?:[.-]|$)/
+
 function modelSupportsCodexReasoningEffort(
   model: string,
   context?: ReasoningControlContext,
@@ -109,7 +110,11 @@ function modelSupportsCodexReasoningEffort(
   if (typeof override === 'function') {
     return override(model)
   }
-  return override ?? supportsCodexReasoningEffort(model)
+  if (override !== undefined) {
+    return override
+  }
+  const base = model.trim().toLowerCase().split('?', 1)[0] ?? ''
+  return GPT5_FAMILY_RE.test(base)
 }
 
 function isSupportedEffortLevel(level: string): level is EffortLevel {
@@ -353,11 +358,7 @@ function resolveCatalogReasoningMetadata(
   let entry = entries.find(matchesModel)
   const fallbackBaseUrl =
     context?.baseUrl ?? processEnv.OPENAI_BASE_URL ?? processEnv.OPENAI_API_BASE
-  if (
-    !entry &&
-    routeId === 'custom' &&
-    baseUrlSupportsResponsesAutoRoute(fallbackBaseUrl, context?.processEnv ?? process.env)
-  ) {
+  if (!entry && routeId === 'custom' && fallbackBaseUrl?.includes('openai.com')) {
     // Azure and regional/first-party OpenAI surfaces resolve to route 'custom'
     // (their host is not a registered route; see resolveActiveRouteIdFromEnv),
     // whose catalog is empty. Consult the openai vendor catalog by model name so

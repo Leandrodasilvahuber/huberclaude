@@ -7,33 +7,9 @@ import {
   resolveOpenAIShimRuntimeContext,
 } from '../../../integrations/runtimeMetadata.js'
 import { compressToolHistory } from '../compressToolHistory.js'
-import {
-  convertAnthropicMessagesToResponsesInput,
-  convertToolsToResponsesTools,
-  type ShimCreateParams,
-} from '../codexShim.js'
-import {
-  baseUrlSupportsResponsesAutoRoute,
-  getGithubEndpointType,
-  getLocalFastPathConfig,
-  isDirectLocalOllamaEndpoint,
-  isLikelyOllamaEndpoint,
-  isLocalProviderUrl,
-  modelRequiresResponsesApi,
-  resolveProviderRequest,
-} from '../providerConfig.js'
+import type { ResolvedProviderRequest } from '../providerConfig.js'
 import { stableStringifyJson } from '../../../utils/stableStringify.js'
-import {
-  hasCerebrasApiHost,
-  hasMistralApiHost,
-  isGithubModelsMode,
-  maybeSetNvidiaNimChatTemplateThinking,
-} from './providerCompatibility.js'
-import {
-  getOllamaNumCtx,
-  normalizeOllamaNativeMessages,
-} from './ollamaAdapter.js'
-import { createRequestBodyPlanner } from './requestPlanner.js'
+import type { ShimCreateParams } from './types.js'
 
 type RawMessage = {
   role: string
@@ -52,61 +28,14 @@ type Dependencies = {
       supportsImageInputs?: boolean
     },
   ): unknown
-  convertSystemPrompt(system: unknown): string
   convertTools(
     tools: Array<{
       name: string
       description?: string
       input_schema?: Record<string, unknown>
     }>,
-    options?: { skipStrict?: boolean },
   ): unknown[]
-  hasGeminiApiHost(baseUrl: string | undefined): boolean
-  isGeminiMode(): boolean
-  shouldPreserveGeminiThoughtSignature(
-    model: string | undefined,
-    baseUrl?: string,
-  ): boolean
-}
-
-// Providers documented to do implicit prefix caching on OpenAI-compatible
-// endpoints (see the stableStringifyJson rationale in utils/stableStringify.ts:
-// OpenAI, Kimi/Moonshot, DeepSeek — plus xAI). For these, a stable request
-// prefix is worth more than tool-history compression.
-const PREFIX_CACHING_ROUTE_IDS = new Set([
-  'openai',
-  'xai',
-  'deepseek',
-  'moonshot',
-  'kimi-code',
-])
-const PREFIX_CACHING_HOSTNAMES = new Set([
-  'api.openai.com',
-  'api.x.ai',
-  'api.deepseek.com',
-  'api.moonshot.ai',
-  'api.moonshot.cn',
-  'api.kimi.com',
-])
-
-function providerUsesImplicitPrefixCaching(
-  routeId: string | null | undefined,
-  baseUrl: string | undefined,
-): boolean {
-  if (routeId && PREFIX_CACHING_ROUTE_IDS.has(routeId)) {
-    return true
-  }
-  if (!baseUrl) {
-    return false
-  }
-  // Parse and compare hostnames rather than substring-matching the raw URL —
-  // a path-routed gateway like https://proxy.example/api.openai.com/v1 is not
-  // the provider itself and gets no implicit caching.
-  try {
-    return PREFIX_CACHING_HOSTNAMES.has(new URL(baseUrl).hostname.toLowerCase())
-  } catch {
-    return false
-  }
+  shouldPreserveGeminiThoughtSignature(model: string | undefined): boolean
 }
 
 export function prepareOpenAIRequest({
@@ -116,7 +45,7 @@ export function prepareOpenAIRequest({
   providerOverride,
   dependencies,
 }: {
-  request: ReturnType<typeof resolveProviderRequest>
+  request: ResolvedProviderRequest
   params: ShimCreateParams
   requestProcessEnv: NodeJS.ProcessEnv
   providerOverride?: { model: string; baseURL: string; apiKey: string }
@@ -124,20 +53,15 @@ export function prepareOpenAIRequest({
 }) {
   const {
     convertMessages,
-    convertSystemPrompt,
     convertTools,
-    hasGeminiApiHost,
-    isGeminiMode,
     shouldPreserveGeminiThoughtSignature,
   } = dependencies
-  const fastPath = getLocalFastPathConfig(request.baseUrl)
   const rawMessages = params.messages as RawMessage[]
   const runtimeModel = request.requestedModel
   const runtimeShimContext = resolveOpenAIShimRuntimeContext({
     processEnv: requestProcessEnv,
     baseUrl: request.baseUrl,
     model: runtimeModel,
-    treatAsLocal: isLocalProviderUrl(request.baseUrl),
     preferBaseUrlRoute: Boolean(providerOverride),
   })
   const runtimeLimits = resolveModelRuntimeLimits({
@@ -147,51 +71,19 @@ export function prepareOpenAIRequest({
     resolvedRouteId: runtimeShimContext.routeId,
   })
   const shimConfig = runtimeShimContext.openaiShimConfig
-  const effectiveTransport = shimConfig.endpointPath === '/responses'
-    ? 'responses'
-    : shimConfig.endpointPath === '/messages'
-      ? 'anthropic_messages'
-      : shimConfig.endpointPath?.startsWith('/models/gemini-')
-        ? 'gemini'
-        : request.transport
-  // Mirror the native-transport guard (shouldCompressNativeToolHistory):
-  // compressToolHistory's window is measured from the end of the conversation,
-  // so each turn rewrites tool results that were already sent verbatim. On
-  // providers with implicit prefix caching that mutates the middle of the
-  // request prefix and forfeits the entire cache downstream — costing far more
-  // than the compression saves.
-  const skipCompressionForPrefixCache = providerUsesImplicitPrefixCaching(
-    runtimeShimContext.routeId,
-    request.baseUrl,
-  )
-  const compressedMessages =
-    effectiveTransport === 'chat_completions' ||
-    effectiveTransport === 'responses' ||
-    effectiveTransport === 'responses_compat'
-      ? fastPath.skipToolHistoryCompression || skipCompressionForPrefixCache
-        ? rawMessages
-        : compressToolHistory(rawMessages, runtimeModel, {
-          textBlockSeparator:
-            effectiveTransport === 'chat_completions' ? '\n\n' : '\n',
-          runtimeLimits,
-        })
-      : rawMessages
-  const useNativeOllamaChat =
-    effectiveTransport === 'chat_completions' &&
-    !shimConfig.endpointPath &&
-    isDirectLocalOllamaEndpoint(request.baseUrl) &&
-    isLikelyOllamaEndpoint(request.baseUrl)
-  const openaiMessages = effectiveTransport === 'chat_completions'
-    ? convertMessages(compressedMessages, params.system, {
-      preserveReasoningContent: shimConfig.preserveReasoningContent,
-      reasoningContentFallback: shimConfig.reasoningContentFallback,
-      preserveGeminiThoughtSignature: shouldPreserveGeminiThoughtSignature(
-        request.resolvedModel,
-        request.baseUrl,
-      ),
-      supportsImageInputs: shimConfig.supportsImageInputs,
-    })
-    : undefined
+
+  const compressedMessages = compressToolHistory(rawMessages, runtimeModel, {
+    textBlockSeparator: '\n\n',
+    runtimeLimits,
+  })
+  const openaiMessages = convertMessages(compressedMessages, params.system, {
+    preserveReasoningContent: shimConfig.preserveReasoningContent,
+    reasoningContentFallback: shimConfig.reasoningContentFallback,
+    preserveGeminiThoughtSignature: shouldPreserveGeminiThoughtSignature(
+      request.resolvedModel,
+    ),
+    supportsImageInputs: shimConfig.supportsImageInputs,
+  })
 
   const reasoningControl = resolveModelReasoningControl(runtimeModel, {
     routeId: runtimeShimContext.routeId,
@@ -200,17 +92,9 @@ export function prepareOpenAIRequest({
     baseUrl: request.baseUrl,
     processEnv: requestProcessEnv,
   })
-  const suppressReasoningForForcedChat =
-    effectiveTransport === 'chat_completions' &&
-    Array.isArray(params.tools) &&
-    params.tools.length > 0 &&
-    modelRequiresResponsesApi(request.resolvedModel) &&
-    baseUrlSupportsResponsesAutoRoute(request.baseUrl, requestProcessEnv)
   const reasoningRequestPlan = resolveOpenAIShimReasoningRequestPlan({
     model: runtimeModel,
-    requestedEffort: suppressReasoningForForcedChat
-      ? undefined
-      : request.reasoning?.effort,
+    requestedEffort: request.reasoning?.effort,
     requestThinkingType:
       (params.thinking as { type?: string } | undefined)?.type,
     defaultThinkingType: request.thinking?.type,
@@ -222,7 +106,7 @@ export function prepareOpenAIRequest({
 
   const body: Record<string, unknown> = {
     model: request.resolvedModel,
-    ...(openaiMessages ? { messages: openaiMessages } : {}),
+    messages: openaiMessages,
     stream: params.stream ?? false,
     store: false,
   }
@@ -254,65 +138,16 @@ export function prepareOpenAIRequest({
     body.stream_options = { include_usage: true }
   }
 
-  const isGithub = isGithubModelsMode()
-  const isLocal = isLocalProviderUrl(request.baseUrl)
-  const githubEndpointType = getGithubEndpointType(request.baseUrl)
-  const isGithubCopilot =
-    isGithub && (githubEndpointType === 'copilot' || githubEndpointType === 'ghe')
-  const isGithubModels =
-    isGithub && (githubEndpointType === 'models' || githubEndpointType === 'custom')
-  const shouldStripResponsesStore =
-    (shimConfig.removeBodyFields ?? []).includes('store') ||
-    isGeminiMode() ||
-    hasGeminiApiHost(request.baseUrl) ||
-    hasCerebrasApiHost(request.baseUrl) ||
-    hasMistralApiHost(request.baseUrl) ||
-    isLocal
-
   if (
-    (shimConfig.maxTokensField === 'max_tokens' ||
-      hasMistralApiHost(request.baseUrl)) &&
+    shimConfig.maxTokensField === 'max_tokens' &&
     body.max_completion_tokens !== undefined
   ) {
     body.max_tokens = body.max_completion_tokens
     delete body.max_completion_tokens
   }
   for (const field of shimConfig.removeBodyFields ?? []) delete body[field]
-  if (shouldStripResponsesStore) delete body.store
   if (params.temperature !== undefined) body.temperature = params.temperature
   if (params.top_p !== undefined) body.top_p = params.top_p
-
-  if (reasoningRequestPlan.wireFormat === 'deepseek_compatible') {
-    if (reasoningRequestPlan.thinkingType) {
-      body.thinking = { type: reasoningRequestPlan.thinkingType }
-    }
-    if (reasoningRequestPlan.reasoningEffort) {
-      body.reasoning_effort = reasoningRequestPlan.reasoningEffort
-    }
-    maybeSetNvidiaNimChatTemplateThinking(
-      body,
-      request.baseUrl,
-      reasoningRequestPlan,
-    )
-  }
-  if (reasoningRequestPlan.wireFormat === 'zai_compatible') {
-    if (reasoningRequestPlan.thinkingType) {
-      body.thinking = { type: reasoningRequestPlan.thinkingType }
-    }
-    if (reasoningRequestPlan.thinkingType === 'disabled') {
-      delete body.reasoning_effort
-    } else if (reasoningRequestPlan.reasoningEffort) {
-      body.reasoning_effort = reasoningRequestPlan.reasoningEffort
-    } else {
-      delete body.reasoning_effort
-    }
-    maybeSetNvidiaNimChatTemplateThinking(
-      body,
-      request.baseUrl,
-      reasoningRequestPlan,
-    )
-  }
-  for (const field of shimConfig.removeBodyFields ?? []) delete body[field]
 
   if (
     !(shimConfig.removeBodyFields ?? []).includes('tools') &&
@@ -322,14 +157,12 @@ export function prepareOpenAIRequest({
       name: string
       description?: string
       input_schema?: Record<string, unknown>
-    }>, { skipStrict: fastPath.skipStrictTools })
+    }>)
     if (converted.length > 0) {
       body.tools = converted
-      if (
-        effectiveTransport === 'chat_completions' &&
-        params.stream &&
-        shimConfig.enableToolStreaming === true
-      ) body.tool_stream = true
+      if (params.stream && shimConfig.enableToolStreaming === true) {
+        body.tool_stream = true
+      }
       const toolChoice = params.tool_choice as {
         type?: string
         name?: string
@@ -345,60 +178,14 @@ export function prepareOpenAIRequest({
     }
   }
 
-  let responsesInput: ReturnType<
-    typeof convertAnthropicMessagesToResponsesInput
-  > | undefined
-  let responsesMessages: typeof compressedMessages | undefined
-  const getResponsesInput = () => {
-    responsesMessages ??= effectiveTransport === 'chat_completions'
-      ? fastPath.skipToolHistoryCompression || skipCompressionForPrefixCache
-        ? rawMessages
-        : compressToolHistory(rawMessages, runtimeModel, {
-          textBlockSeparator: '\n',
-          runtimeLimits,
-        })
-      : compressedMessages
-    responsesInput ??= convertAnthropicMessagesToResponsesInput(
-      responsesMessages,
-      effectiveTransport === 'responses_compat',
-    )
-    return responsesInput
-  }
-  const omitTools = { responses: false, anthropic: false, gemini: false }
-  const planner = createRequestBodyPlanner({
-    request,
-    params,
-    effectiveTransport,
-    shouldStripResponsesStore,
-    body,
-    reasoningRequestPlan,
-    shimConfig,
-    getResponsesInput,
-    convertSystemPrompt,
-    convertToolsToResponsesTools,
-    maxTokensValue,
-    maxCompletionTokensValue,
-    getOllamaNumCtx,
-    normalizeOllamaNativeMessages,
-    useNativeOllamaChat,
-    fastPath,
-    stableStringifyJson,
-    omitTools,
-  })
+  // Byte-identical serialization (sorted keys) keeps implicit prefix caching
+  // stable across rebuilds of `body`.
+  const serializeBody = (): string => stableStringifyJson(body)
 
   return {
-    fastPath,
     runtimeShimContext,
     shimConfig,
     body,
-    effectiveTransport,
-    useNativeOllamaChat,
-    buildResponsesBody: planner.buildResponsesBody,
-    serializeBody: planner.serializeBody,
-    isLocal,
-    isGithub,
-    isGithubCopilot,
-    isGithubModels,
-    omitTools,
+    serializeBody,
   }
 }

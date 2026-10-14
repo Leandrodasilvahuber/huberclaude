@@ -63,16 +63,12 @@ export function convertTools(
     input_schema?: Record<string, unknown>
   }>,
   options: {
-    isGemini: boolean
     disableStrictTools: boolean
     skipStrict?: boolean
     normalizeSchema?: typeof normalizeSchemaForOpenAI
   },
 ): OpenAITool[] {
-  const strict =
-    !options.isGemini &&
-    !options.disableStrictTools &&
-    !options.skipStrict
+  const strict = !options.disableStrictTools && !options.skipStrict
 
   return tools
     .filter(tool => tool.name !== 'ToolSearchTool')

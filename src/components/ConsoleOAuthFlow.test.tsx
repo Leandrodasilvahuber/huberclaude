@@ -117,29 +117,9 @@ async function waitForOutput(
   throw new Error('Timed out waiting for ConsoleOAuthFlow test output')
 }
 
-test('login picker shows the third-party platform option', async () => {
+test('login picker offers only Anthropic account login methods', async () => {
   const output = await renderFrame(<ConsoleOAuthFlow onDone={() => {}} />)
 
   expect(output).toContain('Select login method:')
-  expect(output).toContain('3rd-party platform')
-})
-
-test('third-party provider branch opens the first-run provider manager', async () => {
-  const output = await renderFrame(
-    <ConsoleOAuthFlow
-      initialStatus={{ state: 'platform_setup' }}
-      onDone={() => {}}
-    />,
-  )
-
-  expect(output).toContain('Set up provider')
-  // Keep the sentinels near the top of the preset list so adding another
-  // provider does not push the assertion outside the 13-row test frame.
-  expect(output).toContain('aimlapi.com')
-  expect(output).toContain('Anthropic')
-  expect(output).toContain('Azure OpenAI')
-  expect(output).toContain('Command Code')
-  // The Cloudflare Workers AI preset must be offered in the first-run picker
-  // (it sorts ahead of DeepSeek, so it is within the visible frame).
-  expect(output).toContain('Cloudflare Workers AI')
+  expect(output).not.toContain('3rd-party platform')
 })

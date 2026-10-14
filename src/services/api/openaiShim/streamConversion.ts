@@ -1,6 +1,6 @@
 import { APIError } from '@anthropic-ai/sdk'
 import { buildAnthropicUsageFromRawUsage } from '../cacheMetrics.js'
-import type { AnthropicStreamEvent, AnthropicUsage } from '../codexShim.js'
+import type { AnthropicStreamEvent, AnthropicUsage } from './types.js'
 import {
   buildOpenAICompatibilityErrorMessage,
   classifyOpenAIHttpFailure,

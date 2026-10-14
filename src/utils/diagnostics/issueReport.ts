@@ -16,10 +16,6 @@ import { parseCredentialList } from '../../services/api/credentialPool.js'
 import type { CapabilityFlags, ModelCatalogEntry } from '../../integrations/descriptors.js'
 import type { ScopedMcpServerConfig } from '../../services/mcp/types.js'
 import { getClaudeCodeMcpConfigs } from '../../services/mcp/config.js'
-import {
-  resolveProviderRequest,
-  resolveRuntimeCodexCredentials,
-} from '../../services/api/providerConfig.js'
 import { getInMemoryErrors } from '../log.js'
 import { getRipgrepStatus, testRipgrepOnFirstUse } from '../ripgrep.js'
 import {
@@ -295,75 +291,16 @@ function getCredentialSummary(routeId: string, env: NodeJS.ProcessEnv) {
   }
 }
 
-function getCodexCredentialSummary(env: NodeJS.ProcessEnv): CredentialSummary {
-  const credentials = resolveRuntimeCodexCredentials({ env })
-  const sources: string[] = []
-
-  if (env.CODEX_API_KEY?.trim()) {
-    sources.push('CODEX_API_KEY')
-  }
-  if (env.CODEX_ACCOUNT_ID?.trim()) {
-    sources.push('CODEX_ACCOUNT_ID')
-  } else if (env.CHATGPT_ACCOUNT_ID?.trim()) {
-    sources.push('CHATGPT_ACCOUNT_ID')
-  }
-
-  if (credentials.source === 'auth.json') {
-    if (env.CODEX_AUTH_JSON_PATH?.trim()) {
-      sources.push('CODEX_AUTH_JSON_PATH')
-    } else if (env.CODEX_HOME?.trim()) {
-      sources.push('CODEX_HOME')
-    } else {
-      sources.push('auth.json')
-    }
-  } else if (credentials.source === 'secure-storage') {
-    sources.push('secure-storage')
-  }
-
-  return {
-    required: true,
-    present: Boolean(credentials.apiKey && credentials.accountId),
-    sources: [...new Set(sources)],
-  }
-}
-
 function getKnownCredentialSourceNames(routeId: string): Set<string> {
   return new Set([
     ...collectProviderSecretEnvVars(),
     ...getRouteCredentialEnvVars(routeId),
-    ...(routeId === 'codex'
-      ? [
-          'CODEX_API_KEY',
-          'CODEX_ACCOUNT_ID',
-          'CHATGPT_ACCOUNT_ID',
-          'CODEX_AUTH_JSON_PATH',
-          'CODEX_HOME',
-          'auth.json',
-          'secure-storage',
-        ]
-      : []),
   ])
 }
 
 function resolveDiagnosticProviderContext(
   env: NodeJS.ProcessEnv,
 ): DiagnosticProviderContext {
-  if (isTruthy(env.CLAUDE_CODE_USE_OPENAI)) {
-    const request = resolveProviderRequest({ processEnv: env })
-    if (request.transport === 'codex_responses') {
-      return {
-        routeId: 'codex',
-        label: 'Codex',
-        providerType: 'Codex Responses API',
-        model: request.requestedModel,
-        limitsModel: request.resolvedModel,
-        catalogRouteId: 'openai',
-        baseUrl: request.baseUrl,
-        credential: getCodexCredentialSummary(env),
-      }
-    }
-  }
-
   const routeId = resolveRouteId(env)
   const descriptor = getRouteDescriptor(routeId)
   const model = resolveProviderModel(routeId, env)

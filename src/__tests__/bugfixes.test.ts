@@ -31,16 +31,6 @@ const file = (relative: string) => Bun.file(resolve(SRC, relative))
 // Fix 1: Gemini `store: false` rejection
 // ---------------------------------------------------------------------------
 describe('Gemini store field fix', () => {
-  test('descriptor-backed shim config strips store for Gemini and Mistral routes', async () => {
-    const runtimeMetadata = await file('integrations/runtimeMetadata.ts').text()
-    const geminiDescriptor = await file('integrations/vendors/gemini.ts').text()
-    const mistralDescriptor = await file('integrations/gateways/mistral.ts').text()
-
-    expect(runtimeMetadata).toContain('removeBodyFields')
-    expect(geminiDescriptor).toContain("removeBodyFields: ['store']")
-    expect(mistralDescriptor).toContain("removeBodyFields: ['store']")
-  })
-
   test('openaiShim does not keep a hardcoded descriptor route fallback list', async () => {
     const content = await file('services/api/openaiShim.ts').text()
 
@@ -58,14 +48,6 @@ describe('Session timeout fix', () => {
     const content = await file('services/api/openaiShim/streamControl.ts').text()
 
     expect(content).toContain('STREAM_IDLE_TIMEOUT_MS')
-  })
-
-  test('codexShim has idle timeout for SSE streams', async () => {
-    const content = await file('services/api/codexShim.ts').text()
-
-    expect(content).toContain('STREAM_IDLE_TIMEOUT_MS')
-    expect(content).toContain('readWithTimeout')
-    expect(content).toMatch(/readWithTimeout\(\)/)
   })
 
   test('idle timeout is set to a reasonable value (>= 60s)', async () => {
@@ -678,24 +660,6 @@ describe('Onboarding and trust dialog — third-party providers', () => {
     expect(content).toContain('getRequiredSetupScreens({')
     expect(content).toContain('if (setupScreens.onboarding)')
     expect(content).toContain('if (setupScreens.trustDialog)')
-  })
-
-  test('the env-config option never renders the raw endpoint', async () => {
-    // OPENAI_BASE_URL/OPENAI_API_BASE can carry credentials (userinfo or
-    // token query params) and everything rendered lands in terminal
-    // scrollback. Redaction behavior is tested in envProviderOption.test.ts;
-    // this guards the wiring — the raw `envBaseUrl` may only reach profile
-    // persistence (addProviderProfile/getProviderProfiles/label), never a
-    // rendered label or status message.
-    const content = await file('components/ConsoleOAuthFlow.tsx').text()
-
-    expect(content).toContain('getEnvProviderOption()')
-    // Rendered sites use the redacted value.
-    expect(content).toMatch(/\{envBaseUrlVarName\}=\{envBaseUrlForDisplay\}/)
-    expect(content).toMatch(/\$\{envBaseUrlForDisplay\}\) as your active provider/)
-    // No rendered site interpolates the raw endpoint.
-    expect(content).not.toMatch(/\{envBaseUrl\}/)
-    expect(content).not.toMatch(/\$\{envBaseUrl\}/)
   })
 
   test('no dialog is gated behind usesAnthropicSetup', async () => {

@@ -1,8 +1,12 @@
 import { resolveActiveRouteIdFromEnv } from '../integrations/routeMetadata.js'
-import {
-  isDirectLocalOllamaEndpoint,
-  isLocalProviderUrl,
-} from '../services/api/providerConfig.js'
+
+// HuberClaude only talks to OpenRouter, which is never a local endpoint.
+function isLocalProviderUrl(_baseUrl: string | undefined): boolean {
+  return false
+}
+function isDirectLocalOllamaEndpoint(_baseUrl: string | undefined): boolean {
+  return false
+}
 import type { Tool, ToolPermissionContext } from '../Tool.js'
 import type { AgentDefinitionsResult } from '../tools/AgentTool/loadAgentsDir.js'
 import type { MemoryFileInfo } from './claudemd.js'

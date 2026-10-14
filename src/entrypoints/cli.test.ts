@@ -31,12 +31,10 @@ import {
 import {
   applyModelFlagFromArgs,
   applyProviderFlagFromArgs,
-  clearRememberedProviderFlagForTests,
   parseModelFlag,
   parseProviderFlag,
   reapplyRememberedProviderFlag,
 } from '../utils/providerFlag.js'
-import { applyProfileEnvToProcessEnv } from '../utils/providerProfile.js'
 
 type CliMain = typeof import('./cli.js')['main']
 
@@ -212,7 +210,6 @@ describe('cli.tsx — --provider startup ordering', () => {
   let tempDir: string
 
   beforeEach(() => {
-    clearRememberedProviderFlagForTests()
     tempDir = mkdtempSync(join(tmpdir(), 'openclaude-cli-env-file-test-'))
     for (const key of providerEnvKeys) {
       originalEnv.set(key, process.env[key])
@@ -231,7 +228,6 @@ describe('cli.tsx — --provider startup ordering', () => {
       }
     }
     originalEnv.clear()
-    clearRememberedProviderFlagForTests()
   })
 
   function writeProviderEnvFile(content: string): string {
@@ -239,23 +235,6 @@ describe('cli.tsx — --provider startup ordering', () => {
     writeFileSync(filePath, content, 'utf-8')
     return filePath
   }
-
-  it('remembers --provider so settings.env reloads cannot clobber it', async () => {
-    const src = await Bun.file(`${import.meta.dir}/cli.tsx`).text()
-
-    const earlyProviderApplyIndex = src.indexOf('applyProviderFlagFromArgs(args')
-    const rememberOptionIndex = src.indexOf(
-      'rememberForSettingsEnv: true',
-      earlyProviderApplyIndex,
-    )
-    const settingsEnvApplyIndex = src.indexOf(
-      'applySafeConfigEnvironmentVariables()',
-    )
-
-    expect(earlyProviderApplyIndex).toBeGreaterThanOrEqual(0)
-    expect(rememberOptionIndex).toBeGreaterThan(earlyProviderApplyIndex)
-    expect(settingsEnvApplyIndex).toBeGreaterThan(earlyProviderApplyIndex)
-  })
 
   it('reapplies remembered --provider after every managed settings env merge', async () => {
     const src = await Bun.file(`${import.meta.dir}/../utils/managedEnv.ts`).text()
@@ -296,89 +275,6 @@ describe('cli.tsx — --provider startup ordering', () => {
 
     expect(envFileImportIndex).toBeGreaterThanOrEqual(0)
     expect(rememberLoadedFileIndex).toBeGreaterThan(envFileImportIndex)
-  })
-
-  it('preserves explicit --provider-env-file values through settings and startup profile env merges', () => {
-    const filePath = writeProviderEnvFile([
-      'CLAUDE_CODE_USE_OPENAI=1',
-      'OPENAI_API_KEY=file-key',
-      'OPENAI_BASE_URL=https://file.example/v1',
-      'OPENAI_MODEL=file-model',
-    ].join('\n'))
-
-    const loaded = loadEnvFile(filePath)
-
-    Object.assign(process.env, {
-      OPENAI_API_KEY: 'settings-key',
-      OPENAI_BASE_URL: 'https://settings.example/v1',
-      OPENAI_MODEL: 'settings-model',
-    })
-    applyLoadedEnvFileValues(loaded)
-
-    applyProfileEnvToProcessEnv(process.env, {
-      CLAUDE_CODE_USE_OPENAI: '1',
-      OPENAI_API_KEY: 'profile-key',
-      OPENAI_BASE_URL: 'https://profile.example/v1',
-      OPENAI_MODEL: 'profile-model',
-    })
-    applyLoadedEnvFileValues(loaded)
-
-    expect(process.env.CLAUDE_CODE_USE_OPENAI).toBe('1')
-    expect(process.env.OPENAI_API_KEY).toBe('file-key')
-    expect(process.env.OPENAI_BASE_URL).toBe('https://file.example/v1')
-    expect(process.env.OPENAI_MODEL).toBe('file-model')
-  })
-
-  it('keeps explicit --provider values ahead of provider env-file reapply checkpoints', () => {
-    const filePath = writeProviderEnvFile([
-      'CLAUDE_CODE_USE_OPENAI=1',
-      'OPENAI_API_KEY=file-key',
-      'OPENAI_BASE_URL=https://file.example/v1',
-      'OPENAI_MODEL=file-model',
-    ].join('\n'))
-
-    const loaded = loadEnvFile(filePath)
-    const result = applyProviderFlagFromArgs(
-      ['--provider', 'gemini', '--model', 'gemini-2.0-flash'],
-      { rememberForSettingsEnv: true },
-    )
-    expect(result?.error).toBeUndefined()
-
-    applyLoadedEnvFileValues(loaded)
-    reapplyRememberedProviderFlag()
-    applyLoadedEnvFileValues(loaded)
-    reapplyRememberedProviderFlag()
-
-    expect(process.env.CLAUDE_CODE_USE_OPENAI).toBeUndefined()
-    expect(process.env.CLAUDE_CODE_USE_GEMINI).toBe('1')
-    expect(process.env.GEMINI_MODEL).toBe('gemini-2.0-flash')
-  })
-
-  it('dispatches background session management before provider validation', async () => {
-    const src = await Bun.file(`${import.meta.dir}/cli.tsx`).text()
-    const bgManagementIndex = src.indexOf("args[0] === 'ps'")
-    const providerValidationIndex = src.indexOf(
-      'await validateProviderEnvForStartupOrExit()',
-    )
-
-    expect(bgManagementIndex).toBeGreaterThanOrEqual(0)
-    expect(providerValidationIndex).toBeGreaterThanOrEqual(0)
-    expect(bgManagementIndex).toBeLessThan(providerValidationIndex)
-  })
-
-  it('keeps background spawn after profile routing but before provider validation', async () => {
-    const src = await Bun.file(`${import.meta.dir}/cli.tsx`).text()
-    const profileApplyIndex = src.indexOf('await applyStartupEnvFromProfile')
-    const bgFlagIndex = src.indexOf("optionArgs.includes('--bg')")
-    const providerValidationIndex = src.indexOf(
-      'await validateProviderEnvForStartupOrExit()',
-    )
-
-    expect(profileApplyIndex).toBeGreaterThanOrEqual(0)
-    expect(bgFlagIndex).toBeGreaterThanOrEqual(0)
-    expect(providerValidationIndex).toBeGreaterThanOrEqual(0)
-    expect(bgFlagIndex).toBeGreaterThan(profileApplyIndex)
-    expect(bgFlagIndex).toBeLessThan(providerValidationIndex)
   })
 
 })
@@ -634,243 +530,6 @@ describe('cli.tsx — background routing behavior', () => {
     }
   })
 
-  it('routes real background flags after profile routing without provider validation', async () => {
-    const args = ['--background', '--', '--print']
-
-    await runCliEntrypoint(args, bgOptions)
-
-    expect(mockEnableConfigs).toHaveBeenCalledTimes(1)
-    expect(mockParseProviderEnvFileArgs.mock.calls).toEqual([[args]])
-    expect(mockReapplyRememberedEnvFileValues).toHaveBeenCalledTimes(2)
-    expect(mockApplySafeConfigEnvironmentVariables).toHaveBeenCalledTimes(1)
-    expect(mockApplyStartupEnvFromProfile).toHaveBeenCalledTimes(1)
-    expect(mockEagerLoadSettingsFromArgs.mock.calls).toEqual([[args]])
-    expect(mockHandleBgFlag.mock.calls).toEqual([[args]])
-    expect(mockRefreshGithubModelsTokenIfNeeded).not.toHaveBeenCalled()
-    expect(mockValidateProviderEnvForStartupOrExit).not.toHaveBeenCalled()
-    expect(mockCliMain).not.toHaveBeenCalled()
-  })
-
-  it('treats --bg after -- as positional text, not a background flag', async () => {
-    const args = ['--', '--bg']
-
-    await runCliEntrypoint(args, bgOptions)
-
-    expect(mockHandleBgFlag).not.toHaveBeenCalled()
-    expect(mockRefreshGithubModelsTokenIfNeeded).toHaveBeenCalledTimes(1)
-    expect(mockHydrateGithubModelsTokenFromSecureStorage).toHaveBeenCalledTimes(
-      1,
-    )
-    expect(mockValidateProviderEnvForStartupOrExit).toHaveBeenCalledTimes(1)
-    expect(mockPrintStartupScreen).toHaveBeenCalledTimes(1)
-    expect(mockCliMain).toHaveBeenCalledTimes(1)
-  })
-
-  it('applies a standalone model override before provider validation', async () => {
-    const order: string[] = []
-    mockApplyModelFlagFromArgs.mockImplementationOnce(args => {
-      order.push('model')
-      expect(args).toEqual(['--model', 'deepseek/deepseek-v4-flash'])
-      return undefined
-    })
-    mockValidateProviderEnvForStartupOrExit.mockImplementationOnce(async () => {
-      order.push('validation')
-    })
-
-    await runCliEntrypoint(
-      ['--model', 'deepseek/deepseek-v4-flash'],
-      bgOptions,
-    )
-
-    expect(order).toEqual(['model', 'validation'])
-  })
-
-  it('applies an equals-separated model override before provider validation', async () => {
-    const order: string[] = []
-    mockApplyModelFlagFromArgs.mockImplementationOnce(args => {
-      order.push('model')
-      expect(args).toEqual(['--model=deepseek/deepseek-v4-flash'])
-      return undefined
-    })
-    mockValidateProviderEnvForStartupOrExit.mockImplementationOnce(async () => {
-      order.push('validation')
-    })
-
-    await runCliEntrypoint(
-      ['--model=deepseek/deepseek-v4-flash'],
-      bgOptions,
-    )
-
-    expect(order).toEqual(['model', 'validation'])
-  })
-
-  it.each([
-    {
-      args: ['aimlapi', 'topup', '--model', 'anthropic/claude-sonnet-4-6'],
-    },
-    {
-      args: ['auto-mode', 'critique', '--model=anthropic/claude-sonnet-4-6'],
-    },
-    {
-      args: [
-        '--debug=api',
-        'aimlapi',
-        'topup',
-        '--model',
-        'anthropic/claude-sonnet-4-6',
-      ],
-    },
-  ])('leaves nested command model options to their owning command', async ({ args }) => {
-    await runCliEntrypoint([...args], bgOptions)
-
-    expect(mockApplyModelFlagFromArgs).not.toHaveBeenCalled()
-    expect(mockValidateProviderEnvForStartupOrExit).toHaveBeenCalledTimes(1)
-    expect(mockPrintStartupScreen).toHaveBeenCalledWith(undefined)
-    expect(mockCliMain).toHaveBeenCalledTimes(1)
-  })
-
-  it('does not restore or validate a saved profile after an explicit Anthropic selection', async () => {
-    const originalExit = process.exit
-    const originalConsoleError = console.error
-    const originalEnv = { ...process.env }
-    const exitMock = mock((_code?: number | string | null) => undefined as never)
-    const consoleErrorMock = mock((_message?: unknown) => {})
-    process.exit = exitMock as typeof process.exit
-    console.error = consoleErrorMock
-    try {
-      await runCliEntrypoint(
-        ['--provider', 'anthropic', '--model', 'sonnet'],
-        bgOptions,
-      )
-    } finally {
-      process.exit = originalExit
-      console.error = originalConsoleError
-      for (const key of Object.keys(process.env)) {
-        if (!(key in originalEnv)) delete process.env[key]
-      }
-      Object.assign(process.env, originalEnv)
-    }
-
-    expect(mockApplyStartupEnvFromProfile).not.toHaveBeenCalled()
-    expect(mockApplyModelFlagFromArgs).toHaveBeenCalledWith([
-      '--provider',
-      'anthropic',
-      '--model',
-      'sonnet',
-    ])
-    expect(consoleErrorMock).not.toHaveBeenCalled()
-    expect(exitMock).not.toHaveBeenCalled()
-    expect(mockValidateProviderEnvForStartupOrExit).toHaveBeenCalledTimes(1)
-    expect(mockCliMain).toHaveBeenCalledTimes(1)
-  })
-
-  it('honors an inline explicit Anthropic selection before saved-profile restoration', async () => {
-    const originalExit = process.exit
-    const originalConsoleError = console.error
-    const originalEnv = { ...process.env }
-    const exitMock = mock((_code?: number | string | null) => undefined as never)
-    const consoleErrorMock = mock((_message?: unknown) => {})
-    process.exit = exitMock as typeof process.exit
-    console.error = consoleErrorMock
-    try {
-      await runCliEntrypoint(
-        ['--provider=anthropic', '--model=sonnet'],
-        bgOptions,
-      )
-    } finally {
-      process.exit = originalExit
-      console.error = originalConsoleError
-      for (const key of Object.keys(process.env)) {
-        if (!(key in originalEnv)) delete process.env[key]
-      }
-      Object.assign(process.env, originalEnv)
-    }
-
-    expect(mockApplyStartupEnvFromProfile).not.toHaveBeenCalled()
-    expect(mockApplyModelFlagFromArgs).toHaveBeenCalledWith([
-      '--provider=anthropic',
-      '--model=sonnet',
-    ])
-    expect(consoleErrorMock).not.toHaveBeenCalled()
-    expect(exitMock).not.toHaveBeenCalled()
-    expect(mockValidateProviderEnvForStartupOrExit).toHaveBeenCalledTimes(1)
-    expect(mockCliMain).toHaveBeenCalledTimes(1)
-  })
-
-  it.each([
-    ['--', '--provider=anthropic'],
-    ['--system-prompt', '--provider=anthropic'],
-  ])(
-    'does not treat provider-looking prompt data as an explicit selection: %j',
-    async (firstArg, secondArg) => {
-      await runCliEntrypoint([firstArg, secondArg], bgOptions)
-
-      expect(mockApplyStartupEnvFromProfile).toHaveBeenCalledTimes(1)
-      expect(mockValidateProviderEnvForStartupOrExit).toHaveBeenCalledTimes(1)
-      expect(mockCliMain).toHaveBeenCalledTimes(1)
-    },
-  )
-
-  it('does not treat a nested command --model as the Command Code session model', async () => {
-    const originalExit = process.exit
-    const originalConsoleError = console.error
-    const originalModel = process.env.OPENAI_MODEL
-    const originalBaseUrl = process.env.OPENAI_BASE_URL
-    const originalUseOpenAI = process.env.CLAUDE_CODE_USE_OPENAI
-    const originalApiKey = process.env.OPENAI_API_KEY
-    const exitMock = mock((_code?: number | string | null) => undefined as never)
-    const consoleErrorMock = mock((_message?: unknown) => {})
-    process.exit = exitMock as typeof process.exit
-    console.error = consoleErrorMock
-
-    try {
-      await runCliEntrypoint(
-        [
-          '--provider',
-          'commandcode',
-          '--model',
-          'deepseek/deepseek-v4-flash',
-          'aimlapi',
-          'topup',
-          '--model',
-          'anthropic/claude-sonnet-4-6',
-        ],
-        bgOptions,
-      )
-    } finally {
-      process.exit = originalExit
-      console.error = originalConsoleError
-      if (originalModel === undefined) {
-        delete process.env.OPENAI_MODEL
-      } else {
-        process.env.OPENAI_MODEL = originalModel
-      }
-      if (originalBaseUrl === undefined) {
-        delete process.env.OPENAI_BASE_URL
-      } else {
-        process.env.OPENAI_BASE_URL = originalBaseUrl
-      }
-      if (originalUseOpenAI === undefined) {
-        delete process.env.CLAUDE_CODE_USE_OPENAI
-      } else {
-        process.env.CLAUDE_CODE_USE_OPENAI = originalUseOpenAI
-      }
-      if (originalApiKey === undefined) {
-        delete process.env.OPENAI_API_KEY
-      } else {
-        process.env.OPENAI_API_KEY = originalApiKey
-      }
-    }
-
-    expect(consoleErrorMock).not.toHaveBeenCalled()
-    expect(exitMock).not.toHaveBeenCalled()
-    expect(mockValidateProviderEnvForStartupOrExit).toHaveBeenCalledTimes(1)
-    expect(mockPrintStartupScreen).toHaveBeenCalledWith(
-      'deepseek/deepseek-v4-flash',
-    )
-    expect(mockCliMain).toHaveBeenCalledTimes(1)
-  })
-
   it('still applies a root model option before a nested model command', async () => {
     const args = [
       '--model=deepseek/deepseek-v4-flash',
@@ -910,25 +569,6 @@ describe('cli.tsx — background routing behavior', () => {
 
     await runCliEntrypoint(args, bgOptions)
 
-    expect(mockApplyModelFlagFromArgs).toHaveBeenCalledWith(args)
-    expect(mockPrintStartupScreen).toHaveBeenCalledWith(
-      'deepseek/deepseek-v4-flash',
-    )
-  })
-
-  it('still applies a root model after a required option consumes the -- delimiter', async () => {
-    const args = [
-      '--system-prompt',
-      '--',
-      '--model',
-      'deepseek/deepseek-v4-flash',
-    ]
-
-    await runCliEntrypoint(args, bgOptions)
-
-    expect(mockApplyStartupEnvFromProfile.mock.calls[0]?.[0]).toMatchObject({
-      modelOverride: 'deepseek/deepseek-v4-flash',
-    })
     expect(mockApplyModelFlagFromArgs).toHaveBeenCalledWith(args)
     expect(mockPrintStartupScreen).toHaveBeenCalledWith(
       'deepseek/deepseek-v4-flash',
@@ -1006,109 +646,6 @@ describe('cli.tsx — background routing behavior', () => {
     expect(mockCliMain).not.toHaveBeenCalled()
   })
 
-  it('does not fall back after a saved Command Code profile rejects the root model', async () => {
-    const modelError =
-      'OpenAI Chat Completions does not support the selected Command Code model; it requires the Anthropic Messages protocol. Choose an OpenAI-compatible model.'
-    const originalExit = process.exit
-    const originalConsoleError = console.error
-    const exitMock = mock((_code?: number | string | null) => undefined as never)
-    const consoleErrorMock = mock((_message?: unknown) => {})
-    process.exit = exitMock as typeof process.exit
-    console.error = consoleErrorMock
-    mockApplyStartupEnvFromProfile.mockImplementationOnce(async input => {
-      input.onValidationError(`Warning: ignoring saved provider profile. ${modelError}`)
-      return modelError
-    })
-
-    try {
-      await runCliEntrypoint(
-        ['--model', 'anthropic/claude-sonnet-4-6'],
-        bgOptions,
-      )
-    } finally {
-      process.exit = originalExit
-      console.error = originalConsoleError
-    }
-
-    expect(consoleErrorMock).toHaveBeenCalledTimes(1)
-    expect(consoleErrorMock).toHaveBeenCalledWith(`Error: ${modelError}`)
-    expect(exitMock).toHaveBeenCalledWith(1)
-    expect(mockApplyModelFlagFromArgs).not.toHaveBeenCalled()
-    expect(mockValidateProviderEnvForStartupOrExit).not.toHaveBeenCalled()
-    expect(mockCliMain).not.toHaveBeenCalled()
-  })
-
-  it('lets a configured teammate override replace a rejected saved Command Code model', async () => {
-    const modelError =
-      'OpenAI Chat Completions does not support the selected Command Code model; it requires the Anthropic Messages protocol. Choose an OpenAI-compatible model.'
-    const providerOverride = {
-      model: 'actual-provider-model',
-      baseURL: 'https://provider.example/v1',
-      apiKey: 'provider-key',
-    }
-    const originalConsoleError = console.error
-    const consoleErrorMock = mock((_message?: unknown) => {})
-    console.error = consoleErrorMock
-    mockApplyStartupEnvFromProfile.mockImplementationOnce(async input => {
-      input.onValidationError(`Warning: ignoring saved provider profile. ${modelError}`)
-      return modelError
-    })
-    mockResolveOutOfProcessTeammateProviderFromCliArgs.mockReturnValueOnce(
-      providerOverride,
-    )
-
-    try {
-      await runCliEntrypoint(
-        [
-          '--agent-name=worker-a',
-          '--team-name=review',
-          '--model=anthropic/claude-sonnet-4-6',
-        ],
-        bgOptions,
-      )
-    } finally {
-      console.error = originalConsoleError
-    }
-
-    expect(consoleErrorMock).not.toHaveBeenCalled()
-    expect(mockApplyAgentProviderOverrideToEnv).toHaveBeenCalledWith(
-      providerOverride,
-    )
-    expect(mockApplyModelFlagFromArgs).not.toHaveBeenCalled()
-    expect(mockValidateProviderEnvForStartupOrExit).toHaveBeenCalledTimes(1)
-    expect(mockPrintStartupScreen).toHaveBeenCalledWith(
-      'actual-provider-model',
-    )
-    expect(mockCliMain).toHaveBeenCalledTimes(1)
-  })
-
-  it('keeps model-looking text after -- out of early model routing', async () => {
-    await runCliEntrypoint(
-      ['--', '--model', 'anthropic/claude-sonnet-4-6'],
-      bgOptions,
-    )
-
-    expect(mockApplyModelFlagFromArgs).not.toHaveBeenCalled()
-    expect(mockValidateProviderEnvForStartupOrExit).toHaveBeenCalledTimes(1)
-    expect(mockPrintStartupScreen).toHaveBeenCalledWith(undefined)
-  })
-
-  it('passes repeated model options through for final-occurrence parsing', async () => {
-    const args = [
-      '--model',
-      'anthropic/claude-sonnet-4-6',
-      '--model',
-      'deepseek/deepseek-v4-flash',
-    ]
-
-    await runCliEntrypoint(args, bgOptions)
-
-    expect(mockApplyModelFlagFromArgs).toHaveBeenCalledWith(args)
-    expect(mockValidateProviderEnvForStartupOrExit).toHaveBeenCalledTimes(1)
-    expect(mockPrintStartupScreen).toHaveBeenCalledWith(
-      'deepseek/deepseek-v4-flash',
-    )
-  })
 })
 
 describe('Node 24 premature exit regression (issue #1678)', () => {

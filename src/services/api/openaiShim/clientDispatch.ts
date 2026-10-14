@@ -5,12 +5,8 @@ import {
   registerInterruptionSignal,
   requestAbort,
 } from '../../../utils/interruptionTrace.js'
-import type { AnthropicStreamEvent, ShimCreateParams } from '../codexShim.js'
-import {
-  isLikelyOllamaEndpoint,
-  resolveProviderRequest,
-  type ResolvedProviderRequest,
-} from '../providerConfig.js'
+import { resolveProviderRequest, type ResolvedProviderRequest } from '../providerConfig.js'
+import type { AnthropicStreamEvent, ShimCreateParams } from './types.js'
 
 type CreateOptions = {
   signal?: AbortSignal
@@ -23,20 +19,6 @@ type ProviderOverride = {
   apiKey: string
 }
 
-type StreamConverter = (
-  response: Response,
-  model: string,
-  signal?: AbortSignal,
-) => AsyncGenerator<AnthropicStreamEvent>
-
-type OpenAIStreamConverter = (
-  response: Response,
-  model: string,
-  signal?: AbortSignal,
-  isOllama?: boolean,
-  requestUrl?: string,
-) => AsyncGenerator<AnthropicStreamEvent>
-
 export type ClientDispatchDependencies = {
   processEnv?: NodeJS.ProcessEnv
   providerOverride?: ProviderOverride
@@ -48,15 +30,13 @@ export type ClientDispatchDependencies = {
     processEnv?: NodeJS.ProcessEnv,
   ): Promise<Response>
   convertNonStreamingResponse(data: unknown, model: string): unknown
-  convertGeminiResponse(data: unknown, model: string): unknown
-  codexStreamToAnthropic: typeof import('../codexShim.js').codexStreamToAnthropic
-  collectCodexCompletedResponse: typeof import('../codexShim.js').collectCodexCompletedResponse
-  convertCodexResponseToAnthropicMessage: typeof import('../codexShim.js').convertCodexResponseToAnthropicMessage
   createStreamAbortError(): DOMException
-  anthropicSsePassthrough: StreamConverter
-  geminiSseToAnthropic: StreamConverter
-  openaiStreamToAnthropic: OpenAIStreamConverter
-  isGithubModelsMode(): boolean
+  openaiStreamToAnthropic(
+    response: Response,
+    model: string,
+    signal?: AbortSignal,
+    requestUrl?: string,
+  ): AsyncGenerator<AnthropicStreamEvent>
   makeMessageId(): string
 }
 
@@ -184,71 +164,15 @@ export class OpenAIShimStream implements AsyncIterable<AnthropicStreamEvent> {
   }
 }
 
-function selectStreamConverter(
-  request: ResolvedProviderRequest,
-  response: Response,
-  dependencies: Pick<
-    ClientDispatchDependencies,
-    | 'anthropicSsePassthrough'
-    | 'codexStreamToAnthropic'
-    | 'geminiSseToAnthropic'
-    | 'openaiStreamToAnthropic'
-  >,
-): (signal: AbortSignal) => AsyncGenerator<AnthropicStreamEvent> {
-  const isResponsesStream = response.url?.includes('/responses')
-  const isMessagesStream = response.url?.includes('/messages')
-  const isGeminiStream = response.url?.includes('/models/gemini-')
-
-  if (
-    request.transport === 'codex_responses' ||
-    request.transport === 'responses' ||
-    isResponsesStream
-  ) {
-    return signal => dependencies.codexStreamToAnthropic(
-      response,
-      request.resolvedModel,
-      signal,
-    )
-  }
-  if (isMessagesStream) {
-    return signal => dependencies.anthropicSsePassthrough(
-      response,
-      request.resolvedModel,
-      signal,
-    )
-  }
-  if (isGeminiStream) {
-    return signal => dependencies.geminiSseToAnthropic(
-      response,
-      request.resolvedModel,
-      signal,
-    )
-  }
-  return signal => dependencies.openaiStreamToAnthropic(
-    response,
-    request.resolvedModel,
-    signal,
-    isLikelyOllamaEndpoint(request.baseUrl),
-    response.url || undefined,
-  )
-}
-
 export function createShimRequest(
   params: ShimCreateParams,
   options: CreateOptions | undefined,
   dependencies: ClientDispatchDependencies,
 ): ShimRequestPromise {
   const {
-    anthropicSsePassthrough,
-    codexStreamToAnthropic,
-    collectCodexCompletedResponse,
-    convertCodexResponseToAnthropicMessage,
-    convertGeminiResponse,
     convertNonStreamingResponse,
     createStreamAbortError,
     doRequest,
-    geminiSseToAnthropic,
-    isGithubModelsMode,
     makeMessageId,
     openaiStreamToAnthropic,
     providerOverride,
@@ -256,110 +180,60 @@ export function createShimRequest(
     reasoningEffort,
   } = dependencies
 
-    let httpResponse: Response | undefined
+  let httpResponse: Response | undefined
 
-    const promise = (async (): Promise<unknown> => {
-      const request = resolveProviderRequest({
-        model: providerOverride?.model ?? params.model,
-        baseUrl: providerOverride?.baseURL,
-        reasoningEffortOverride: reasoningEffort,
-        processEnv,
-      })
-      const response = await doRequest(request, params, options, processEnv)
-      httpResponse = response
+  const promise = (async (): Promise<unknown> => {
+    const request = resolveProviderRequest({
+      model: providerOverride?.model ?? params.model,
+      baseUrl: providerOverride?.baseURL,
+      reasoningEffortOverride: reasoningEffort,
+      processEnv,
+    })
+    const response = await doRequest(request, params, options, processEnv)
+    httpResponse = response
 
-      if (params.stream) {
-        const cancelBeforeIteration = () => {
-          void response.body?.cancel(createStreamAbortError()).catch(() => {})
-        }
-        return new OpenAIShimStream(
-          selectStreamConverter(request, response, {
-            anthropicSsePassthrough,
-            codexStreamToAnthropic,
-            geminiSseToAnthropic,
-            openaiStreamToAnthropic,
-          }),
-          options?.signal,
-          cancelBeforeIteration,
-        )
+    if (params.stream) {
+      const cancelBeforeIteration = () => {
+        void response.body?.cancel(createStreamAbortError()).catch(() => {})
       }
-
-      if (request.transport === 'codex_responses') {
-        const data = await collectCodexCompletedResponse(response, options?.signal)
-        return convertCodexResponseToAnthropicMessage(
-          data,
-          request.resolvedModel,
-        )
-      }
-
-      const isResponsesNonStream = response.url?.includes('/responses')
-      const isMessagesNonStream = response.url?.includes('/messages')
-      const isGeminiNonStream = response.url?.includes('/models/gemini-')
-      if (
-        request.transport === 'responses' ||
-        isResponsesNonStream ||
-        (request.transport === 'chat_completions' && isGithubModelsMode())
-      ) {
-        const contentType = response.headers.get('content-type') ?? ''
-        if (contentType.includes('application/json')) {
-          const parsed = await response.json() as Record<string, unknown>
-          if (
-            parsed &&
-            typeof parsed === 'object' &&
-            ('output' in parsed || 'incomplete_details' in parsed)
-          ) {
-            return convertCodexResponseToAnthropicMessage(
-              parsed,
-              request.resolvedModel,
-            )
-          }
-          return convertNonStreamingResponse(parsed, request.resolvedModel)
-        }
-      }
-
-      // Anthropic Messages API response — already in Anthropic format,
-      // pass through directly without conversion.
-      if (isMessagesNonStream) {
-        const contentType = response.headers.get('content-type') ?? ''
-        if (contentType.includes('application/json')) {
-          return await response.json() as Record<string, unknown>
-        }
-      }
-
-      // Google AI SDK response — convert to Anthropic format
-      if (isGeminiNonStream) {
-        const contentType = response.headers.get('content-type') ?? ''
-        if (contentType.includes('application/json')) {
-          const parsed = await response.json() as Record<string, unknown>
-          return convertGeminiResponse(parsed, request.resolvedModel)
-        }
-      }
-
-      const contentType = response.headers.get('content-type') ?? ''
-      if (contentType.includes('application/json')) {
-        const data = await response.json()
-        return convertNonStreamingResponse(data, request.resolvedModel)
-      }
-
-      await response.text().catch(() => '')
-      throw APIError.generate(
-        response.status,
-        undefined,
-        `OpenAI API error ${response.status}: unexpected response content-type: ${response.headers.get('content-type') ?? 'unknown'}`,
-        response.headers as unknown as Headers,
+      return new OpenAIShimStream(
+        signal =>
+          openaiStreamToAnthropic(
+            response,
+            request.resolvedModel,
+            signal,
+            response.url || undefined,
+          ),
+        options?.signal,
+        cancelBeforeIteration,
       )
-    })() as ShimRequestPromise
+    }
 
-      ; (promise as unknown as Record<string, unknown>).withResponse =
-        async () => {
-          const data = await promise
-          return {
-            data,
-            response: httpResponse ?? new Response(),
-            request_id:
-              httpResponse?.headers.get('x-request-id') ?? makeMessageId(),
-          }
-        }
+    const contentType = response.headers.get('content-type') ?? ''
+    if (contentType.includes('application/json')) {
+      const data = await response.json()
+      return convertNonStreamingResponse(data, request.resolvedModel)
+    }
 
-    return promise
+    await response.text().catch(() => '')
+    throw APIError.generate(
+      response.status,
+      undefined,
+      `OpenAI API error ${response.status}: unexpected response content-type: ${response.headers.get('content-type') ?? 'unknown'}`,
+      response.headers as unknown as Headers,
+    )
+  })() as ShimRequestPromise
+
+  ;(promise as unknown as Record<string, unknown>).withResponse =
+    async () => {
+      const data = await promise
+      return {
+        data,
+        response: httpResponse ?? new Response(),
+        request_id:
+          httpResponse?.headers.get('x-request-id') ?? makeMessageId(),
+      }
+    }
+
+  return promise
 }

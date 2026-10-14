@@ -238,7 +238,7 @@ test('--print keeps skills as a prompt instead of the management subcommand', as
 
   expect(exitCode).toBe(1)
   expect(stdout).not.toContain('Skills: 0 enabled')
-  expect(stderr).toContain('OPENAI_API_KEY')
+  expect(stderr).toContain('OpenRouter API key')
 }, 15_000)
 
 test('--print with intervening global flags keeps skills as prompt text', async () => {
@@ -252,7 +252,7 @@ test('--print with intervening global flags keeps skills as prompt text', async 
 
   expect(exitCode).toBe(1)
   expect(stdout).not.toContain('Skills: 0 enabled')
-  expect(stderr).toContain('OPENAI_API_KEY')
+  expect(stderr).toContain('OpenRouter API key')
 }, 15_000)
 
 test('--continue keeps skills as prompt text instead of the management subcommand', async () => {
@@ -264,7 +264,7 @@ test('--continue keeps skills as prompt text instead of the management subcomman
 
   expect(exitCode).toBe(1)
   expect(stdout).not.toContain('Skills: 0 enabled')
-  expect(stderr).toContain('OPENAI_API_KEY')
+  expect(stderr).toContain('OpenRouter API key')
 }, 15_000)
 
 test('skills list accepts trailing global flags', async () => {

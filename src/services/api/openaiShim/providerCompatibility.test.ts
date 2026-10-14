@@ -1,23 +1,13 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test'
 import { acquireSharedMutationLock, releaseSharedMutationLock } from '../../../test/sharedMutationLock.js'
-import {
-  createOpenAIShimClient,
-  hasMistralApiHost as facadeHasMistralApiHost,
-} from '../openaiShim.js'
+import { createOpenAIShimClient } from '../openaiShim.js'
 import {
   filterAnthropicHeaders,
   geminiThoughtSignatureFromExtraContent,
-  hasCerebrasApiHost,
-  hasGeminiApiHost,
-  hasMistralApiHost,
-  isGithubModelsMode,
   isGeminiModelName,
   mergeGeminiThoughtSignature,
-  maybeSetNvidiaNimChatTemplateThinking,
   shouldPreserveGeminiThoughtSignature,
 } from './providerCompatibility.js'
-
-const GEMINI_API_HOST = 'generativelanguage.googleapis.com'
 
 const originalEnv = {
   CLAUDE_CODE_USE_GITHUB: process.env.CLAUDE_CODE_USE_GITHUB,
@@ -241,164 +231,12 @@ test('the façade applies provider header filtering to a real request', async ()
   expect(requests[1]?.get('x-request-custom')).toBe('keep')
 })
 
-test('recognizes only supported provider hosts', () => {
-  expect(hasGeminiApiHost('https://generativelanguage.googleapis.com/v1beta/openai', GEMINI_API_HOST)).toBe(true)
-  expect(hasGeminiApiHost('https://example.com/generativelanguage.googleapis.com', GEMINI_API_HOST)).toBe(false)
-  expect(hasGeminiApiHost('not a URL', GEMINI_API_HOST)).toBe(false)
-  expect(hasCerebrasApiHost('https://api.cerebras.ai/v1')).toBe(true)
-  expect(hasCerebrasApiHost('https://notcerebras.ai/v1')).toBe(false)
-  expect(hasMistralApiHost('https://api.mistral.ai/v1')).toBe(true)
-  expect(hasMistralApiHost('https://proxy.mistral.ai/v1')).toBe(true)
-  expect(hasMistralApiHost('https://eu.mistral.ai/v1')).toBe(true)
-  expect(hasMistralApiHost('https://edge.api.mistral.ai/v1')).toBe(true)
-  expect(hasMistralApiHost('https://mistral.ai/v1')).toBe(false)
-  expect(hasMistralApiHost('https://api.openai.com/v1')).toBe(false)
-  expect(hasMistralApiHost('https://notmistral.ai/v1')).toBe(false)
-  expect(hasMistralApiHost('https://api.mistral.ai.evil.com/v1')).toBe(false)
-  expect(hasMistralApiHost('not a url')).toBe(false)
-  expect(hasMistralApiHost(undefined)).toBe(false)
-  expect(facadeHasMistralApiHost('https://api.mistral.ai/v1')).toBe(true)
-})
-
-test('the façade does not infer Gemini mode from URL path text', async () => {
-  process.env.OPENAI_BASE_URL =
-    'https://evil.example/generativelanguage.googleapis.com/v1beta/openai'
-  delete process.env.OPENAI_API_KEY
-  process.env.GEMINI_API_KEY = 'gemini-secret'
-  let authorization: string | null = null
-  globalThis.fetch = (async (_input, init) => {
-    authorization = new Headers(init?.headers).get('authorization')
-    return completionResponse({
-      id: 'chatcmpl-1',
-      model: 'fake-model',
-      usage: { prompt_tokens: 12, completion_tokens: 4, total_tokens: 16 },
-    })
-  }) as unknown as typeof globalThis.fetch
-  const client = createOpenAIShimClient({}) as unknown as ShimClient
-
-  await client.beta.messages.create({
-    model: 'fake-model',
-    messages: [{ role: 'user', content: 'hello' }],
-    max_tokens: 64,
-    stream: false,
-  })
-
-  expect(authorization).toBeNull()
-})
-
-test('applies NIM thinking kwargs only for an enabled reasoning request', () => {
-  const enabled: Record<string, unknown> = {}
-  maybeSetNvidiaNimChatTemplateThinking(
-    enabled,
-    'https://integrate.api.nvidia.com/v1',
-    { reasoningEffort: 'high' },
-  )
-  expect(enabled.chat_template_kwargs).toEqual({
-    thinking: true,
-    enable_thinking: true,
-  })
-
-  for (const [baseUrl, plan] of [
-    ['https://api.example.test/v1', { reasoningEffort: 'high' }],
-    ['https://integrate.api.nvidia.com/v1', {}],
-    ['https://integrate.api.nvidia.com/v1', { thinkingType: 'disabled' }],
-    ['https://integrate.api.nvidia.com/v1', { thinkingType: 'disabled', reasoningEffort: 'high' }],
-  ] as const) {
-    const body: Record<string, unknown> = {}
-    maybeSetNvidiaNimChatTemplateThinking(body, baseUrl, plan)
-    expect(body.chat_template_kwargs).toBeUndefined()
-  }
-})
-
-test('the façade applies NIM thinking kwargs across DeepSeek and GLM reasoning states', async () => {
-  process.env.OPENAI_BASE_URL = 'https://integrate.api.nvidia.com/v1'
-  process.env.NVIDIA_API_KEY = 'nvapi-test'
-  const bodies: Array<Record<string, unknown>> = []
-  globalThis.fetch = (async (_input, init) => {
-    bodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>)
-    const index = bodies.length - 1
-    return completionResponse({
-      id: 'chatcmpl-1',
-      model: index < 2 ? 'deepseek-ai/deepseek-v4-pro' : 'z-ai/glm-5.2',
-      ...(index === 0
-        ? { usage: { prompt_tokens: 3, completion_tokens: 1, total_tokens: 4 } }
-        : {}),
-    })
-  }) as unknown as typeof globalThis.fetch
-  const client = createOpenAIShimClient({ reasoningEffort: 'xhigh' }) as unknown as ShimClient
-
-  await client.beta.messages.create({
-    model: 'deepseek-ai/deepseek-v4-pro',
-    system: 'test',
-    messages: [{ role: 'user', content: 'hi' }],
-    max_tokens: 64,
-    stream: false,
-    thinking: { type: 'enabled' },
-  })
-  await client.beta.messages.create({
-    model: 'deepseek-ai/deepseek-v4-pro?thinking=disabled',
-    system: 'test',
-    messages: [{ role: 'user', content: 'hi' }],
-    max_tokens: 64,
-    stream: false,
-  })
-  await client.beta.messages.create({
-    model: 'z-ai/glm-5.2',
-    messages: [{ role: 'user', content: 'hi' }],
-    max_tokens: 64,
-    stream: false,
-  })
-
-  const defaultClient = createOpenAIShimClient({}) as unknown as ShimClient
-  await defaultClient.beta.messages.create({
-    model: 'z-ai/glm-5.2',
-    messages: [{ role: 'user', content: 'hi' }],
-    max_tokens: 64,
-    stream: false,
-  })
-  await client.beta.messages.create({
-    model: 'z-ai/glm-5.2?thinking=disabled',
-    messages: [{ role: 'user', content: 'hi' }],
-    max_tokens: 64,
-    stream: false,
-  })
-
-  expect(bodies[0]?.thinking).toEqual({ type: 'enabled' })
-  expect(bodies[0]?.reasoning_effort).toBe('max')
-  expect(bodies[0]?.chat_template_kwargs).toEqual({
-    thinking: true,
-    enable_thinking: true,
-  })
-  expect(bodies[1]?.thinking).toBeUndefined()
-  expect(bodies[1]?.reasoning_effort).toBeUndefined()
-  expect(bodies[1]?.chat_template_kwargs).toBeUndefined()
-  expect(bodies[2]?.thinking).toEqual({ type: 'enabled' })
-  expect(bodies[2]?.reasoning_effort).toBe('max')
-  expect(bodies[2]?.chat_template_kwargs).toEqual({
-    thinking: true,
-    enable_thinking: true,
-  })
-  expect(bodies[3]?.thinking).toBeUndefined()
-  expect(bodies[3]?.reasoning_effort).toBeUndefined()
-  expect(bodies[3]?.chat_template_kwargs).toBeUndefined()
-  expect(bodies[4]?.thinking).toEqual({ type: 'disabled' })
-  expect(bodies[4]?.reasoning_effort).toBeUndefined()
-  expect(bodies[4]?.chat_template_kwargs).toBeUndefined()
-})
-
-test('reads GitHub mode from the owning compatibility module', () => {
-  expect(isGithubModelsMode()).toBe(false)
-  process.env.CLAUDE_CODE_USE_GITHUB = '1'
-  expect(isGithubModelsMode()).toBe(true)
-})
-
 test('recognizes Gemini model routes and preserves their thought signatures', () => {
   expect(isGeminiModelName('gemini-2.5-pro')).toBe(true)
   expect(isGeminiModelName('google/gemini-2.5-pro')).toBe(true)
   expect(isGeminiModelName('not-gemini')).toBe(false)
-  expect(shouldPreserveGeminiThoughtSignature(undefined, undefined, false, GEMINI_API_HOST)).toBe(false)
-  expect(shouldPreserveGeminiThoughtSignature('gemini-2.5-pro', undefined, false, GEMINI_API_HOST)).toBe(true)
-  expect(shouldPreserveGeminiThoughtSignature(undefined, undefined, true, GEMINI_API_HOST)).toBe(true)
+  expect(shouldPreserveGeminiThoughtSignature(undefined)).toBe(false)
+  expect(shouldPreserveGeminiThoughtSignature('gemini-2.5-pro')).toBe(true)
 })
 
 test('reads and merges Gemini thought signatures without dropping metadata', () => {
@@ -451,7 +289,7 @@ test('the façade replays Gemini signatures in follow-up tool calls', async () =
     stream: false,
   })
 
-  process.env.OPENAI_BASE_URL = 'https://opengateway.gitlawb.com/v1'
+  process.env.OPENAI_BASE_URL = 'https://api.example.test/v1'
   await client.beta.messages.create({
     model: 'google/gemini-3.1-flash-lite',
     messages: [

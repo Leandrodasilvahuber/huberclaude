@@ -7,12 +7,8 @@ import {
   __getInterruptionTraceSnapshotForTests,
   __resetInterruptionTraceForTests,
 } from '../../../utils/interruptionTrace.js'
-import type { AnthropicStreamEvent } from '../codexShim.js'
-import {
-  anthropicSsePassthrough,
-  geminiSseToAnthropic,
-  openaiStreamToAnthropic,
-} from './responseAdapters.js'
+import type { AnthropicStreamEvent } from './types.js'
+import { openaiStreamToAnthropic } from './responseAdapters.js'
 
 const originalTrace = process.env.OPENCLAUDE_INTERRUPT_TRACE
 const originalIdleTimeout = process.env.CLAUDE_STREAM_IDLE_TIMEOUT_MS
@@ -97,44 +93,6 @@ test('all non-Codex readers distinguish raw, parsed, control, and ignored frames
       stream: (text: string) =>
         openaiStreamToAnthropic(responseFromText(text), 'test-model'),
     },
-    {
-      transport: 'gemini_sse',
-      text: [
-        ': keepalive',
-        '',
-        'data: not-json',
-        '',
-        'data: []',
-        '',
-        'data: {"candidates":[{"content":{"parts":[{"text":"hello"}]},"finishReason":"STOP"}]}',
-        '',
-        'data: [DONE]',
-        '',
-        '',
-      ].join('\n'),
-      expected: { parsed: 1, control: 2, ignored: 2 },
-      stream: (text: string) =>
-        geminiSseToAnthropic(responseFromText(text), 'gemini-test'),
-    },
-    {
-      transport: 'anthropic_messages',
-      text: [
-        ': keepalive',
-        '',
-        'data: not-json',
-        '',
-        'data: {}',
-        '',
-        'data: {"type":"message_stop"}',
-        '',
-        'data: [DONE]',
-        '',
-        '',
-      ].join('\n'),
-      expected: { parsed: 1, control: 2, ignored: 2 },
-      stream: (text: string) =>
-        anthropicSsePassthrough(responseFromText(text), 'claude-test'),
-    },
   ]
 
   for (const scenario of cases) {
@@ -157,7 +115,7 @@ test('all non-Codex readers distinguish raw, parsed, control, and ignored frames
 })
 
 for (const traceEnabled of [false, true]) {
-  test(`OpenAI-compatible and Gemini null payloads fail with tracing ${traceEnabled ? 'enabled' : 'disabled'}`, async () => {
+  test(`OpenAI-compatible null payloads fail with tracing ${traceEnabled ? 'enabled' : 'disabled'}`, async () => {
     const previousTrace = process.env.OPENCLAUDE_INTERRUPT_TRACE
     try {
       if (traceEnabled) process.env.OPENCLAUDE_INTERRUPT_TRACE = '1'
@@ -170,14 +128,6 @@ for (const traceEnabled of [false, true]) {
             openaiStreamToAnthropic(
               responseFromText('data: null\n\ndata: [DONE]\n\n'),
               'test-model',
-            ),
-        },
-        {
-          transport: 'gemini_sse',
-          stream: () =>
-            geminiSseToAnthropic(
-              responseFromText('data: null\n\ndata: [DONE]\n\n'),
-              'gemini-test',
             ),
         },
       ]
@@ -209,24 +159,6 @@ for (const traceEnabled of [false, true]) {
   })
 }
 
-test('Anthropic terminal consumer closure cancels an open response body', async () => {
-  __resetInterruptionTraceForTests()
-  let cancellations = 0
-  const iterator = anthropicSsePassthrough(
-    openResponseFromText(
-      'data: {"type":"message_stop"}\n\n',
-      () => {
-        cancellations++
-      },
-    ),
-    'claude-test',
-  )[Symbol.asyncIterator]()
-
-  expect((await iterator.next()).value?.type).toBe('message_stop')
-  await iterator.return?.(undefined)
-  expect(cancellations).toBe(1)
-})
-
 test('all non-Codex readers report a failure after terminal evidence then timeout', async () => {
   process.env.CLAUDE_STREAM_IDLE_TIMEOUT_MS = '20'
   const cases = [
@@ -238,24 +170,6 @@ test('all non-Codex readers report a failure after terminal evidence then timeou
             'data: {"choices":[{"delta":{"content":"hello"},"finish_reason":"stop"}]}\n',
           ),
           'test-model',
-        ),
-    },
-    {
-      transport: 'gemini_sse',
-      stream: () =>
-        geminiSseToAnthropic(
-          openResponseFromText(
-            'data: {"candidates":[{"content":{"parts":[{"text":"hello"}]},"finishReason":"STOP"}]}\n\n',
-          ),
-          'gemini-test',
-        ),
-    },
-    {
-      transport: 'anthropic_messages',
-      stream: () =>
-        anthropicSsePassthrough(
-          openResponseFromText('data: {"type":"message_stop"}\n\n'),
-          'claude-test',
         ),
     },
   ]
@@ -284,26 +198,6 @@ test('all non-Codex readers distinguish transport EOF from protocol completion',
           'test-model',
         ),
     },
-    {
-      transport: 'gemini_sse',
-      stream: () =>
-        geminiSseToAnthropic(
-          responseFromText(
-            'data: {"candidates":[{"content":{"parts":[{"text":"hello"}]}}]}\n\n',
-          ),
-          'gemini-test',
-        ),
-    },
-    {
-      transport: 'anthropic_messages',
-      stream: () =>
-        anthropicSsePassthrough(
-          responseFromText(
-            'data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"hello"}}\n\n',
-          ),
-          'claude-test',
-        ),
-    },
   ]
 
   for (const scenario of cases) {
@@ -326,16 +220,6 @@ test('all non-Codex reader idle errors carry the provider timeout causal event',
       transport: 'openai_chat_completions',
       stream: (response: Response) =>
         openaiStreamToAnthropic(response, 'test-model'),
-    },
-    {
-      transport: 'gemini_sse',
-      stream: (response: Response) =>
-        geminiSseToAnthropic(response, 'gemini-test'),
-    },
-    {
-      transport: 'anthropic_messages',
-      stream: (response: Response) =>
-        anthropicSsePassthrough(response, 'claude-test'),
     },
   ]
 

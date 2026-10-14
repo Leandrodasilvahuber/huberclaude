@@ -55,8 +55,6 @@ function collectSpecifiers(): { specifier: string; file: string }[] {
 // total up. Adding/removing a provider load site is a deliberate change that
 // must update this list.
 const EXPECTED_SPECIFIERS = [
-  '@anthropic-ai/bedrock-sdk',
-  '@anthropic-ai/foundry-sdk',
   '@aws-sdk/client-bedrock',
   '@aws-sdk/client-bedrock-runtime',
   '@aws-sdk/client-sts',
@@ -64,7 +62,6 @@ const EXPECTED_SPECIFIERS = [
   '@aws-sdk/credential-providers',
   '@smithy/core',
   '@smithy/node-http-handler',
-  '@azure/identity',
   'google-auth-library',
 ].sort()
 

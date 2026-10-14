@@ -129,17 +129,6 @@ test('OpenAI route resolves to the OpenAI route label', async () => {
   expect(credential).not.toContain('sk-test-openai-key')
 })
 
-test('Ollama route shows local route details', async () => {
-  process.env.CLAUDE_CODE_USE_OPENAI = '1'
-  process.env.OPENAI_BASE_URL = 'http://localhost:11434/v1'
-  process.env.OPENAI_MODEL = 'llama3.2'
-
-  const properties = await buildPropertiesWithProvider('openai')
-  expect(findValue(properties, 'Provider route')).toBe('Ollama')
-  expect(findValue(properties, 'Transport')).toBe('OpenAI-compatible API')
-  expect(findValue(properties, 'Model')).toBe('llama3.2')
-})
-
 test('OpenRouter route shows its route label instead of OpenAI-compatible', async () => {
   process.env.CLAUDE_CODE_USE_OPENAI = '1'
   process.env.OPENAI_BASE_URL = 'https://openrouter.ai/api/v1'
@@ -278,34 +267,6 @@ test('blank OPENAI_BASE_URL falls back to OPENAI_API_BASE for route display', as
   )
 })
 
-test('Groq route shows its route label instead of OpenAI-compatible', async () => {
-  process.env.CLAUDE_CODE_USE_OPENAI = '1'
-  process.env.OPENAI_BASE_URL = 'https://api.groq.com/openai/v1'
-  process.env.OPENAI_MODEL = 'llama-3.3-70b-versatile'
-  process.env.GROQ_API_KEY = 'gsk_test-key'
-
-  const properties = await buildPropertiesWithProvider('openai')
-  expect(findValue(properties, 'Provider route')).toBe('Groq')
-  expect(findValue(properties, 'API provider')).toBeUndefined()
-  expect(
-    (findValue(properties, 'Credential') as string | undefined)?.includes(
-      'GROQ_API_KEY',
-    ),
-  ).toBe(true)
-})
-
-test('route-specific credential values are redacted from displayed fields', async () => {
-  process.env.CLAUDE_CODE_USE_OPENAI = '1'
-  process.env.OPENAI_BASE_URL = 'https://api.groq.com/openai/v1'
-  process.env.OPENAI_MODEL = 'gsk-route-secret-value-123'
-  process.env.GROQ_API_KEY = 'gsk-route-secret-value-123'
-
-  const properties = await buildPropertiesWithRealProvider()
-  const serialized = JSON.stringify(properties)
-  expect(serialized).not.toContain('gsk-route-secret-value-123')
-  expect(findValue(properties, 'Model')).toBe('gsk...123')
-})
-
 test('route-specific credential substrings are redacted from displayed model fields', async () => {
   process.env.CLAUDE_CODE_USE_OPENAI = '1'
   process.env.OPENAI_BASE_URL = 'https://openrouter.ai/api/v1'
@@ -316,22 +277,6 @@ test('route-specific credential substrings are redacted from displayed model fie
   const serialized = JSON.stringify(properties)
   expect(serialized).not.toContain('sk-or-SECRET-VALUE-123')
   expect(findValue(properties, 'Model')).toBe('prefix-redacted-suffix')
-})
-
-test('env-only Fireworks route displays descriptor defaults', async () => {
-  process.env.FIREWORKS_API_KEY = 'fw-test-key'
-
-  const properties = await buildPropertiesWithRealProvider()
-  expect(findValue(properties, 'Provider route')).toBe('Fireworks AI')
-  expect(findValue(properties, 'OpenAI base URL')).toBe(
-    'https://api.fireworks.ai/inference/v1',
-  )
-  expect(findValue(properties, 'Model')).toBe(
-    'accounts/fireworks/models/llama-v3p1-70b-instruct',
-  )
-  expect(findValue(properties, 'Credential')).toBe(
-    'FIREWORKS_API_KEY configured',
-  )
 })
 
 test('Gemini route remains clear', async () => {
@@ -411,15 +356,4 @@ test('credential summary lists only configured env vars when multiple are known'
     | undefined
   expect(credential).toContain('OPENROUTER_API_KEY')
   expect(credential).not.toContain('OPENAI_API_KEY')
-})
-
-test('route-aware label is omitted when no credential env var is configured', async () => {
-  // Ollama is a local route with no required credential env var.
-  process.env.CLAUDE_CODE_USE_OPENAI = '1'
-  process.env.OPENAI_BASE_URL = 'http://localhost:11434/v1'
-  process.env.OPENAI_MODEL = 'llama3.2'
-
-  const properties = await buildPropertiesWithProvider('openai')
-  expect(findValue(properties, 'Provider route')).toBe('Ollama')
-  expect(findValue(properties, 'Credential')).toBeUndefined()
 })

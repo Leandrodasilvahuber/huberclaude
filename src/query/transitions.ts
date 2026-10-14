@@ -22,7 +22,6 @@ export type Continue =
   | { reason: 'reactive_compact_retry' }
   | { reason: 'context_overflow_compact_retry' }
   | { reason: 'provider_max_tokens_retry'; cap: number }
-  | { reason: 'provider_fallback_retry' }
   | { reason: 'max_output_tokens_escalate' }
   | { reason: 'max_output_tokens_recovery'; attempt: number }
   | { reason: 'stop_hook_blocking' }

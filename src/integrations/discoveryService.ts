@@ -33,7 +33,6 @@ import {
 } from '../utils/providerDiscovery.js'
 import { firstUsableCredential, hasInvalidCredentialPlaceholder } from '../services/api/credentialPool.js'
 import { parseCustomHeadersEnv } from '../utils/providerCustomHeaders.js'
-import { resolveAimlapiAttributionHeaders } from './aimlapi/config.js'
 import { isEssentialTrafficOnly } from '../utils/privacyLevel.js'
 import {
   getXaiDiscoveryCacheIdentity,
@@ -251,35 +250,14 @@ export function getRouteDiscoveryHeaders(
   options?: { baseUrl?: string; headers?: Record<string, string> },
 ): Record<string, string> | undefined {
   const transportConfig = getRouteDescriptor(routeId)?.transportConfig
-  // Descriptor headers are attribution, not transport plumbing: an `aimlapi`
-  // profile keeps its route id while pointing at a user-controlled proxy, so the
-  // `/models` request must be filtered on the same canonical predicate the
-  // inference shim uses (`resolveAimlapiAttributionHeaders`). Without this the
-  // discovery path would hand the partner identity to an arbitrary host.
   const descriptorHeaders = {
     ...(transportConfig?.headers ?? {}),
     ...(transportConfig?.openaiShim?.headers ?? {}),
   }
-  // Command Code uses a fixed dedicated-auth contract. Inference suppresses
-  // caller headers for this route; discovery must enforce the same boundary so
-  // stale proxy/tenant secrets are not sent to its public model catalog.
-  const callerHeaders = routeId === 'commandcode' ? {} : options?.headers ?? {}
-  // Caller headers first, then managed AIMLAPI attribution, so ANTHROPIC_CUSTOM_HEADERS
-  // cannot replace partner/source/integration identity. resolveAimlapiAttributionHeaders
-  // also strips those names on a non-canonical proxy, including caller-supplied copies.
-  const headers =
-    routeId === 'aimlapi'
-      ? resolveAimlapiAttributionHeaders(
-          {
-            ...callerHeaders,
-            ...descriptorHeaders,
-          },
-          getRouteBaseUrl(routeId, options),
-        )
-      : {
-          ...descriptorHeaders,
-          ...callerHeaders,
-        }
+  const headers = {
+    ...descriptorHeaders,
+    ...(options?.headers ?? {}),
+  }
 
   return Object.keys(headers).length > 0 ? headers : undefined
 }

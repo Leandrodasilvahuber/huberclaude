@@ -15,7 +15,6 @@ test('preserves Grep tool pattern field in OpenAI-compatible schemas', () => {
       additionalProperties: false,
     },
   }], {
-    isGemini: false,
     disableStrictTools: false,
   })
   const parameters = tools[0]?.function.parameters
@@ -86,7 +85,6 @@ test('omits deferred tool search and promotes known Agent fields', () => {
       input_schema: inputSchema,
     },
   ], {
-    isGemini: false,
     disableStrictTools: false,
   })
 
@@ -98,19 +96,4 @@ test('omits deferred tool search and promotes known Agent fields', () => {
     'subagent_type',
   ])
   expect(inputSchema.required).toEqual(['optional'])
-})
-
-test('Gemini mode omits strict schema fields', () => {
-  const tools = convertTools([{
-    name: 'Read',
-    input_schema: {
-      type: 'object',
-      properties: { path: { type: 'string' } },
-    },
-  }], {
-    isGemini: true,
-    disableStrictTools: false,
-  })
-
-  expect(tools[0]?.function.parameters.additionalProperties).toBeUndefined()
 })

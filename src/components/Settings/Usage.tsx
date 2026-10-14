@@ -8,7 +8,6 @@ import {
 } from 'src/commands/usage/index.js';
 import { formatCost } from 'src/cost-tracker.js';
 import { getSubscriptionType } from 'src/utils/auth.js';
-import { getActiveProviderProfile } from 'src/utils/providerProfiles.js';
 import { useTerminalSize } from '../../hooks/useTerminalSize.js';
 import { Box, Text } from '../../ink.js';
 import { useKeybinding } from '../../keybindings/useKeybinding.js';
@@ -21,9 +20,6 @@ import { ConfigurableShortcutHint } from '../ConfigurableShortcutHint.js';
 import { Byline } from '../design-system/Byline.js';
 import { ProgressBar } from '../design-system/ProgressBar.js';
 import { isEligibleForOverageCreditGrant, OverageCreditUpsell } from '../LogoV2/OverageCreditUpsell.js';
-import { CodexUsage } from './CodexUsage.js';
-import { ClinePassUsage } from './ClinePassUsage.js';
-import { MiniMaxUsage } from './MiniMaxUsage.js';
 import { UnsupportedUsage } from './UnsupportedUsage.js';
 type LimitBarProps = {
   title: string;
@@ -275,21 +271,9 @@ function AnthropicUsage(): React.ReactNode {
 }
 export function Usage(): React.ReactNode {
   const provider = getAPIProvider();
-  const activeProfile = getActiveProviderProfile();
   const usageDescriptor = getUsageDescriptor(resolveActiveUsageId(process.env, {
-    activeProfileProvider: activeProfile?.provider,
-    activeProfileBaseUrl: activeProfile?.baseUrl,
     providerCategory: provider,
   }));
-  if (provider === 'codex') {
-    return <CodexUsage />;
-  }
-  if (usageDescriptor.resolvedId === 'minimax' && usageDescriptor.supported) {
-    return <MiniMaxUsage />;
-  }
-  if (usageDescriptor.resolvedId === 'clinepass' && usageDescriptor.supported) {
-    return <ClinePassUsage />;
-  }
   if (usageDescriptor.resolvedId === 'anthropic' && usageDescriptor.supported) {
     return <AnthropicUsage />;
   }

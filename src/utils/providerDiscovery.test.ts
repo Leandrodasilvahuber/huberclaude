@@ -103,33 +103,6 @@ test('detects common local openai-compatible providers by hostname', async () =>
   ).toBe('vLLM')
 })
 
-test('detects Moonshot AI from descriptor route metadata', async () => {
-  const { getLocalOpenAICompatibleProviderLabel } =
-    await loadProviderDiscoveryModule()
-
-  expect(
-    getLocalOpenAICompatibleProviderLabel('https://api.moonshot.ai/v1'),
-  ).toBe('Moonshot AI')
-})
-
-test('detects AI/ML API from descriptor route metadata', async () => {
-  const { getLocalOpenAICompatibleProviderLabel } =
-    await loadProviderDiscoveryModule()
-
-  expect(
-    getLocalOpenAICompatibleProviderLabel('https://api.aimlapi.com/v1'),
-  ).toBe('aimlapi.com')
-})
-
-test('detects Z.AI from descriptor route metadata', async () => {
-  const { getLocalOpenAICompatibleProviderLabel } =
-    await loadProviderDiscoveryModule()
-
-  expect(
-    getLocalOpenAICompatibleProviderLabel('https://api.z.ai/api/coding/paas/v4'),
-  ).toBe('Z.AI')
-})
-
 test('detects Moonshot AI - Kimi Code from api.kimi.com/coding hostname', async () => {
   const { getLocalOpenAICompatibleProviderLabel } =
     await loadProviderDiscoveryModule()

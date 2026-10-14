@@ -252,20 +252,6 @@ describe('system-check provider diagnostics', () => {
     expect(serialized).not.toContain(providerSecret)
   })
 
-  test('summarizes descriptor-declared provider credentials without exposing values', () => {
-    const providerSecret = 'ogw-provider-secret'
-    process.env.CLAUDE_CODE_USE_OPENAI = '1'
-    process.env.OPENAI_BASE_URL = 'https://opengateway.gitlawb.com/v1'
-    process.env.OPENAI_MODEL = providerSecret
-    process.env.OPENGATEWAY_API_KEY = providerSecret
-
-    const summary = serializeSafeEnvSummary()
-
-    expect(summary.OPENAI_MODEL).toBe('ogw...ret')
-    expect(summary.PROVIDER_API_KEY_SET).toBe(true)
-    expect(JSON.stringify(summary)).not.toContain(providerSecret)
-  })
-
   test('does not use active GitHub credentials for a default OpenAI base URL', () => {
     process.env.CLAUDE_CODE_USE_OPENAI = '1'
     process.env.CLAUDE_CODE_USE_GITHUB = '1'
@@ -483,16 +469,6 @@ describe('system-check WebSearch diagnostics', () => {
     )
   })
 
-  test('reports the active Ollama search adapter in auto mode', () => {
-    useOpenAICompatibleProvider()
-    process.env.OPENAI_BASE_URL = 'http://localhost:11434/v1'
-
-    expectWebSearchBackend(
-      true,
-      'WEB_SEARCH_PROVIDER=auto; configured providers: ollama; fallback includes duckduckgo.',
-    )
-  })
-
   test('reports malformed Ollama local configuration in auto mode', () => {
     useOpenAICompatibleProvider()
     process.env.OLLAMA_BASE_URL = 'not a url'
@@ -527,29 +503,6 @@ describe('system-check WebSearch diagnostics', () => {
       )
     },
   )
-
-  test('reports a malformed active Ollama endpoint in auto mode', () => {
-    useOpenAICompatibleProvider()
-    process.env.CLAUDE_CODE_PROVIDER_ROUTE_ID = 'ollama'
-    process.env.OPENAI_BASE_URL = 'ftp://ollama.internal/v1'
-
-    expectWebSearchBackend(
-      true,
-      `WEB_SEARCH_PROVIDER=auto; only DuckDuckGo fallback is available. DuckDuckGo scraping can be rate-limited from datacenter/VPN/repeated-request networks. Configure ${reliableBackendHint} for reliable search. Active Ollama provider endpoint is invalid; runtime will skip ollama and fall through to the next provider in auto mode.`,
-    )
-  })
-
-  test('reports hosted fallback for a malformed active Ollama endpoint in auto mode', () => {
-    useOpenAICompatibleProvider()
-    process.env.CLAUDE_CODE_PROVIDER_ROUTE_ID = 'ollama'
-    process.env.OPENAI_BASE_URL = 'ftp://ollama.internal/v1'
-    process.env.OLLAMA_API_KEY = 'ollama-secret-value-123'
-
-    expectWebSearchBackend(
-      true,
-      'WEB_SEARCH_PROVIDER=auto; configured providers: ollama; fallback includes duckduckgo. Active Ollama provider endpoint is invalid; runtime will skip local Ollama search and use the hosted Ollama API.',
-    )
-  })
 
   test('fails explicit provider mode when required credentials are missing', () => {
     process.env.WEB_SEARCH_PROVIDER = 'brave'

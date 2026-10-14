@@ -1,6 +1,5 @@
 import { afterAll, afterEach, beforeEach, expect, mock, test } from 'bun:test'
 
-import { DEFAULT_CODEX_BASE_URL } from '../services/api/providerConfig.js'
 import {
   acquireSharedMutationLock,
   releaseSharedMutationLock,
@@ -133,21 +132,6 @@ test('buildAPIProviderProperties labels MiniMax sessions', async () => {
   expect(await readPropertyValue('Model', 'minimax')).toBe('MiniMax-M2.5')
 })
 
-test('buildAPIProviderProperties keeps Codex-specific labels on the shared OpenAI-compatible path', async () => {
-  process.env.CLAUDE_CODE_USE_OPENAI = '1'
-  process.env.OPENAI_BASE_URL = DEFAULT_CODEX_BASE_URL
-  process.env.OPENAI_MODEL = 'codexplan'
-  process.env.CHATGPT_ACCOUNT_ID = 'acct_123'
-
-  expect(await readPropertyValue('API provider', 'codex')).toBe('Codex')
-  expect(await readPropertyValue('Codex base URL', 'codex')).toBe(
-    DEFAULT_CODEX_BASE_URL,
-  )
-  expect(await readPropertyValue('Model', 'codex')).toBe(
-    'gpt-5.6-sol (high)',
-  )
-})
-
 test('buildAPIProviderProperties redacts credentials in OpenAI-compatible base URLs', async () => {
   process.env.CLAUDE_CODE_USE_OPENAI = '1'
   process.env.OPENAI_BASE_URL =
@@ -156,18 +140,6 @@ test('buildAPIProviderProperties redacts credentials in OpenAI-compatible base U
   expect(await readPropertyValue('OpenAI base URL', 'openai')).toBe(
     'https://redacted:redacted@example.com/v1?api_key=redacted&model=qwen',
   )
-})
-
-test('buildAPIProviderProperties uses the resolved route label for AI/ML API sessions', async () => {
-  process.env.CLAUDE_CODE_USE_OPENAI = '1'
-  process.env.OPENAI_BASE_URL = 'https://api.aimlapi.com/v1'
-  process.env.OPENAI_MODEL = 'gpt-4o'
-
-  expect(await readPropertyValue('Provider route', 'openai')).toBe('aimlapi.com')
-  expect(await readPropertyValue('OpenAI base URL', 'openai')).toBe(
-    'https://api.aimlapi.com/v1',
-  )
-  expect(await readPropertyValue('Model', 'openai')).toBe('gpt-4o')
 })
 
 test('buildAPIProviderProperties redacts token-bearing OpenAI-compatible base URLs', async () => {

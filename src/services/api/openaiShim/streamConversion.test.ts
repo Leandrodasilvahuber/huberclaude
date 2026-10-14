@@ -1,14 +1,10 @@
 import { expect, test } from 'bun:test'
-import type { AnthropicStreamEvent } from '../codexShim.js'
+import type { AnthropicStreamEvent } from './types.js'
 import {
   convertOpenAIStreamUsage,
   openaiStreamToAnthropic,
   type StreamConversionDependencies,
 } from './streamConversion.js'
-import {
-  geminiSseToAnthropic,
-  type GeminiStreamDependencies,
-} from './geminiStreamConversion.js'
 import { createProviderStreamTrace } from './streamControl.js'
 
 function makeSseResponse(frames: unknown[]): Response {
@@ -77,7 +73,7 @@ async function readWithSignal(
   return await reader.read()
 }
 
-const commonControlDependencies: GeminiStreamDependencies = {
+const commonControlDependencies = {
   createProviderStreamTrace,
   createReaderCanceller,
   createStreamAbortError: () => new DOMException('Aborted', 'AbortError'),
@@ -600,136 +596,4 @@ test('generic converter rejects an incomplete tool call before a [DONE] marker',
     undefined,
     createStreamDependencies(),
   ))).rejects.toThrow('stream ended before a tool call completed')
-})
-
-test('converts Gemini SSE text, tools, usage, and finish reason', async () => {
-  const events = await collect(
-    geminiSseToAnthropic(
-      makeSseResponse([
-        {
-          usageMetadata: {
-            promptTokenCount: 4,
-            candidatesTokenCount: 2,
-            thoughtsTokenCount: 1,
-          },
-          candidates: [{
-            content: {
-              role: 'model',
-              parts: [
-                { text: 'hello' },
-                { functionCall: { name: 'Read', args: { path: 'a' } } },
-              ],
-            },
-            finishReason: 'STOP',
-          }],
-        },
-        '[DONE]',
-      ]),
-      'gemini-test',
-      undefined,
-      commonControlDependencies,
-    ),
-  )
-  expect(events).toContainEqual({
-    type: 'content_block_delta',
-    index: 0,
-    delta: { type: 'text_delta', text: 'hello' },
-  })
-  expect(events).toContainEqual({
-    type: 'content_block_delta',
-    index: 1,
-    delta: { type: 'input_json_delta', partial_json: '{"path":"a"}' },
-  })
-  expect(events).toContainEqual({
-    type: 'message_delta',
-    delta: { stop_reason: 'tool_use' },
-    usage: {
-      input_tokens: 4,
-      output_tokens: 3,
-      cache_creation_input_tokens: 0,
-      cache_read_input_tokens: 0,
-    },
-  })
-  expect(events.at(-1)).toEqual({ type: 'message_stop' })
-})
-
-test('Gemini converter cancels its reader when the parent signal aborts', async () => {
-  const cancelReasons: unknown[] = []
-  const response = new Response(new ReadableStream<Uint8Array>({
-    cancel(reason) {
-      cancelReasons.push(reason)
-    },
-  }), { headers: { 'content-type': 'text/event-stream' } })
-  const controller = new AbortController()
-  const iterator = geminiSseToAnthropic(
-    response,
-    'gemini-test',
-    controller.signal,
-    commonControlDependencies,
-  )[Symbol.asyncIterator]()
-  controller.abort()
-  await expect(iterator.next()).rejects.toMatchObject({ name: 'AbortError' })
-  expect(cancelReasons).toHaveLength(1)
-})
-
-test('Gemini converter accepts CRLF frames, closes consecutive tools, and retains tool_use after text', async () => {
-  const encoder = new TextEncoder()
-  const frames = [
-    { candidates: [{ content: { parts: [
-      { functionCall: { name: 'Read', args: {} } },
-      { functionCall: { name: 'Write', args: {} } },
-      { text: 'done' },
-    ] }, finishReason: 'STOP' }] },
-    '[DONE]',
-  ]
-  const response = new Response(new ReadableStream<Uint8Array>({
-    start(controller) {
-      for (const frame of frames) {
-        const data = frame === '[DONE]' ? frame : JSON.stringify(frame)
-        controller.enqueue(encoder.encode(`data: ${data}\r\n\r\n`))
-      }
-      controller.close()
-    },
-  }), { headers: { 'content-type': 'text/event-stream' } })
-  const events = await collect(geminiSseToAnthropic(
-    response,
-    'gemini-test',
-    undefined,
-    commonControlDependencies,
-  ))
-  expect(events.filter(event => event.type === 'content_block_start')).toHaveLength(3)
-  expect(events.filter(event => event.type === 'content_block_stop')).toHaveLength(3)
-  expect(events).toContainEqual({
-    type: 'message_delta',
-    delta: { stop_reason: 'tool_use' },
-    usage: {},
-  })
-})
-
-test('Gemini converter starts an empty message and maps blocked finishes', async () => {
-  const doneEvents = await collect(geminiSseToAnthropic(
-    makeSseResponse(['[DONE]']),
-    'gemini-test',
-    undefined,
-    commonControlDependencies,
-  ))
-  expect(doneEvents.map(event => event.type)).toEqual([
-    'message_start',
-    'message_delta',
-    'message_stop',
-  ])
-
-  const safetyEvents = await collect(geminiSseToAnthropic(
-    makeSseResponse([{
-      candidates: [{ content: { parts: [] }, finishReason: 'SAFETY' }],
-    }]),
-    'gemini-test',
-    undefined,
-    commonControlDependencies,
-  ))
-  expect(safetyEvents).toContainEqual({
-    type: 'message_delta',
-    delta: { stop_reason: 'max_tokens' },
-    usage: {},
-  })
 })

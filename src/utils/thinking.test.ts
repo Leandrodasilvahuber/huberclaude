@@ -78,24 +78,6 @@ async function importFreshThinkingModule() {
 }
 
 describe('modelSupportsThinking — Z.AI GLM', () => {
-  test('enables thinking for exact GLM models on api.z.ai', async () => {
-    process.env.CLAUDE_CODE_USE_OPENAI = '1'
-    process.env.OPENAI_BASE_URL = 'https://api.z.ai/api/coding/paas/v4'
-    const { modelSupportsThinking } = await importFreshThinkingModule()
-
-    expect(modelSupportsThinking('GLM-5.1')).toBe(true)
-    expect(modelSupportsThinking('GLM-5-Turbo')).toBe(true)
-    expect(modelSupportsThinking('GLM-4.7')).toBe(true)
-    expect(modelSupportsThinking('GLM-4.5-Air')).toBe(true)
-    expect(modelSupportsThinking('glm-5.3-flash')).toBe(true)
-    expect(modelSupportsThinking('glm-5.3-flash?reasoning=low')).toBe(true)
-    expect(modelSupportsThinking('glm-5.3-flash?reasoning=xhigh')).toBe(true)
-    expect(modelSupportsThinking('glm-5.3')).toBe(true)
-    expect(modelSupportsThinking('glm-5.3?reasoning=low')).toBe(true)
-    expect(modelSupportsThinking('glm-5.2?thinking=disabled')).toBe(true)
-    expect(modelSupportsThinking('glm-5.2 ?thinking=disabled')).toBe(true)
-  })
-
   test('does not enable GLM thinking on non-Z.AI OpenAI-compatible endpoints', async () => {
     process.env.CLAUDE_CODE_USE_OPENAI = '1'
     process.env.OPENAI_BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1'
@@ -113,21 +95,6 @@ describe('modelSupportsThinking — Z.AI GLM', () => {
     expect(modelSupportsThinking('glm-50')).toBe(false)
   })
 
-  test('does not reuse stale capability overrides after env changes', async () => {
-    process.env.CLAUDE_CODE_USE_OPENAI = '1'
-    process.env.OPENAI_BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1'
-    process.env.ANTHROPIC_DEFAULT_SONNET_MODEL = 'GLM-5.1'
-    process.env.ANTHROPIC_DEFAULT_SONNET_MODEL_SUPPORTED_CAPABILITIES = ''
-    const { modelSupportsThinking } = await importFreshThinkingModule()
-
-    expect(modelSupportsThinking('GLM-5.1')).toBe(false)
-
-    delete process.env.ANTHROPIC_DEFAULT_SONNET_MODEL
-    delete process.env.ANTHROPIC_DEFAULT_SONNET_MODEL_SUPPORTED_CAPABILITIES
-    process.env.OPENAI_BASE_URL = 'https://api.z.ai/api/coding/paas/v4'
-
-    expect(modelSupportsThinking('GLM-5.1')).toBe(true)
-  })
 })
 
 describe('modelSupportsAdaptiveThinking — Claude 4 allowlist', () => {

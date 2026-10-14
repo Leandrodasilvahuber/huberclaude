@@ -32,20 +32,6 @@ import {
   getCachedXaiCredentials,
   getXaiDiscoveryCacheIdentity,
 } from '../utils/xaiCredentials.js'
-import { resolveAimlapiAttributionHeaders } from './aimlapi/config.js'
-
-function resolveRouteOpenAIShimConfig(
-  routeId: string | null,
-  baseUrl: string | undefined,
-  config: OpenAIShimTransportConfig,
-): OpenAIShimTransportConfig {
-  if (routeId !== 'aimlapi' || !config.headers) return config
-
-  return {
-    ...config,
-    headers: resolveAimlapiAttributionHeaders(config.headers, baseUrl),
-  }
-}
 
 function normalizeModelApiName(
   value: string | undefined,
@@ -332,17 +318,10 @@ export function resolveOpenAIShimRuntimeContext(options?: {
     routeId,
     descriptor,
     catalogEntry,
-    // Sanitize AIMLAPI attribution headers AFTER merging every layer: a
-    // catalog- or model-level `openaiShim.headers` override could otherwise
-    // reintroduce the partner/attribution headers on a proxy endpoint.
-    openaiShimConfig: resolveRouteOpenAIShimConfig(
-      routeId,
-      effectiveBaseUrl,
-      mergeOpenAIShimConfig(
-        descriptor?.transportConfig.openaiShim,
-        catalogEntry?.transportOverrides?.openaiShim,
-        inferredConfig,
-      ),
+    openaiShimConfig: mergeOpenAIShimConfig(
+      descriptor?.transportConfig.openaiShim,
+      catalogEntry?.transportOverrides?.openaiShim,
+      inferredConfig,
     ),
   }
 }

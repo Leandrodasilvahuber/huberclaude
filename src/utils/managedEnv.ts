@@ -9,7 +9,6 @@ import {
 } from './managedEnvConstants.js'
 import { clearMTLSCache } from './mtls.js'
 import { clearProxyCache, configureGlobalAgents } from './proxy.js'
-import { applyActiveProviderProfileFromConfig } from './providerProfiles.js'
 import { reapplyRememberedProviderFlag } from './providerFlag.js'
 import { applyOpenRouterConfigToEnv } from './openclaudeConfig.js'
 import { isSettingSourceEnabled } from './settings/constants.js'
@@ -183,9 +182,7 @@ export function applySafeConfigEnvironmentVariables(): void {
   // HuberClaude is OpenRouter-only: a saved OpenRouter config wins over
   // settings env and provider profiles. Otherwise apply the active provider
   // profile only when startup did not explicitly select a provider.
-  if (!applyOpenRouterConfigToEnv()) {
-    applyActiveProviderProfileFromConfig()
-  }
+  applyOpenRouterConfigToEnv()
 
   // If the CLI loaded --provider-env-file or parsed --provider before
   // settings.env was loaded, restore those explicit routing inputs after every
@@ -208,12 +205,8 @@ export function applyConfigEnvironmentVariables(): void {
 
   Object.assign(process.env, filterSettingsEnv(getSettings_DEPRECATED()?.env))
 
-  // Keep runtime provider/model env aligned with OpenRouter (or, without an
-  // OpenRouter config, the active profile unless an explicit provider
-  // selection is already present in process.env).
-  if (!applyOpenRouterConfigToEnv()) {
-    applyActiveProviderProfileFromConfig()
-  }
+  // Keep runtime provider/model env aligned with the saved OpenRouter config.
+  applyOpenRouterConfigToEnv()
   reapplyRememberedEnvFileValues()
   reapplyRememberedProviderFlag()
 

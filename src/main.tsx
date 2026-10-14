@@ -36,7 +36,6 @@ import { addToHistory } from './history.js';
 import type { Root } from './ink.js';
 import { launchRepl } from './replLauncher.js';
 import { refreshGrowthBookAfterAuthChange } from './services/analytics/growthbook.js';
-import { fetchBootstrapData } from './services/api/bootstrap.js';
 import { refreshStartupDiscoveryForActiveRoute } from './integrations/discoveryService.js';
 import { prefetchOllamaModels } from './utils/model/ollamaModels.js';
 import { type DownloadResult, downloadSessionFiles, type FilesApiConfig, parseFileSpecs } from './services/api/filesApi.js';
@@ -48,7 +47,6 @@ import { loadRemoteManagedSettings, refreshRemoteManagedSettings } from './servi
 import type { ToolInputJSONSchema } from './Tool.js';
 import { createSyntheticOutputTool, isSyntheticOutputToolEnabled } from './tools/SyntheticOutputTool/SyntheticOutputTool.js';
 import { registerTaskReportCommand } from './cli/commands/taskReport.js';
-import { registerAimlapiCommand } from './cli/aimlapiCommand.js';
 import { BACKGROUND_PROCESS_MARKER_FLAG, isValidBackgroundProcessMarker } from './cli/bgRouting.js';
 import { getTools } from './tools.js';
 import { canUserConfigureAdvisor, getInitialAdvisorSetting, isAdvisorEnabled, isValidAdvisorModel, modelSupportsAdvisor } from './utils/advisor.js';
@@ -2274,9 +2272,6 @@ async function run(): Promise<CommanderCommand> {
       logForDebugging(`Starting background startup prefetches${lastPrefetchedInfo}`);
       checkQuotaStatus().catch(error => logError(error));
 
-      // Fetch bootstrap data from the server and update all cache values.
-      void fetchBootstrapData();
-
       // TODO: Consolidate other prefetches into a single bootstrap request.
       void prefetchPassesEligibility();
       if (!getFeatureValue_CACHED_MAY_BE_STALE('tengu_miraculo_the_bard', false)) {
@@ -3988,27 +3983,6 @@ async function run(): Promise<CommanderCommand> {
     await authLogout();
   });
 
-  const xaiAuth = auth.command('xai').description('Sign in to xAI (Grok) with browser OAuth or device code').configureHelp(createSortedHelpConfig());
-  xaiAuth.command('login').description('Browser OAuth sign-in for an xAI account').action(async () => {
-    const { xaiLogin } = await import('./cli/handlers/xaiAuth.js');
-    await xaiLogin({ flow: 'browser' });
-  });
-  xaiAuth.command('device').description('Device-code sign-in for remote hosts (no localhost callback needed)').action(async () => {
-    const { xaiLogin } = await import('./cli/handlers/xaiAuth.js');
-    await xaiLogin({ flow: 'device-code' });
-  });
-  xaiAuth.command('logout').description('Clear stored xAI OAuth credentials').action(async () => {
-    const { xaiLogout } = await import('./cli/handlers/xaiAuth.js');
-    await xaiLogout();
-  });
-  xaiAuth.command('status').description('Show xAI OAuth credential status').action(async () => {
-    const { xaiStatus } = await import('./cli/handlers/xaiAuth.js');
-    await xaiStatus();
-  });
-
-  // AI/ML API (aimlapi.com) — passwordless sign-in, open the co-branded top-up
-  // page, and auto-configure the provider with the issued key.
-  registerAimlapiCommand(program).configureHelp(createSortedHelpConfig());
 
   /**
    * Helper function to handle marketplace command errors consistently.

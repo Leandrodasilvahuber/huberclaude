@@ -9,12 +9,6 @@ import type { PermissionResult } from 'src/utils/permissions/PermissionResult.js
 import { z } from 'zod/v4'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../../services/analytics/growthbook.js'
 import { queryModelWithStreaming } from '../../services/api/claude.js'
-import { collectCodexCompletedResponse } from '../../services/api/codexShim.js'
-import { fetchWithProxyRetry } from '../../services/api/fetchWithProxyRetry.js'
-import {
-  resolveCodexApiCredentials,
-  resolveProviderRequest,
-} from '../../services/api/providerConfig.js'
 import { buildTool, type ToolDef } from '../../Tool.js'
 import { lazySchema } from '../../utils/lazySchema.js'
 import { logError } from '../../utils/log.js'
@@ -161,16 +155,10 @@ function isClaudeModel(model: string): boolean {
   return /claude/i.test(model)
 }
 
+// HuberClaude talks to OpenRouter's chat-completions API only — the OpenAI
+// Responses/Codex web_search tool is never available.
 function isCodexResponsesWebSearchEnabled(): boolean {
-  if (getAPIProvider() !== 'openai') {
-    return false
-  }
-
-  const request = resolveProviderRequest({
-    model: getMainLoopModel(),
-    baseUrl: process.env.OPENAI_BASE_URL,
-  })
-  return request.transport === 'codex_responses'
+  return false
 }
 
 function makeCodexWebSearchTool(input: Input): Record<string, unknown> {
@@ -375,67 +363,6 @@ export const __test = {
   buildEmptyAdapterResultHint,
   formatProviderOutputWithEmptyHint,
   buildAdapterUnavailableError,
-}
-
-async function runCodexWebSearch(
-  input: Input,
-  signal: AbortSignal,
-): Promise<Output> {
-  const startTime = performance.now()
-  const request = resolveProviderRequest({
-    model: getMainLoopModel(),
-    baseUrl: process.env.OPENAI_BASE_URL,
-  })
-  const credentials = resolveCodexApiCredentials()
-
-  if (!credentials.apiKey) {
-    throw new Error('Codex web search requires CODEX_API_KEY or a valid auth.json.')
-  }
-  if (!credentials.accountId) {
-    throw new Error(
-      'Codex web search requires CHATGPT_ACCOUNT_ID or an auth.json with chatgpt_account_id.',
-    )
-  }
-
-  const body: Record<string, unknown> = {
-    model: request.resolvedModel,
-    input: buildCodexWebSearchInput(input),
-    instructions: buildCodexWebSearchInstructions(),
-    tools: [makeCodexWebSearchTool(input)],
-    tool_choice: 'required',
-    include: ['web_search_call.action.sources'],
-    store: false,
-    stream: true,
-  }
-
-  if (request.reasoning) {
-    body.reasoning = request.reasoning
-  }
-
-  const response = await fetchWithProxyRetry(`${request.baseUrl}/responses`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${credentials.apiKey}`,
-      'chatgpt-account-id': credentials.accountId,
-      originator: 'openclaude',
-    },
-    body: JSON.stringify(body),
-    signal,
-  })
-
-  if (!response.ok) {
-    const errorBody = await response.text().catch(() => 'unknown error')
-    throw new Error(`Codex web search error ${response.status}: ${errorBody}`)
-  }
-
-  const payload = await collectCodexCompletedResponse(response)
-  const endTime = performance.now()
-  return makeOutputFromCodexWebSearchResponse(
-    payload,
-    input.query,
-    (endTime - startTime) / 1000,
-  )
 }
 
 function makeOutputFromSearchResponse(
@@ -753,15 +680,6 @@ export const WebSearchTool = buildTool({
           `[web-search] Adapter failed, falling through to native: ${err}`,
         )
       }
-    }
-
-    // --- Codex / OpenAI Responses path ---
-    if (isCodexResponsesWebSearchEnabled()) {
-      const codexData = await runCodexWebSearch(
-        input,
-        context.abortController.signal,
-      )
-      return { data: codexData }
     }
 
     // --- Native Anthropic path (firstParty / vertex / foundry) ---

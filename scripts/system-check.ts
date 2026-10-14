@@ -3,7 +3,6 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import {
-  resolveCodexApiCredentials,
   resolveProviderRequest,
   isLocalProviderUrl as isProviderLocalUrl,
 } from '../src/services/api/providerConfig.js'
@@ -1116,24 +1115,6 @@ export function checkOpenAIEnv(): CheckResult[] {
 
   results.push(pass('OPENAI_BASE_URL', safeBaseUrlDisplay(request.baseUrl, '')))
 
-  if (request.transport === 'codex_responses') {
-    const credentials = resolveCodexApiCredentials(process.env)
-    if (!credentials.apiKey) {
-      const authHint = credentials.authPath
-        ? `Missing CODEX_API_KEY and no usable auth.json at ${credentials.authPath}.`
-        : 'Missing CODEX_API_KEY and auth.json fallback.'
-      results.push(fail('CODEX auth', authHint))
-    } else if (!credentials.accountId) {
-      results.push(fail('CHATGPT_ACCOUNT_ID', 'Missing chatgpt_account_id in Codex auth.'))
-    } else {
-      const detail = credentials.source === 'env'
-        ? 'Using CODEX_API_KEY.'
-        : `Using ${credentials.authPath}.`
-      results.push(pass('CODEX auth', detail))
-    }
-    return results
-  }
-
   const credentialContext = getOpenAICompatibleCredentialContext(request.baseUrl)
   const providerCredential = credentialContext.value
   const credentialLabel =
@@ -1218,31 +1199,7 @@ async function checkBaseUrlReachability(): Promise<CheckResult> {
     let method = 'GET'
     let body: string | undefined
 
-    if (request.transport === 'codex_responses') {
-      const credentials = resolveCodexApiCredentials(process.env)
-      if (credentials.apiKey) {
-        headers.Authorization = `Bearer ${credentials.apiKey}`
-      }
-      if (credentials.accountId) {
-        headers['chatgpt-account-id'] = credentials.accountId
-      }
-      headers['Content-Type'] = 'application/json'
-      headers.originator = 'openclaude'
-      method = 'POST'
-      body = JSON.stringify({
-        model: request.resolvedModel,
-        instructions: 'Runtime doctor probe.',
-        input: [
-          {
-            type: 'message',
-            role: 'user',
-            content: [{ type: 'input_text', text: 'ping' }],
-          },
-        ],
-        store: false,
-        stream: true,
-      })
-    } else if (useGemini && (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY)) {
+    if (useGemini && (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY)) {
       headers.Authorization = `Bearer ${process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY}`
     } else if (useMistral && process.env.MISTRAL_API_KEY) {
       headers.Authorization = `Bearer ${process.env.MISTRAL_API_KEY}`
@@ -1478,7 +1435,7 @@ export function serializeSafeEnvSummary(): Record<string, string | boolean> {
     OPENAI_BASE_URL: safeBaseUrlDisplay(request.baseUrl, ''),
     OPENAI_API_KEY_SET: Boolean(process.env.OPENAI_API_KEY),
     PROVIDER_API_KEY_SET: Boolean(credentialContext.value),
-    CODEX_API_KEY_SET: Boolean(resolveCodexApiCredentials(process.env).apiKey),
+    CODEX_API_KEY_SET: false,
   }
 }
 
