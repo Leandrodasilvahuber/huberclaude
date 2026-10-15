@@ -1,0 +1,3 @@
+#!/bin/sh
+# Launcher do HuberClaude: roda com o Node embutido no pacote (nao depende de Node no sistema).
+exec /usr/lib/huberclaude/node/bin/node /usr/lib/huberclaude/bin/openclaude "$@"

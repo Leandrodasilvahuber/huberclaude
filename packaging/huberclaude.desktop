@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=HuberClaude
+GenericName=Agente de código
+Comment=Agente de código no terminal
+Exec=huberclaude
+TryExec=huberclaude
+Icon=huberclaude
+Terminal=true
+StartupNotify=false
+Categories=Development;ConsoleOnly;
+Keywords=claude;agent;ai;code;

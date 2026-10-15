@@ -91,6 +91,26 @@ Isso coloca o binário `huberclaude` no seu `PATH`. Se a inicialização avisar
 `ripgrep not found`, instale o ripgrep no sistema e confirme que `rg --version`
 funciona no mesmo terminal.
 
+### Instalar pelos pacotes Linux (.deb e .rpm)
+
+Os pacotes trazem o **Node.js embutido**, então não precisa instalar Node nem npm.
+Eles instalam o comando `huberclaude` em `/usr/bin`, disponível para todos os
+usuários, mais um atalho no menu de aplicativos.
+
+```bash
+sudo apt install ./huberclaude_*_amd64.deb      # Debian, Ubuntu, Mint
+sudo dnf install ./huberclaude-*.x86_64.rpm     # Fedora, RHEL, Rocky, openSUSE
+```
+
+Para remover: `sudo apt remove huberclaude` ou `sudo dnf remove huberclaude`. Suas
+chaves e configurações em `~/.openclaude` não são apagadas. Requer glibc 2.28 ou mais
+nova (Ubuntu 20.04+, Debian 10+, Fedora, RHEL 8+); não roda em Alpine.
+
+Para gerar os pacotes: `bun run build`, depois `scripts/build-deb.sh` e, para o
+`.rpm`, `scripts/build-rpm.sh` (veja o cabeçalho do script para rodar dentro de um
+contêiner Fedora). O roteiro `packaging/test-install.sh` valida a instalação, a
+execução e a remoção dentro de contêineres descartáveis.
+
 ### Iniciar
 
 ```bash
