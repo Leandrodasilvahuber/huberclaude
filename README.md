@@ -1,35 +1,66 @@
 <div align="center">
-  <img src="docs/assets/huberclaude-wordmark.png" alt="HüberClaude — a coding-agent CLI dedicated to OpenRouter" width="830">
+  <img src="docs/assets/huberclaude-wordmark.png" alt="HüberClaude — um CLI de agente de código dedicado ao OpenRouter" width="830">
 </div>
 
-HüberClaude is an open-source coding-agent CLI **dedicated to OpenRouter**.
+O HüberClaude é um CLI de agente de código, open source e **dedicado ao OpenRouter**.
 
-One API key, thousands of models, one terminal-first workflow: prompts, tools,
-agents, MCP, slash commands, and streaming output. On top of that, **Enxame
-mode** (Portuguese for "swarm") hands small, mechanical sub-tasks to cheap z.ai
-GLM flash workers so your main OpenRouter model spends its tokens only on
-planning and hard reasoning.
+Uma chave de API, milhares de modelos e um fluxo de trabalho feito para o
+terminal: prompts, ferramentas, agentes, MCP, comandos de barra e saída em
+streaming. Além disso, o **modo Enxame** repassa subtarefas pequenas e mecânicas
+para workers baratos do GLM flash da z.ai, de modo que o seu modelo principal no
+OpenRouter só gaste tokens com planejamento e raciocínio difícil.
 
-HüberClaude is a fork of [OpenClaude](https://github.com/Gitlawb/openclaude).
-Where OpenClaude supports many providers, HüberClaude does one thing:
-it runs on OpenRouter, and it tries to spend as few tokens as possible.
+O HüberClaude é um fork do [OpenClaude](https://github.com/Gitlawb/openclaude).
+Enquanto o OpenClaude suporta vários provedores, o HüberClaude faz uma coisa só:
+roda no OpenRouter e tenta gastar o mínimo possível de tokens.
 
-[Why HüberClaude](#why-hüberclaude) | [Quick Start](#quick-start) | [OpenRouter](#openrouter) | [Enxame mode](#enxame-mode-save-tokens-with-a-swarm) | [Commands](#hüberclaude-commands) | [Development](#development)
+[Por que o HüberClaude](#por-que-o-hüberclaude) | [Capturas de tela](#capturas-de-tela) | [Início rápido](#início-rápido) | [OpenRouter](#openrouter) | [Modo Enxame](#modo-enxame-economize-tokens-com-um-enxame) | [Comandos](#comandos-do-hüberclaude) | [Desenvolvimento](#desenvolvimento)
 
-## Why HüberClaude
+## Por que o HüberClaude
 
-- **OpenRouter only, no provider setup.** Run `/login`, paste your OpenRouter key, and you're done. You don't need provider profiles, base URLs to tune, or provider-specific behavior to learn.
-- **Every model behind one key.** Claude, GPT, Gemini, DeepSeek, Qwen, GLM, Kimi, and the rest of the OpenRouter catalog, picked from `/model`.
-- **Enxame mode to save tokens.** Your main model plans and decides. A swarm of up to 10 cheap z.ai workers handles bulk work like summarizing, extracting, classifying, and small scoped edits.
-- **Spend you can see.** `/usage` shows your OpenRouter balance as a fuel gauge scaled to your last recharge.
-- **A full coding agent.** Bash, file read/write/edit, grep, glob, sub-agents, tasks, MCP, skills, hooks, and web search.
-- **Its own look.** A green, lizard-themed header with the block "H" mascot and a star spinner. The screen clears on start.
+- **Só OpenRouter, sem configurar provedor.** Rode `/login`, cole sua chave do OpenRouter e pronto. Não há perfis de provedor, URLs base para ajustar nem comportamentos específicos de cada provedor para aprender.
+- **Todos os modelos atrás de uma chave.** Claude, GPT, Gemini, DeepSeek, Qwen, GLM, Kimi e o resto do catálogo do OpenRouter, escolhidos pelo `/model`.
+- **Modo Enxame para economizar tokens.** O modelo principal planeja e decide. Um enxame de até 10 workers baratos da z.ai cuida do trabalho em massa: resumir, extrair, classificar e fazer pequenas edições bem delimitadas.
+- **Gasto visível.** O `/usage` mostra o saldo do OpenRouter como um marcador de combustível, na escala da sua última recarga.
+- **Um agente de código completo.** Bash, leitura/escrita/edição de arquivos, grep, glob, subagentes, tarefas, MCP, skills, hooks e busca na web.
+- **Visual próprio.** Cabeçalho verde com o mascote "H" em blocos e um spinner de estrela. A tela é limpa ao iniciar.
 
-## Quick Start
+## Capturas de tela
 
-### Install from source
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/assets/screenshots/inicio.png" alt="Tela inicial do HüberClaude com o mascote H"><br>
+      <sub>Tela inicial: versão, modelo ativo e diretório</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/assets/screenshots/model.png" alt="Seletor de modelos do OpenRouter com preços por 1M de tokens"><br>
+      <sub><code>/model</code>: catálogo do OpenRouter com filtro, contexto e preços</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/assets/screenshots/login.png" alt="Configuração da chave do OpenRouter"><br>
+      <sub><code>/login</code>: configuração da chave do OpenRouter</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/assets/screenshots/usage.png" alt="Saldo do OpenRouter como marcador de combustível"><br>
+      <sub><code>/usage</code>: saldo, total comprado e total gasto</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2">
+      <img src="docs/assets/screenshots/enxame.png" alt="Menu do modo Enxame" width="545"><br>
+      <sub><code>/enxame</code>: conta z.ai, modo e número de workers</sub>
+    </td>
+  </tr>
+</table>
 
-HüberClaude needs Node.js `>=22.0.0` to run. Bun `1.3.13` or newer is used to build it.
+## Início rápido
+
+### Instalar a partir do código-fonte
+
+O HüberClaude precisa do Node.js `>=22.0.0` para rodar. O build usa o Bun `1.3.13` ou mais recente.
 
 ```bash
 git clone https://github.com/Leandrodasilvahuber/huberclaude.git
@@ -39,149 +70,154 @@ bun run build
 npm install -g .
 ```
 
-This puts a `huberclaude` binary on your `PATH`. If startup reports
-`ripgrep not found`, install ripgrep system-wide and confirm `rg --version`
-works in the same terminal.
+Isso coloca o binário `huberclaude` no seu `PATH`. Se a inicialização avisar
+`ripgrep not found`, instale o ripgrep no sistema e confirme que `rg --version`
+funciona no mesmo terminal.
 
-### Start
+### Iniciar
 
 ```bash
-cd your-repo
+cd seu-repo
 huberclaude
 ```
 
-On first launch:
+Na primeira execução:
 
-1. Run `/login` and paste your OpenRouter API key (get one at [openrouter.ai/keys](https://openrouter.ai/keys)).
-2. Run `/model` to pick a model. The default is `qwen/qwen3-coder`.
-3. Optional: run `/enxame` to register a z.ai key and turn on the swarm.
+1. Rode `/login` e cole sua chave de API do OpenRouter (crie uma em [openrouter.ai/settings/keys](https://openrouter.ai/settings/keys)).
+2. Rode `/model` para escolher um modelo. O padrão é `qwen/qwen3-coder`.
+3. Opcional: rode `/enxame` para cadastrar uma chave da z.ai e ligar o enxame.
 
 ## OpenRouter
 
-HüberClaude talks **only** to OpenRouter (`https://openrouter.ai/api/v1`).
-It overrides any inherited `OPENAI_BASE_URL` or model, for example from a local
-proxy, so a stray export can't send your traffic somewhere else.
+O HüberClaude conversa **somente** com o OpenRouter (`https://openrouter.ai/api/v1`).
+Ele sobrescreve qualquer `OPENAI_BASE_URL` ou modelo herdado do ambiente (por
+exemplo, de um proxy local), para que um `export` esquecido não desvie seu
+tráfego para outro lugar.
 
-| Command | What it does |
+| Comando | O que faz |
 | --- | --- |
-| `/login` | Save your OpenRouter API key (and an optional custom base URL) |
-| `/model` | Browse the OpenRouter catalog and switch models mid-session |
-| `/usage` | Show your OpenRouter balance and spend as a fuel gauge |
+| `/login` | Salva sua chave de API do OpenRouter (e uma URL base personalizada, opcional) |
+| `/model` | Navega pelo catálogo do OpenRouter e troca de modelo no meio da sessão |
+| `/usage` | Mostra saldo e gasto no OpenRouter como marcador de combustível |
 
-Your key is saved to `~/.openclaude/config.json` with owner-only (`0600`)
-permissions. For CI or scripted runs, export it instead:
+A chave fica salva em `~/.openclaude/config.json` com permissão só para o dono
+(`0600`). Em CI ou scripts, exporte-a em vez disso:
 
 ```bash
 export HUBERCLAUDE_OPENROUTER_API_KEY=sk-or-...
-huberclaude -p "explain this repo"
+huberclaude -p "explique este repositório"
 ```
 
-The generic `OPENROUTER_API_KEY` is ignored on purpose, so an unrelated export
-can't silently switch your session's account.
+A variável genérica `OPENROUTER_API_KEY` é ignorada de propósito, para que um
+`export` sem relação não troque silenciosamente a conta da sua sessão.
 
-For best results, pick models with strong tool and function calling.
+Para melhores resultados, escolha modelos com bom suporte a tool calling
+(chamada de ferramentas/funções).
 
-## Enxame mode: save tokens with a swarm
+## Modo Enxame: economize tokens com um enxame
 
-The idea is simple. **Your expensive OpenRouter model is the manager, and z.ai
-workers are the swarm.** The manager keeps planning, hard reasoning, and final
-decisions. It fans out cheap, well-scoped work to fast GLM flash models
-(`glm-4.7-flash`, falling back to `glm-4.5-flash`) and only reads back short,
-structured results.
+A ideia é simples: **o modelo caro do OpenRouter é o gerente, e os workers da
+z.ai são o enxame.** O gerente fica com o planejamento, o raciocínio difícil e as
+decisões finais. Ele distribui trabalho barato e bem delimitado para modelos GLM
+flash rápidos (`glm-4.7-flash`, com fallback para `glm-4.5-flash`) e só lê de
+volta resultados curtos e estruturados.
 
-### Setup
+### Configuração
 
 ```text
 /enxame
 ```
 
-Paste a z.ai API key, then use the menu to:
+Cole uma chave de API da z.ai e use o menu (as opções aparecem em inglês na interface):
 
-| Option | What it does |
+| Opção | O que faz |
 | --- | --- |
-| Enable / Disable swarm | Turn the swarm on or off without removing the key |
-| Mode | Choose **Tool**, **Agent**, or **Both** (the default) |
-| Workers | Set the maximum number of workers running at once (1–10, default 10) |
-| Test connection | Send a quick request to check the key and model |
-| Replace / Remove account | Change or delete the stored z.ai key |
+| Enable / Disable swarm | Liga ou desliga o enxame sem remover a chave |
+| Mode | Escolhe **Ferramenta**, **Agente** ou **Ambos** (padrão) |
+| Workers | Define o máximo de workers rodando ao mesmo tempo (1–10, padrão 10) |
+| Test connection | Envia uma requisição rápida para validar a chave e o modelo |
+| Replace / Remove account | Altera ou apaga a chave da z.ai salva |
 
-### Modes
+### Modos
 
-- **Tool (`Ferramenta`)**: the cheapest mode. The manager gets an `Enxame` tool that sends many **stateless** prompts in parallel. Each worker sees only the prompt it was given, with no history, files, or tools, and returns a short answer. Results come back as a JSON array of `{id, ok, text}`. This fits summarizing N snippets, extracting fields, classifying items, translating, or drafting boilerplate from pasted code.
-- **Agent (`Agente`)**: the manager can launch `enxame-worker` sub-agents that run on z.ai **with tools**. They can read and search files, run a command, or make a small edit. Workers never spawn more agents and don't load project memory files, which keeps them lean.
-- **Both (`Ambos`)**: both options are available, and the manager picks per task.
+- **Ferramenta**: o modo mais barato. O gerente recebe uma ferramenta `Enxame` que dispara vários prompts **sem estado** em paralelo. Cada worker vê só o prompt que recebeu, sem histórico, arquivos ou ferramentas, e devolve uma resposta curta. Os resultados voltam como um array JSON de `{id, ok, text}`. Serve para resumir N trechos, extrair campos, classificar itens, traduzir ou gerar boilerplate a partir de código colado.
+- **Agente**: o gerente pode lançar subagentes `enxame-worker` que rodam na z.ai **com ferramentas**. Eles podem ler e buscar arquivos, rodar um comando ou fazer uma edição pequena. Workers nunca criam outros agentes e não carregam arquivos de memória do projeto, o que os mantém enxutos.
+- **Ambos**: as duas opções ficam disponíveis e o gerente escolhe a cada tarefa.
 
-Requests are staggered to stay under z.ai rate limits. If a worker hits a `429`,
-it backs off and retries, then falls back to the secondary model. Workers are
-weaker models, so the manager is told to check their output before relying on
-it. Never put secrets in a worker prompt.
+As requisições são escalonadas para respeitar os limites de taxa da z.ai. Se um
+worker recebe `429`, ele espera, tenta de novo e depois cai para o modelo
+secundário. Como os workers são modelos mais fracos, o gerente é instruído a
+conferir a saída deles antes de confiar nela. Nunca coloque segredos no prompt
+de um worker.
 
-## HüberClaude commands
+## Comandos do HüberClaude
 
-On top of the standard agent commands (`/clear`, `/compact`, `/resume`,
+Além dos comandos padrão do agente (`/clear`, `/compact`, `/resume`,
 `/rewind`, `/diff`, `/mcp`, `/agents`, `/permissions`, `/skills`, …):
 
-| Command | Purpose |
+| Comando | Para que serve |
 | --- | --- |
-| `/login` | Configure the OpenRouter API key and base URL |
-| `/model` | Pick an OpenRouter model |
-| `/usage` | OpenRouter balance and spend, shown as a fuel gauge |
-| `/enxame` | Register the z.ai account and configure the swarm (on/off, mode, workers) |
-| `/search` | Choose the web search backend (Exa by default) or add a search API key |
-| `/buddy` | Hatch a pixel-art companion beside your prompt |
+| `/login` | Configura a chave de API e a URL base do OpenRouter |
+| `/model` | Escolhe um modelo do OpenRouter |
+| `/usage` | Saldo e gasto no OpenRouter, mostrados como marcador de combustível |
+| `/enxame` | Cadastra a conta da z.ai e configura o enxame (liga/desliga, modo, workers) |
+| `/search` | Escolhe o backend de busca na web (Exa por padrão) ou adiciona uma chave de API de busca |
+| `/buddy` | Choca um companheiro em pixel art ao lado do prompt |
 
-### Resume or fork a conversation
+### Retomar ou ramificar uma conversa
 
 ```bash
-huberclaude --resume <session-id>
+huberclaude --resume <id-da-sessao>
 huberclaude --continue
-huberclaude --continue --fork-session   # branch into a new session ID
+huberclaude --continue --fork-session   # ramifica para um novo ID de sessão
 ```
 
-Forking branches only the conversation. It does not copy your working tree or
-create a git worktree.
+O fork ramifica apenas a conversa. Ele não copia sua árvore de trabalho nem cria
+um git worktree.
 
-### Background sessions
+### Sessões em segundo plano
 
-Run long non-interactive prompts detached from the current terminal:
+Rode prompts longos e não interativos desacoplados do terminal atual:
 
 ```bash
-huberclaude --bg "fix failing tests"
-huberclaude --bg --name auth-refactor "refactor auth middleware"
+huberclaude --bg "corrija os testes que estão falhando"
+huberclaude --bg --name auth-refactor "refatore o middleware de autenticação"
 huberclaude ps
 huberclaude logs auth-refactor -f
 huberclaude kill auth-refactor
 ```
 
-Background sessions are local child processes, with no daemon and no network
-service. Metadata and logs live under `~/.openclaude/bg-sessions/`. Set
-`OPENCLAUDE_CONFIG_DIR` to move the config directory.
+Sessões em segundo plano são processos filhos locais, sem daemon e sem serviço
+de rede. Metadados e logs ficam em `~/.openclaude/bg-sessions/`. Defina
+`OPENCLAUDE_CONFIG_DIR` para mudar o diretório de configuração.
 
-## Web Search and Fetch
+## Busca e leitura na web
 
-[Exa](https://exa.ai) is the default web search backend. With no setup,
-`WebSearch` uses Exa's keyless free tier, which has per-second and daily
-limits. Use `/search` to pick a backend, add an API key, or run a test search.
-Any backend you configure with a key (Tavily, Brave, Firecrawl, …) runs before
-the Exa free tier, and DuckDuckGo is the last-resort fallback. Set
-`EXA_FREE_TIER=0` if searches should never go to Exa without a key. See
-[Web Search Providers](src/tools/WebSearchTool/README_SEARCH_PROVIDERS.md).
+O [Exa](https://exa.ai) é o backend de busca padrão. Sem nenhuma configuração, o
+`WebSearch` usa o plano gratuito do Exa sem chave, que tem limites por segundo e
+por dia. Use `/search` para escolher um backend, adicionar uma chave de API ou
+fazer uma busca de teste. Qualquer backend configurado com chave (Tavily, Brave,
+Firecrawl, …) é tentado antes do plano gratuito do Exa, e o DuckDuckGo é o
+último recurso. Defina `EXA_FREE_TIER=0` se as buscas nunca devem ir para o Exa
+sem chave. Veja [Provedores de busca na web](src/tools/WebSearchTool/README_SEARCH_PROVIDERS.md).
 
-`WebFetch` uses plain HTTP plus HTML-to-markdown. Set `FIRECRAWL_API_KEY` to
-fetch JavaScript-rendered pages through Firecrawl instead.
+O `WebFetch` usa HTTP simples mais conversão de HTML para markdown. Defina
+`FIRECRAWL_API_KEY` para buscar páginas renderizadas com JavaScript pelo
+Firecrawl.
 
-## Agents
+## Agentes
 
-Built-in and custom agents run on your OpenRouter model by default. You can
-route specific agents to other OpenRouter models with `agentModels` and
-`agentRouting` in `~/.openclaude/settings.json`, and cap sub-agent tool steps
-with `maxSteps`. See [Agent Routing and Step Limits](docs/agent-routing.md).
-The `enxame-worker` agent is routed to z.ai automatically when Enxame mode
-allows agents.
+Agentes nativos e personalizados rodam no seu modelo do OpenRouter por padrão.
+Você pode direcionar agentes específicos para outros modelos do OpenRouter com
+`agentModels` e `agentRouting` em `~/.openclaude/settings.json`, e limitar os
+passos de ferramenta dos subagentes com `maxSteps`. Veja
+[Roteamento de agentes e limite de passos](docs/agent-routing.md). O agente
+`enxame-worker` é direcionado automaticamente para a z.ai quando o modo Enxame
+permite agentes.
 
-## Development
+## Desenvolvimento
 
-Use Node.js `>=22.0.0` and Bun `1.3.13` or newer.
+Use Node.js `>=22.0.0` e Bun `1.3.13` ou mais recente.
 
 ```bash
 bun install
@@ -189,36 +225,36 @@ bun run build
 node dist/cli.mjs
 ```
 
-- `bun run dev`: build and launch from source
-- `bun test`: full unit suite
-- `bun test path/to/file.test.ts`: focused runs
-- `bun run typecheck`: TypeScript check
-- `bun run smoke`: smoke checks
-- `bun run web:build`: build the documentation site in `web/`
+- `bun run dev`: faz o build e inicia a partir do código-fonte
+- `bun test`: suíte completa de testes unitários
+- `bun test caminho/do/arquivo.test.ts`: execução focada
+- `bun run typecheck`: checagem de tipos do TypeScript
+- `bun run smoke`: testes de fumaça
+- `bun run web:build`: build do site de documentação em `web/`
 
-See [CONTRIBUTING.md](CONTRIBUTING.md#validation) for the full pre-push
-validation contract.
+Veja [CONTRIBUTING.md](CONTRIBUTING.md#validation) para o contrato completo de
+validação antes do push.
 
-## Repository Structure
+## Estrutura do repositório
 
-- `src/` - core CLI and runtime (`src/tools/EnxameTool/` and `src/utils/enxame*.ts` hold the swarm)
-- `scripts/` - build, verification, and maintenance scripts
-- `docs/` - setup and contributor documentation
-- `web/` - documentation website
-- `bin/` - CLI launcher entrypoints
+- `src/` - núcleo do CLI e runtime (`src/tools/EnxameTool/` e `src/utils/enxame*.ts` contêm o enxame)
+- `scripts/` - scripts de build, verificação e manutenção
+- `docs/` - documentação de configuração e para contribuidores
+- `web/` - site de documentação
+- `bin/` - pontos de entrada do launcher do CLI
 
-## Security
+## Segurança
 
-If you believe you found a security issue, see [SECURITY.md](SECURITY.md).
+Se você acredita ter encontrado um problema de segurança, veja [SECURITY.md](SECURITY.md).
 
-## Disclaimer
+## Aviso legal
 
-HüberClaude is an independent fork of [OpenClaude](https://github.com/Gitlawb/openclaude).
-It is not affiliated with, endorsed by, or sponsored by Anthropic, OpenRouter, or Z.ai.
+O HüberClaude é um fork independente do [OpenClaude](https://github.com/Gitlawb/openclaude).
+Não é afiliado, endossado nem patrocinado pela Anthropic, pelo OpenRouter ou pela Z.ai.
 
-OpenClaude originated from the Claude Code codebase. "Claude" and "Claude Code"
-are trademarks of Anthropic PBC. See [LICENSE](LICENSE) for details.
+O OpenClaude se originou do código-fonte do Claude Code. "Claude" e "Claude Code"
+são marcas registradas da Anthropic PBC. Veja [LICENSE](LICENSE) para detalhes.
 
-## License
+## Licença
 
-MIT for contributors' modifications. The derived Claude Code remains Anthropic's. [See more](LICENSE).
+MIT para as modificações dos contribuidores. O Claude Code derivado continua sendo da Anthropic. [Saiba mais](LICENSE).
