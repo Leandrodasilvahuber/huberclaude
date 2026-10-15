@@ -3,6 +3,7 @@ import {
   DEFAULT_OPENROUTER_BASE_URL,
   getOpenRouterConfig,
   resolveOpenRouterApiKey,
+  saveOpenRouterConfig,
 } from '../../utils/openclaudeConfig.js'
 
 /** Account-wide credits from GET /credits. */
@@ -26,6 +27,41 @@ export type OpenRouterKeyUsage = {
 export type OpenRouterUsageSnapshot = {
   credits: OpenRouterCredits | null
   key: OpenRouterKeyUsage | null
+  /** Size of the most recent top-up, when known (see resolveLastRecharge). */
+  lastRecharge?: number | null
+}
+
+/** Smallest tank the fuel gauge scales to, even after a smaller top-up. */
+export const MIN_TANK_USD = 5
+/** At or below this balance the gauge is in reserve (shown in red). */
+export const RESERVE_USD = 2
+
+/** Gauge capacity: the last recharge, never below MIN_TANK_USD. */
+export function fuelTank(lastRecharge: number | null | undefined): number {
+  return Math.max(MIN_TANK_USD, lastRecharge ?? 0)
+}
+
+export type StoredRecharge = { baselineCredits: number; amount: number }
+
+/**
+ * OpenRouter exposes no purchase history, so the last top-up is inferred from
+ * total_credits growing between two /usage checks. With no history yet, the
+ * whole purchased total stands in for it.
+ */
+export function resolveLastRecharge(
+  stored: StoredRecharge | undefined,
+  totalCredits: number,
+): StoredRecharge {
+  if (!stored) {
+    return { baselineCredits: totalCredits, amount: totalCredits }
+  }
+  if (totalCredits > stored.baselineCredits) {
+    return {
+      baselineCredits: totalCredits,
+      amount: totalCredits - stored.baselineCredits,
+    }
+  }
+  return { ...stored, baselineCredits: totalCredits }
 }
 
 const FETCH_TIMEOUT_MS = 15_000
@@ -118,6 +154,24 @@ export async function fetchOpenRouterUsage(): Promise<OpenRouterUsageSnapshot> {
           : null,
       key: key.status === 'fulfilled' ? parseOpenRouterKeyUsage(key.value) : null,
     }
+    if (snapshot.credits) {
+      const config = getOpenRouterConfig()
+      const recharge = resolveLastRecharge(
+        config.lastRecharge,
+        snapshot.credits.totalCredits,
+      )
+      snapshot.lastRecharge = recharge.amount
+      try {
+        if (
+          recharge.amount !== config.lastRecharge?.amount ||
+          recharge.baselineCredits !== config.lastRecharge?.baselineCredits
+        ) {
+          saveOpenRouterConfig({ lastRecharge: recharge })
+        }
+      } catch {
+        // Tracking is best-effort; never fail /usage over it.
+      }
+    }
     if (!snapshot.credits && !snapshot.key) {
       const reason =
         credits.status === 'rejected' ? credits.reason : undefined
@@ -139,99 +193,8 @@ export function formatUsd(value: number | null): string {
   return `${value < 0 ? '-' : ''}$${abs.toFixed(digits)}`
 }
 
-export type SegmentCell = { char: string; lit: boolean }
-
-// Segments: a=top, b=top-right, c=bottom-right, d=bottom, e=bottom-left,
-// f=top-left, g=middle.
-const DIGIT_SEGMENTS: Record<string, string> = {
-  '0': 'abcdef',
-  '1': 'bc',
-  '2': 'abdeg',
-  '3': 'abcdg',
-  '4': 'bcfg',
-  '5': 'acdfg',
-  '6': 'acdefg',
-  '7': 'abc',
-  '8': 'abcdefg',
-  '9': 'abcdfg',
-  '-': 'g',
-  ' ': '',
-}
-
-const SEGMENT_ROWS = 5
-
-function digitCells(segments: string): SegmentCell[][] {
-  const on = (segment: string) => segments.includes(segment)
-  const blank: SegmentCell = { char: ' ', lit: false }
-  const horizontal = (segment: string): SegmentCell[] => [
-    blank,
-    ...Array.from({ length: 3 }, () =>
-      on(segment) ? { char: '━', lit: true } : { char: '╌', lit: false },
-    ),
-    blank,
-  ]
-  const side = (segment: string): SegmentCell =>
-    on(segment) ? { char: '┃', lit: true } : { char: '╎', lit: false }
-  const vertical = (left: string, right: string): SegmentCell[] => [
-    side(left),
-    blank,
-    blank,
-    blank,
-    side(right),
-  ]
-  return [
-    horizontal('a'),
-    vertical('f', 'b'),
-    horizontal('g'),
-    vertical('e', 'c'),
-    horizontal('d'),
-  ]
-}
-
-/**
- * Renders `text` (digits, '-', '.', ' ') as a seven-segment LCD, like an old
- * digital clock. Every digit position draws all seven segments; unlit ones
- * use thin dashed glyphs with `lit: false` so they read as faint "ghost"
- * segments even without color. The integer part is left-padded with blank digits up to
- * `minDigits` so the display keeps a fixed width.
- */
-export function buildSevenSegment(
-  text: string,
-  minDigits = 0,
-): SegmentCell[][] {
-  const intLength = text.split('.')[0]!.length
-  const padded = ' '.repeat(Math.max(0, minDigits - intLength)) + text
-  const rows: SegmentCell[][] = Array.from({ length: SEGMENT_ROWS }, () => [])
-  padded.split('').forEach((char, index) => {
-    if (index > 0) rows.forEach(row => row.push({ char: ' ', lit: false }))
-    if (char === '.') {
-      rows.forEach((row, rowIndex) =>
-        row.push(
-          rowIndex === SEGMENT_ROWS - 1
-            ? { char: '●', lit: true }
-            : { char: ' ', lit: false },
-        ),
-      )
-      return
-    }
-    const cells = digitCells(DIGIT_SEGMENTS[char] ?? '')
-    cells.forEach((cellRow, rowIndex) => rows[rowIndex]!.push(...cellRow))
-  })
-  return rows
-}
-
-/** Groups consecutive cells sharing `lit` so each run renders as one <Text>. */
-export function groupSegmentRow(
-  row: readonly SegmentCell[],
-): { text: string; lit: boolean }[] {
-  const runs: { text: string; lit: boolean }[] = []
-  for (const cell of row) {
-    const last = runs[runs.length - 1]
-    if (last && last.lit === cell.lit) {
-      last.text += cell.char
-    } else {
-      runs.push({ text: cell.char, lit: cell.lit })
-    }
-  }
-  return runs
+/** Number of filled cells (0..width) for a fuel bar showing `value` of `total`. */
+export function fuelCells(value: number, total: number, width: number): number {
+  if (total <= 0 || value <= 0) return 0
+  return Math.min(width, Math.max(1, Math.round((value / total) * width)))
 }

@@ -6,6 +6,8 @@ export interface OpenRouterConfig {
   apiKey?: string
   baseUrl?: string
   model?: string
+  /** Tracked by /usage: credits total last seen and the size of the last top-up. */
+  lastRecharge?: { baselineCredits: number; amount: number }
 }
 
 export const DEFAULT_OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1'
@@ -29,6 +31,14 @@ export function getOpenRouterConfig(): OpenRouterConfig {
         apiKey: typeof data.apiKey === 'string' ? data.apiKey : undefined,
         baseUrl: typeof data.baseUrl === 'string' ? data.baseUrl : undefined,
         model: typeof data.model === 'string' ? data.model : undefined,
+        lastRecharge:
+          Number.isFinite(data.lastRecharge?.baselineCredits) &&
+          Number.isFinite(data.lastRecharge?.amount)
+            ? {
+                baselineCredits: data.lastRecharge.baselineCredits,
+                amount: data.lastRecharge.amount,
+              }
+            : undefined,
       }
     }
   } catch {

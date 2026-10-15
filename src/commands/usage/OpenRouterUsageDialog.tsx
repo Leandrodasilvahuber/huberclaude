@@ -4,54 +4,46 @@ import { LoadingState } from '../../components/design-system/LoadingState.js'
 import { Box, Text, useInput } from '../../ink.js'
 import type { Theme } from '../../utils/theme.js'
 import {
-  buildSevenSegment,
   fetchOpenRouterUsage,
   formatUsd,
-  groupSegmentRow,
+  fuelCells,
+  fuelTank,
+  RESERVE_USD,
   type OpenRouterUsageSnapshot,
 } from './openRouterUsage.js'
 
-/** Old digital-clock style readout: lit segments in color, unlit as ghosts. */
-function LcdDisplay({
-  title,
+const FUEL_WIDTH = 28
+
+/** Fuel-gauge bar: value on top, E ½ F scale and a fill level. */
+function FuelGauge({
   value,
+  total,
   color,
   caption,
 }: {
-  title: string
   value: number
+  total: number
   color: keyof Theme
   caption: string
 }): React.ReactNode {
-  const rows = React.useMemo(
-    () => buildSevenSegment(value.toFixed(2), 3),
-    [value],
-  )
+  const filled = fuelCells(value, total, FUEL_WIDTH)
+  const half = Math.floor((FUEL_WIDTH - 1) / 2)
+  const scale = `E${'½'.padStart(half)}${'F'.padStart(FUEL_WIDTH - half - 1)}`
   return (
-    <Box flexDirection="column" alignItems="center">
-      <Text bold>{title}</Text>
-      <Box
-        flexDirection="column"
-        borderStyle="round"
-        borderColor={color}
-        paddingX={1}
-      >
-        {rows.map((row, index) => (
-          <Text key={index}>
-            <Text color={color}>{index === 2 ? '$ ' : '  '}</Text>
-            {groupSegmentRow(row).map((run, runIndex) =>
-              run.lit ? (
-                <Text key={runIndex} color={color} bold>
-                  {run.text}
-                </Text>
-              ) : (
-                <Text key={runIndex} color="inactive" dimColor>
-                  {run.text}
-                </Text>
-              ),
-            )}
+    <Box flexDirection="column">
+      <Box justifyContent="flex-end">
+        <Text bold color={color}>
+          {formatUsd(value)}
+        </Text>
+      </Box>
+      <Box flexDirection="column" borderStyle="round" paddingX={1}>
+        <Text bold>{scale}</Text>
+        <Text>
+          <Text color={color}>{'█'.repeat(filled)}</Text>
+          <Text color="inactive" dimColor>
+            {'░'.repeat(FUEL_WIDTH - filled)}
           </Text>
-        ))}
+        </Text>
       </Box>
       <Text dimColor>{caption}</Text>
     </Box>
@@ -86,30 +78,23 @@ export function UsageBody({
 }: {
   snapshot: OpenRouterUsageSnapshot
 }): React.ReactNode {
-  const { credits, key } = snapshot
+  const { credits } = snapshot
   const balance = credits ? credits.totalCredits - credits.totalUsage : null
-  const keyLimit = key?.limit && key.limit > 0 ? key.limit : null
+  const tank = fuelTank(snapshot.lastRecharge ?? credits?.totalCredits)
+  const inReserve = balance !== null && balance <= RESERVE_USD
 
   return (
     <Box flexDirection="column" gap={1}>
-      <Box flexDirection="row" gap={4} justifyContent="center">
-        {credits && balance !== null ? (
-          <LcdDisplay
-            title="Saldo"
+      {credits && balance !== null ? (
+        <Box justifyContent="center">
+          <FuelGauge
             value={balance}
-            color={balance <= 0 ? 'error' : 'success'}
-            caption={`${percentOf(credits.totalUsage, credits.totalCredits)}% de ${formatUsd(credits.totalCredits)} usado`}
+            total={tank}
+            color={inReserve ? 'error' : 'success'}
+            caption={`${percentOf(Math.min(tank, Math.max(0, tank - balance)), tank)}% de ${formatUsd(tank)} usado${inReserve ? ` · reserva (${formatUsd(RESERVE_USD)})` : ''}`}
           />
-        ) : null}
-        {key && keyLimit && key.limitRemaining !== null ? (
-          <LcdDisplay
-            title="Restante da key"
-            value={key.limitRemaining}
-            color={key.limitRemaining <= 0 ? 'error' : 'warning'}
-            caption={`${percentOf(key.usage, keyLimit)}% de ${formatUsd(keyLimit)} usado`}
-          />
-        ) : null}
-      </Box>
+        </Box>
+      ) : null}
 
       <Box flexDirection="column">
         {credits ? (
@@ -128,34 +113,6 @@ export function UsageBody({
           </Text>
         )}
       </Box>
-
-      {key ? (
-        <Box flexDirection="column">
-          <Text bold>
-            Gasto desta key{key.label ? <Text dimColor> ({key.label})</Text> : null}
-          </Text>
-          <Stat label="Hoje" value={formatUsd(key.usageDaily)} />
-          <Stat label="Últimos 7 dias" value={formatUsd(key.usageWeekly)} />
-          <Stat label="Últimos 30 dias" value={formatUsd(key.usageMonthly)} />
-          <Stat label="Total" value={formatUsd(key.usage)} />
-          {keyLimit ? (
-            <Stat
-              label="Restante"
-              value={formatUsd(key.limitRemaining)}
-              color={
-                key.limitRemaining !== null && key.limitRemaining <= 0
-                  ? 'error'
-                  : undefined
-              }
-            />
-          ) : (
-            <Stat label="Limite" value="sem limite" />
-          )}
-          {key.isFreeTier ? (
-            <Text color="warning">Conta no free tier</Text>
-          ) : null}
-        </Box>
-      ) : null}
     </Box>
   )
 }

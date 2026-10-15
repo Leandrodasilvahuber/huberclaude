@@ -1,9 +1,10 @@
 import { describe, expect, test } from 'bun:test'
 
 import {
-  buildSevenSegment,
   formatUsd,
-  groupSegmentRow,
+  fuelCells,
+  fuelTank,
+  resolveLastRecharge,
   parseOpenRouterCredits,
   parseOpenRouterKeyUsage,
 } from './openRouterUsage.js'
@@ -75,69 +76,50 @@ describe('formatUsd', () => {
   })
 })
 
-describe('buildSevenSegment', () => {
-  function render(text: string, minDigits?: number) {
-    return buildSevenSegment(text, minDigits).map(row =>
-      row.map(cell => (cell.lit ? cell.char : ' ')).join(''),
-    )
-  }
-
-  test('draws an 8 with every segment lit', () => {
-    expect(render('8')).toEqual([
-      ' ━━━ ',
-      '┃   ┃',
-      ' ━━━ ',
-      '┃   ┃',
-      ' ━━━ ',
-    ])
+describe('fuelCells', () => {
+  test('scales the value to the bar width', () => {
+    expect(fuelCells(5, 10, 28)).toBe(14)
+    expect(fuelCells(10, 10, 28)).toBe(28)
   })
 
-  test('draws a 1 with only the right segments lit', () => {
-    expect(render('1')).toEqual([
-      '     ',
-      '    ┃',
-      '     ',
-      '    ┃',
-      '     ',
-    ])
+  test('clamps empty, negative and overflowing values', () => {
+    expect(fuelCells(0, 10, 28)).toBe(0)
+    expect(fuelCells(-1, 10, 28)).toBe(0)
+    expect(fuelCells(20, 10, 28)).toBe(28)
+    expect(fuelCells(5, 0, 28)).toBe(0)
   })
 
-  test('keeps unlit segments as ghost cells', () => {
-    const cells = buildSevenSegment('1').flat()
-    expect(cells.some(cell => cell.char === '╌' && !cell.lit)).toBe(true)
-  })
-
-  test('renders the decimal point on the bottom row', () => {
-    const rows = render('0.5')
-    expect(rows[4]).toContain('●')
-    expect(rows[0]).not.toContain('●')
-  })
-
-  test('pads the integer part to minDigits with blank digits', () => {
-    const rows = buildSevenSegment('1.00', 3)
-    const unpadded = buildSevenSegment('1.00')
-    expect(rows[0]!.length).toBe(unpadded[0]!.length + 2 * 6)
-    expect(new Set(rows.map(row => row.length)).size).toBe(1)
-  })
-
-  test('draws a minus sign with the middle segment', () => {
-    expect(render('-')[2]).toBe(' ━━━ ')
-    expect(render('-')[0]).toBe('     ')
+  test('keeps at least one cell for a tiny positive balance', () => {
+    expect(fuelCells(0.01, 100, 28)).toBe(1)
   })
 })
 
-describe('groupSegmentRow', () => {
-  test('merges consecutive cells with the same lit state', () => {
+describe('fuelTank', () => {
+  test('is the last recharge with a $5 minimum', () => {
+    expect(fuelTank(20)).toBe(20)
+    expect(fuelTank(3)).toBe(5)
+    expect(fuelTank(null)).toBe(5)
+  })
+})
+
+describe('resolveLastRecharge', () => {
+  test('falls back to the purchased total without history', () => {
+    expect(resolveLastRecharge(undefined, 15)).toEqual({
+      baselineCredits: 15,
+      amount: 15,
+    })
+  })
+
+  test('infers the top-up from growth in total credits', () => {
     expect(
-      groupSegmentRow([
-        { char: '━', lit: true },
-        { char: '━', lit: true },
-        { char: ' ', lit: false },
-        { char: '┃', lit: false },
-      ]),
-    ).toEqual([
-      { text: '━━', lit: true },
-      { text: ' ┃', lit: false },
-    ])
+      resolveLastRecharge({ baselineCredits: 15, amount: 15 }, 20),
+    ).toEqual({ baselineCredits: 20, amount: 5 })
+  })
+
+  test('keeps the last amount while total credits are unchanged', () => {
+    expect(resolveLastRecharge({ baselineCredits: 20, amount: 5 }, 20)).toEqual({
+      baselineCredits: 20,
+      amount: 5,
+    })
   })
 })
