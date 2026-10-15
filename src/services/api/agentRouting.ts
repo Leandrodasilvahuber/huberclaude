@@ -5,6 +5,8 @@ import { isModelAlias } from '../../utils/model/aliases.js'
 import { parseModelFlagValue } from '../../utils/cliArgs.js'
 import { argsBeforeModelOwningSubcommand } from '../../utils/printFlag.js'
 import { resolveRouteIdFromBaseUrl } from '../../integrations/routeMetadata.js'
+import { getEnxameAccount } from '../../utils/enxameConfig.js'
+import { ENXAME_WORKER_AGENT_TYPE } from '../../tools/AgentTool/built-in/enxameWorkerAgent.js'
 
 /**
  * Provider override resolved from agent routing config.
@@ -197,6 +199,21 @@ export function resolveAgentRunModelRouting({
   settings: SettingsJson | null
   permissionMode?: PermissionMode
 }): AgentRunModelRouting {
+  // Swarm workers always run on the registered z.ai account while it is on.
+  if (subagentType === ENXAME_WORKER_AGENT_TYPE) {
+    const account = getEnxameAccount()
+    if (account?.enabled && account.mode !== 'tool') {
+      return {
+        mainLoopModel: account.model,
+        providerOverride: {
+          model: account.model,
+          baseURL: account.baseUrl,
+          apiKey: account.apiKey,
+        },
+      }
+    }
+  }
+
   const toolRequestedModel = toolSpecifiedModel?.trim()
   if (toolRequestedModel) {
     // Tool-specified models are explicit. If the request is not a configured

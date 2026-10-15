@@ -3,10 +3,15 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import {
+  type EnxameAccount,
   getEnxameAccount,
+  isEnxameAgentEnabled,
+  isEnxameToolEnabled,
   removeEnxameAccount,
   saveEnxameAccount,
   setEnxameEnabled,
+  setEnxameMode,
+  setEnxameWorkers,
   testEnxameAccount,
 } from './enxameConfig.js'
 import { saveOpenRouterConfig } from './openclaudeConfig.js'
@@ -14,12 +19,14 @@ import { saveOpenRouterConfig } from './openclaudeConfig.js'
 let tempDir: string
 let originalConfigDir: string | undefined
 
-const account = {
+const account: EnxameAccount = {
   apiKey: 'key-1',
   baseUrl: 'https://api.z.ai/api/paas/v4',
   model: 'glm-4.7-flash',
   fallbackModel: 'glm-4.5-flash',
   enabled: true,
+  mode: 'both',
+  workers: 10,
 }
 
 beforeEach(() => {
@@ -58,6 +65,34 @@ describe('enxameConfig', () => {
     expect(getEnxameAccount()?.enabled).toBe(false)
     setEnxameEnabled(true)
     expect(getEnxameAccount()?.enabled).toBe(true)
+  })
+
+  test('stores mode and clamped worker count, kept when the key is replaced', () => {
+    setEnxameMode('tool') // no account yet: no-op
+    expect(getEnxameAccount()).toBeUndefined()
+
+    saveEnxameAccount('key-1')
+    setEnxameMode('agent')
+    setEnxameWorkers(4)
+    saveEnxameAccount('key-2')
+    expect(getEnxameAccount()).toMatchObject({ apiKey: 'key-2', mode: 'agent', workers: 4 })
+
+    setEnxameWorkers(0)
+    expect(getEnxameAccount()?.workers).toBe(1)
+    setEnxameWorkers(15)
+    expect(getEnxameAccount()?.workers).toBe(10)
+  })
+
+  test('tool and agent availability follow mode and the on/off switch', () => {
+    expect([isEnxameToolEnabled(), isEnxameAgentEnabled()]).toEqual([false, false])
+    saveEnxameAccount('key-1')
+    expect([isEnxameToolEnabled(), isEnxameAgentEnabled()]).toEqual([true, true])
+    setEnxameMode('tool')
+    expect([isEnxameToolEnabled(), isEnxameAgentEnabled()]).toEqual([true, false])
+    setEnxameMode('agent')
+    expect([isEnxameToolEnabled(), isEnxameAgentEnabled()]).toEqual([false, true])
+    setEnxameEnabled(false)
+    expect([isEnxameToolEnabled(), isEnxameAgentEnabled()]).toEqual([false, false])
   })
 
   test('keeps other config keys and stays owner-only', () => {

@@ -1,9 +1,11 @@
 import { feature } from 'bun:bundle'
 import { getIsNonInteractiveSession } from '../../bootstrap/state.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../../services/analytics/growthbook.js'
+import { isEnxameAgentEnabled } from '../../utils/enxameConfig.js'
 import { isEnvTruthy } from '../../utils/envUtils.js'
 import { CLAUDE_CODE_GUIDE_AGENT } from './built-in/claudeCodeGuideAgent.js'
 import { CODE_REVIEWER_AGENT } from './built-in/codeReviewerAgent.js'
+import { ENXAME_WORKER_AGENT } from './built-in/enxameWorkerAgent.js'
 import { EXPLORE_AGENT } from './built-in/exploreAgent.js'
 import { GENERAL_PURPOSE_AGENT } from './built-in/generalPurposeAgent.js'
 import { PLAN_AGENT } from './built-in/planAgent.js'
@@ -70,6 +72,10 @@ export function getBuiltInAgents(): AgentDefinition[] {
     agents.push(VERIFICATION_AGENT)
   }
 
+  if (isEnxameAgentEnabled()) {
+    agents.push(ENXAME_WORKER_AGENT)
+  }
+
   return agents
 }
 
@@ -80,7 +86,8 @@ const BUILT_IN_AGENT_TYPES = new Set([
   EXPLORE_AGENT.agentType,
   PLAN_AGENT.agentType,
   CLAUDE_CODE_GUIDE_AGENT.agentType,
-  VERIFICATION_AGENT.agentType
+  VERIFICATION_AGENT.agentType,
+  ENXAME_WORKER_AGENT.agentType,
 ])
 
 export function isBuiltInAgentType(agentType: string): boolean {

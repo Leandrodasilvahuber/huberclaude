@@ -62,6 +62,8 @@ import { createUserMessage } from '../../utils/messages.js'
 import { getAgentModel } from '../../utils/model/agent.js'
 import { isModelAllowed } from '../../utils/model/modelAllowlist.js'
 import { resolveAgentRunModelRouting, shouldEnforceModelAllowlist } from '../../services/api/agentRouting.js'
+import { waitForEnxameSlot } from '../../utils/enxameConfig.js'
+import { ENXAME_WORKER_AGENT_TYPE } from './built-in/enxameWorkerAgent.js'
 import { getInitialSettings } from '../../utils/settings/settings.js'
 import {
   clearAgentTranscriptSubdir,
@@ -618,6 +620,15 @@ export async function* runAgent({
     : isAsync
       ? new AbortController()
       : toolUseContext.abortController
+
+  // Swarm workers launched together would hit z.ai's rate limit at once;
+  // stagger their first request like the Enxame tool does.
+  if (
+    providerOverride &&
+    agentDefinition.agentType === ENXAME_WORKER_AGENT_TYPE
+  ) {
+    await waitForEnxameSlot(agentAbortController.signal)
+  }
 
   // Execute SubagentStart hooks and collect additional context
   const additionalContexts: string[] = []
