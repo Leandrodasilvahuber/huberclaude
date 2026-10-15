@@ -33,6 +33,8 @@
   "ignoreDependencies": [
     "@types/bun",
     "@anthropic-ai/foundry-sdk",
+    "@anthropic-ai/bedrock-sdk",
+    "@azure/identity",
     "google-auth-library"
   ]
 }
