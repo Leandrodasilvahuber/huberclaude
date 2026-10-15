@@ -14,7 +14,7 @@ O HüberClaude é um fork do [OpenClaude](https://github.com/Gitlawb/openclaude)
 Enquanto o OpenClaude suporta vários provedores, o HüberClaude faz uma coisa só:
 roda no OpenRouter e tenta gastar o mínimo possível de tokens.
 
-[Por que o HüberClaude](#por-que-o-hüberclaude) | [Capturas de tela](#capturas-de-tela) | [Início rápido](#início-rápido) | [OpenRouter](#openrouter) | [Modo Enxame](#modo-enxame-economize-tokens-com-um-enxame) | [Comandos](#comandos-do-hüberclaude) | [Desenvolvimento](#desenvolvimento)
+[Por que o HüberClaude](#por-que-o-hüberclaude) | [A ideia](#a-ideia-por-trás) | [Capturas de tela](#capturas-de-tela) | [Início rápido](#início-rápido) | [OpenRouter](#openrouter) | [Modo Enxame](#modo-enxame-economize-tokens-com-um-enxame) | [Comandos](#comandos-do-hüberclaude) | [Desenvolvimento](#desenvolvimento)
 
 ## Por que o HüberClaude
 
@@ -24,6 +24,23 @@ roda no OpenRouter e tenta gastar o mínimo possível de tokens.
 - **Gasto visível.** O `/usage` mostra o saldo do OpenRouter como um marcador de combustível, na escala da sua última recarga.
 - **Um agente de código completo.** Bash, leitura/escrita/edição de arquivos, grep, glob, subagentes, tarefas, MCP, skills, hooks e busca na web.
 - **Visual próprio.** Cabeçalho verde com o mascote "H" em blocos e um spinner de estrela. A tela é limpa ao iniciar.
+
+## A ideia por trás
+
+O HüberClaude nasceu para ser um **CLI enxuto, dedicado apenas ao OpenRouter**.
+Sem camadas para dezenas de provedores, o código do CLI fica menor, mais simples
+de manter e mais fácil de entender.
+
+Em paralelo, você pode cadastrar uma **chave de API da z.ai** e usar um **enxame
+de agentes** em vários modos (**Ferramenta**, **Agente** ou **Ambos**):
+
+| Serviço | Papel |
+| --- | --- |
+| **OpenRouter** | O cérebro: uma integração com milhares de modelos. O modelo principal planeja, raciocina e decide. |
+| **z.ai** | O enxame: até 10 workers rápidos e baratos cuidam do trabalho braçal, em paralelo. |
+
+Combinar os dois serviços **economiza tokens** do modelo caro e dá **mais poder de
+processamento**, porque vários workers trabalham ao mesmo tempo.
 
 ## Capturas de tela
 
