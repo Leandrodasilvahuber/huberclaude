@@ -62,7 +62,7 @@ import { createUserMessage } from '../../utils/messages.js'
 import { getAgentModel } from '../../utils/model/agent.js'
 import { isModelAllowed } from '../../utils/model/modelAllowlist.js'
 import { resolveAgentRunModelRouting, shouldEnforceModelAllowlist } from '../../services/api/agentRouting.js'
-import { waitForEnxameSlot } from '../../utils/enxameConfig.js'
+import { getEnxameAccount, waitForEnxameSlot } from '../../utils/enxameConfig.js'
 import { ENXAME_WORKER_AGENT_TYPE } from './built-in/enxameWorkerAgent.js'
 import { getInitialSettings } from '../../utils/settings/settings.js'
 import {
@@ -404,7 +404,15 @@ export async function* runAgent({
       permissionMode,
     })
 
+  // The swarm's z.ai account is configured explicitly via /enxame, so its
+  // forced route is exempt from the session model allowlist.
+  const swarmAccount = getEnxameAccount()
+  const isSwarmRoute =
+    swarmAccount?.enabled === true &&
+    providerOverride?.baseURL === swarmAccount.baseUrl
+
   if (
+    !isSwarmRoute &&
     shouldEnforceModelAllowlist(
       resolvedAgentModel,
       effectiveModel,

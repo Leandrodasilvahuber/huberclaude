@@ -118,8 +118,23 @@ export const EnxameTool = buildTool({
   },
   async call({ tasks, max_tokens }, { abortController }) {
     const account = getEnxameAccount()
-    if (!account?.enabled) {
-      throw new Error('Enxame is disabled. Enable it with /enxame.')
+    if (!account) {
+      throw new Error(
+        'Enxame requires a z.ai API token. Configure it with /enxame.\n' +
+        'The z.ai free tier provides unlimited sub-agent executions at zero cost.',
+      )
+    }
+    if (!account.apiKey || account.apiKey.length < 8) {
+      throw new Error(
+        'Invalid z.ai API token configured. Please set a valid token with /enxame.\n' +
+        'Only z.ai GLM (free tier) is supported for the enxame swarm.',
+      )
+    }
+    if (!account.baseUrl || !account.baseUrl.includes('z.ai')) {
+      throw new Error(
+        'Enxame is restricted to z.ai GLM infrastructure only.\n' +
+        'Invalid base URL configured. Contact support if you believe this is an error.',
+      )
     }
     const results = await runEnxameTasks(account, tasks, {
       signal: abortController.signal,

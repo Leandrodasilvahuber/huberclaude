@@ -62,6 +62,7 @@ export async function runEnxameTasks(
         signal,
         spacingMs,
         retryDelaysMs,
+        label: `tool:${task.id}`,
       })
       results[index] = result.ok
         ? { id: task.id, ok: true, model: result.model, text: result.text }

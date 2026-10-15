@@ -14,6 +14,8 @@ let tempDir: string
 let originalConfigDir: string | undefined
 
 beforeEach(() => {
+  delete process.env.OPENCLAUDE_ENXAME_ENABLED // other suites pin it to '0'
+  delete process.env.OPENCLAUDE_ENXAME_MODE
   originalConfigDir = process.env.OPENCLAUDE_CONFIG_DIR
   tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'enxame-routing-'))
   process.env.OPENCLAUDE_CONFIG_DIR = tempDir
@@ -53,11 +55,14 @@ describe('enxame-worker routing', () => {
       },
     })
     expect(hasWorker()).toBe(true)
-    // Other agents keep the session provider.
-    expect(route('general-purpose')).toEqual({ mainLoopModel: 'openai/gpt-5' })
+    // Every other subagent is forced onto z.ai while the swarm is on.
+    expect(route('general-purpose').providerOverride?.baseURL).toBe(
+      'https://api.z.ai/api/paas/v4',
+    )
 
     setEnxameMode('tool')
-    expect(route('enxame-worker').providerOverride).toBeUndefined()
+    // Routing is forced whenever the swarm is on; the worker agent is only offered with agents.
+    expect(route('general-purpose').providerOverride).toBeDefined()
     expect(hasWorker()).toBe(false)
 
     setEnxameMode('both')

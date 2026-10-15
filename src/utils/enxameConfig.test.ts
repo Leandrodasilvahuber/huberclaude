@@ -30,6 +30,8 @@ const account: EnxameAccount = {
 }
 
 beforeEach(() => {
+  delete process.env.OPENCLAUDE_ENXAME_ENABLED // other suites pin it to '0'
+  delete process.env.OPENCLAUDE_ENXAME_MODE
   originalConfigDir = process.env.OPENCLAUDE_CONFIG_DIR
   tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'enxame-config-'))
   process.env.OPENCLAUDE_CONFIG_DIR = tempDir

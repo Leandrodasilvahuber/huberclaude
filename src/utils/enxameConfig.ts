@@ -76,6 +76,17 @@ function parseMode(value: unknown): EnxameMode {
   return ENXAME_MODES.includes(value as EnxameMode) ? (value as EnxameMode) : 'both'
 }
 
+/**
+ * Per-process overrides for automation (benchmarks) so the stored config is
+ * never rewritten: OPENCLAUDE_ENXAME_ENABLED=0|1 and OPENCLAUDE_ENXAME_MODE.
+ */
+function envEnabledOverride(): boolean | undefined {
+  const v = process.env.OPENCLAUDE_ENXAME_ENABLED?.trim().toLowerCase()
+  if (v === '1' || v === 'true') return true
+  if (v === '0' || v === 'false') return false
+  return undefined
+}
+
 /** Only key and swarm settings are stored; URL and models are fixed defaults. */
 export function getEnxameAccount(): EnxameAccount | undefined {
   const raw = readConfig().enxame as StoredEnxame | undefined
@@ -85,8 +96,8 @@ export function getEnxameAccount(): EnxameAccount | undefined {
     baseUrl: DEFAULT_ZAI_BASE_URL,
     model: DEFAULT_ZAI_MODEL,
     fallbackModel: DEFAULT_ZAI_FALLBACK_MODEL,
-    enabled: raw.enabled !== false,
-    mode: parseMode(raw.mode),
+    enabled: envEnabledOverride() ?? raw.enabled !== false,
+    mode: parseMode(process.env.OPENCLAUDE_ENXAME_MODE ?? raw.mode),
     workers: raw.workers === undefined ? MAX_ENXAME_WORKERS : clampEnxameWorkers(raw.workers),
   }
 }
@@ -150,8 +161,10 @@ export function getEnxameModelChain(account: EnxameAccount): string[] {
 
 export type EnxameMessage = { role: 'system' | 'user'; content: string }
 
+export type EnxameUsage = { promptTokens: number; completionTokens: number }
+
 export type EnxameChatResult =
-  | { ok: true; model: string; text: string; failures: string[] }
+  | { ok: true; model: string; text: string; failures: string[]; usage: EnxameUsage }
   | { ok: false; failures: string[] }
 
 const ENXAME_REQUEST_TIMEOUT_MS = 60_000
@@ -164,7 +177,7 @@ async function chatOnce(
   fetchImpl: typeof fetch,
   signal: AbortSignal | undefined,
   timeoutMs: number,
-): Promise<{ ok: true; text: string } | { ok: false; status?: number; message: string }> {
+): Promise<{ ok: true; text: string; usage: EnxameUsage } | { ok: false; status?: number; message: string }> {
   const { signal: requestSignal, cleanup } = createCombinedAbortSignal(signal, {
     timeoutMs,
   })
@@ -187,10 +200,21 @@ async function chatOnce(
     })
     if (response.ok) {
       const data = (await response.json().catch(() => undefined)) as
-        | { choices?: { message?: { content?: unknown } }[] }
+        | {
+            choices?: { message?: { content?: unknown } }[]
+            usage?: { prompt_tokens?: unknown; completion_tokens?: unknown }
+          }
         | undefined
       const content = data?.choices?.[0]?.message?.content
-      return { ok: true, text: typeof content === 'string' ? content : '' }
+      const num = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 0)
+      return {
+        ok: true,
+        text: typeof content === 'string' ? content : '',
+        usage: {
+          promptTokens: num(data?.usage?.prompt_tokens),
+          completionTokens: num(data?.usage?.completion_tokens),
+        },
+      }
     }
     const detail = (await response.text().catch(() => '')).slice(0, 200)
     return {
@@ -215,6 +239,17 @@ export const ENXAME_STAGGER_MS = 600
 export const ENXAME_RETRY_DELAYS_MS: readonly number[] = [1_500, 4_000]
 
 let nextEnxameSlot = 0
+
+/** Appends one JSON line per z.ai call when OPENCLAUDE_ENXAME_USAGE_LOG is set. */
+function logEnxameUsage(label: string | undefined, model: string, usage: EnxameUsage): void {
+  const file = process.env.OPENCLAUDE_ENXAME_USAGE_LOG
+  if (!file) return
+  try {
+    fs.appendFileSync(file, JSON.stringify({ label: label ?? 'enxame', model, ...usage }) + '\n')
+  } catch {
+    // Usage logging is best-effort.
+  }
+}
 
 /**
  * Staggers z.ai calls: each caller gets a start time at least `spacingMs`
@@ -249,7 +284,10 @@ export async function enxameChat(
     timeoutMs = ENXAME_REQUEST_TIMEOUT_MS,
     spacingMs = ENXAME_STAGGER_MS,
     retryDelaysMs = ENXAME_RETRY_DELAYS_MS,
+    label,
   }: {
+    /** Names the caller in the optional usage log (OPENCLAUDE_ENXAME_USAGE_LOG). */
+    label?: string
     maxTokens: number
     fetchImpl?: typeof fetch
     signal?: AbortSignal
@@ -263,7 +301,10 @@ export async function enxameChat(
     for (let attempt = 0; ; attempt++) {
       await waitForEnxameSlot(signal, spacingMs)
       const result = await chatOnce(account, model, messages, maxTokens, fetchImpl, signal, timeoutMs)
-      if (result.ok) return { ok: true, model, text: result.text, failures }
+      if (result.ok) {
+        logEnxameUsage(label, model, result.usage)
+        return { ok: true, model, text: result.text, failures, usage: result.usage }
+      }
       const retryDelay = retryDelaysMs[attempt]
       if (result.status === 429 && retryDelay !== undefined) {
         await sleep(retryDelay, signal, { throwOnAbort: true })

@@ -14,6 +14,9 @@ import {
 import type { SettingsJson } from '../../utils/settings/types.js'
 import type { AgentDefinition } from './loadAgentsDir.js'
 
+// These tests exercise non-swarm routing; keep a locally enabled swarm out of them.
+process.env.OPENCLAUDE_ENXAME_ENABLED = '0'
+
 type PromptsModule = typeof import('../../constants/prompts.js')
 type RunAgentModule = typeof import('./runAgent.js')
 type AgentToolModule = typeof import('./AgentTool.js')

@@ -187,6 +187,27 @@ secundário. Como os workers são modelos mais fracos, o gerente é instruído a
 conferir a saída deles antes de confiar nela. Nunca coloque segredos no prompt
 de um worker.
 
+### Sub-agentes forçados em GLM
+
+Com o enxame ligado, **todo** subagente da ferramenta Agent (`general-purpose`,
+`Explore`, `Plan`, `enxame-worker`...) roda na z.ai (`glm-4.7-flash`), seja qual
+for o modelo pedido, e essa rota ignora o `availableModels`. Só o gerente fica no
+modelo principal. Com o enxame desligado, os subagentes herdam o modelo do gerente.
+
+Para automação e benchmarks, estas variáveis valem só no processo e não alteram o
+`config.json`: `OPENCLAUDE_ENXAME_ENABLED=0|1`, `OPENCLAUDE_ENXAME_MODE=tool|agent|both`
+e `OPENCLAUDE_ENXAME_USAGE_LOG=<arquivo>` (grava um JSON por chamada z.ai da
+ferramenta `Enxame`, com os tokens usados).
+
+### Benchmark de tokens
+
+Comparação de tokens do gerente e de cada agente, com e sem enxame, nos modos
+`io` (ferramenta Enxame), `agent` (`enxame-worker`) e `task` (`general-purpose`):
+[docs/benchmarks/benchmark_tokens_enxame.pdf](docs/benchmarks/benchmark_tokens_enxame.pdf).
+Na tarefa pequena testada (3 módulos TS + LEIA-ME), o enxame **não economizou
+tokens**: o gerente gastou mais para montar briefings e ler as respostas, e o
+total subiu. A delegação tende a compensar só em tarefas maiores e paralelizáveis.
+
 ## Comandos do HüberClaude
 
 Além dos comandos padrão do agente (`/clear`, `/compact`, `/resume`,

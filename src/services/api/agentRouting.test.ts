@@ -14,6 +14,9 @@ import { getAgentModel } from '../../utils/model/agent.js'
 import * as agentModelModule from '../../utils/model/agent.js'
 import type { SettingsJson } from '../../utils/settings/types.js'
 
+// These tests exercise non-swarm routing; keep a locally enabled swarm out of them.
+process.env.OPENCLAUDE_ENXAME_ENABLED = '0'
+
 const baseSettings = {
   agentModels: {
     'deepseek-chat': { base_url: 'https://api.deepseek.com/v1', api_key: 'sk-ds' },

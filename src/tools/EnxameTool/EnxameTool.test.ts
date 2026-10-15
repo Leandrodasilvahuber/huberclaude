@@ -9,6 +9,8 @@ let tempDir: string
 let originalConfigDir: string | undefined
 
 beforeEach(() => {
+  delete process.env.OPENCLAUDE_ENXAME_ENABLED // other suites pin it to '0'
+  delete process.env.OPENCLAUDE_ENXAME_MODE
   originalConfigDir = process.env.OPENCLAUDE_CONFIG_DIR
   tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'enxame-tool-'))
   process.env.OPENCLAUDE_CONFIG_DIR = tempDir
