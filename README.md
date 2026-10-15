@@ -243,6 +243,13 @@ validação antes do push.
 - `web/` - site de documentação
 - `bin/` - pontos de entrada do launcher do CLI
 
+## Projeto sem fins lucrativos
+
+O HüberClaude é uma iniciativa sem fins lucrativos, criada para tornar o uso de
+inteligência artificial mais acessível. Ele é gratuito e open source. Se ele te
+ajuda, considere apoiar o projeto com uma doação via PIX: a chave está em
+[leandrohuber.freeddns.org/huberclaude](https://www.leandrohuber.freeddns.org/huberclaude/#apoie).
+
 ## Segurança
 
 Se você acredita ter encontrado um problema de segurança, veja [SECURITY.md](SECURITY.md).
