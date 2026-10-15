@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { Dialog } from '../../components/design-system/Dialog.js'
 import { LoadingState } from '../../components/design-system/LoadingState.js'
-import { Box, Text, useInput } from '../../ink.js'
+import { Box, Link, Text, useInput } from '../../ink.js'
 import type { Theme } from '../../utils/theme.js'
 import {
   fetchOpenRouterUsage,
@@ -95,6 +95,14 @@ export function UsageBody({
           />
         </Box>
       ) : null}
+
+      <Box>
+        <Box borderStyle="round" paddingX={2}>
+          <Link url="https://openrouter.ai/">
+            <Text bold>Fuel</Text>
+          </Link>
+        </Box>
+      </Box>
 
       <Box flexDirection="column">
         {credits ? (
