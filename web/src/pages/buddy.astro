@@ -4,15 +4,15 @@ import Terminal from '../components/Terminal.astro'
 import { SITE } from '../data/site'
 import { heroes, buddyCommands, rarities, statNames } from '../data/buddy'
 
-const title = 'buddy — pixel-art hero companions for your terminal | openclaude'
+const title = 'buddy — pixel-art hero companions for your terminal | huberclaude'
 const description =
-  'Hatch a truecolor pixel-art hero who lives in your openclaude prompt and fires an arrow, energy wave, or fireball every time you press Enter. Seven heroes, rarity rolls, and zero effect on your tokens.'
+  'Hatch a truecolor pixel-art hero who lives in your huberclaude prompt and fires an arrow, energy wave, or fireball every time you press Enter. Seven heroes, rarity rolls, and zero effect on your tokens.'
 
 const jsonLd = [
   {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: 'openclaude buddy — pixel-art hero companions',
+    name: 'huberclaude buddy — pixel-art hero companions',
     url: `${SITE.url}/buddy/`,
     description,
     isPartOf: { '@type': 'WebSite', name: SITE.name, url: SITE.url },
@@ -21,7 +21,7 @@ const jsonLd = [
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'openclaude', item: SITE.url },
+      { '@type': 'ListItem', position: 1, name: 'huberclaude', item: SITE.url },
       { '@type': 'ListItem', position: 2, name: 'buddy', item: `${SITE.url}/buddy/` },
     ],
   },
@@ -40,7 +40,7 @@ const jsonLd = [
       <div class="showcase" role="img" aria-label="Robin Hood buddy firing an arrow toward the prompt">
         <img src="/buddy/robinhood-action.svg" alt="" width="460" height="160" loading="eager" />
       </div>
-      <p class="hero-foot">type <code>/buddy</code> in any openclaude session to hatch yours.</p>
+      <p class="hero-foot">type <code>/buddy</code> in any huberclaude session to hatch yours.</p>
     </div>
   </section>
 
@@ -151,7 +151,7 @@ const jsonLd = [
         <p class="eyebrow">// get one</p>
         <h2 id="get-heading">your prompt is lonely.</h2>
         <p class="lede">
-          install openclaude, open any repo, and type <code>/buddy</code>.
+          install huberclaude, open any repo, and type <code>/buddy</code>.
           <a href="/docs/installation/"> installation guide →</a>
         </p>
       </div>

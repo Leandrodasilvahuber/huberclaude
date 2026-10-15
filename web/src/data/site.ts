@@ -1,15 +1,17 @@
 export const SITE = {
   url: 'https://openclaude.gitlawb.com',
-  name: 'openclaude',
-  title: 'openclaude — open-source coding agent CLI for any model',
+  name: 'huberclaude',
+  title: 'huberclaude — coding agent CLI dedicated to OpenRouter',
   description:
-    'Open-source coding agent that runs in your terminal and talks to any model: OpenAI, Gemini, Ollama, GitHub Models, and 200+ more. One install, every provider.',
-  installCommand: 'npm install -g @gitlawb/openclaude@latest',
-  npmUrl: 'https://www.npmjs.com/package/@gitlawb/openclaude',
-  github: 'https://github.com/Gitlawb/openclaude',
-  releasesUrl: 'https://github.com/Gitlawb/openclaude/releases',
+    'Open-source coding agent for your terminal, dedicated to OpenRouter: one key, every model. Enxame mode offloads mechanical work to a swarm of cheap z.ai workers to save tokens.',
+  installCommand:
+    'git clone https://github.com/Leandrodasilvahuber/huberclaude && cd huberclaude && bun install && bun run build && npm install -g .',
+  npmUrl: 'https://github.com/Leandrodasilvahuber/huberclaude',
+  github: 'https://github.com/Leandrodasilvahuber/huberclaude',
+  releasesUrl: 'https://github.com/Leandrodasilvahuber/huberclaude/releases',
+  upstream: 'https://github.com/Gitlawb/openclaude',
   gitlawb: 'https://gitlawb.com',
-  gitlawbRepo: 'https://gitlawb.com/node/repos/z6MkqDnb/openclaude',
+  gitlawbRepo: 'https://gitlawb.com/node/repos/z6MkqDnb/huberclaude',
   ogDefault: '/og/default.png',
   ogDocs: '/og/docs.png',
 } as const

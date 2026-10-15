@@ -7,14 +7,26 @@ import { partners, community } from '../data/partners'
 
 const features = [
   {
-    title: 'any model, one terminal',
-    body: 'local ollama, openai-compatible apis, gemini, github models, gateways — switch providers with one command, no rewrites.',
+    title: 'openrouter, nothing else',
+    body: 'one key, the whole openrouter catalog: claude, gpt, gemini, deepseek, qwen, glm, kimi. run /login once and skip the provider setup.',
     href: '/docs/providers/',
-    link: 'provider setup →',
+    link: 'openrouter setup →',
+  },
+  {
+    title: 'enxame: a swarm that saves tokens',
+    body: 'your main model plans and decides. up to 10 cheap z.ai glm flash workers handle summaries, extraction, classification, and small scoped edits.',
+    href: '/docs/enxame/',
+    link: 'enxame mode →',
+  },
+  {
+    title: 'see what you spend',
+    body: '/usage shows your openrouter balance as a fuel gauge scaled to your last recharge, so you see the cost before the bill does.',
+    href: '/docs/slash-commands/#models',
+    link: 'model commands →',
   },
   {
     title: 'real tools, not just chat',
-    body: 'bash, file edits, grep, glob, mcp servers, skills — wired into the agent loop, not bolted on.',
+    body: 'bash, file edits, grep, glob, mcp servers, skills, sub-agents — wired into the agent loop, not bolted on.',
     href: '/docs/slash-commands/',
     link: 'command reference →',
   },
@@ -25,43 +37,30 @@ const features = [
     link: 'cli reference →',
   },
   {
-    title: 'profiles per repo',
-    body: 'save model, base url, auth, and runtime defaults so every clone boots the same way.',
-    href: '/docs/configuration/',
-    link: 'configuration →',
-  },
-  {
-    title: 'streaming, not batch',
-    body: 'watch the agent think, call tools, and produce diffs live. every change stays reviewable.',
-    href: '/docs/quickstart/',
-    link: 'quickstart →',
-  },
-  {
     title: 'sessions that persist',
-    body: 'resume, branch, and rewind conversations. background tasks, worktree isolation, remote control from your phone.',
+    body: 'resume, branch, and rewind conversations. background sessions keep long tasks running out of your way.',
     href: '/docs/slash-commands/#session',
     link: 'session commands →',
   },
 ]
 
-const providers = [
-  'OpenAI', 'Gemini', 'Grok', 'Ollama', 'GitHub Models', 'OpenRouter',
-  'DeepSeek', 'Kimi', 'GLM', 'Cloudflare', 'NVIDIA NIM', 'AI/ML API',
-  'Groq', 'Mistral', 'LM Studio', 'Xiaomi MiMo',
+const models = [
+  'Claude', 'GPT', 'Gemini', 'DeepSeek', 'Qwen', 'GLM',
+  'Kimi', 'Grok', 'Llama', 'Mistral', 'MiniMax', 'Gemma',
 ]
 
 const jsonLd = [
   {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
-    name: 'openclaude',
+    name: 'huberclaude',
     applicationCategory: 'DeveloperApplication',
     operatingSystem: 'macOS, Linux, Windows',
     url: SITE.url,
     downloadUrl: SITE.npmUrl,
     description: SITE.description,
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-    author: { '@type': 'Organization', name: 'GitLawb', url: SITE.gitlawb },
+    author: { '@type': 'Person', name: 'Leandro Huber', url: SITE.github },
   },
   {
     '@context': 'https://schema.org',
@@ -75,20 +74,20 @@ const jsonLd = [
 <BaseLayout title={SITE.title} description={SITE.description} jsonLd={jsonLd}>
   <section class="hero grid-bg" aria-labelledby="hero-heading">
     <div class="container hero-inner">
-      <p class="pill fade-up"><span class="dot" aria-hidden="true"></span>open source · gitlawb-aligned · model-neutral</p>
+      <p class="pill fade-up"><span class="dot" aria-hidden="true"></span>open source · openrouter-only · token-frugal</p>
       <h1 id="hero-heading" class="text-hero fade-up fade-up-1">
-        runs anywhere.<br />uses anything.
+        one key.<br />every model. fewer tokens.
       </h1>
       <p class="hero-sub fade-up fade-up-2">
-        not a chatbot wrapper or another ide plugin. an open coding agent that runs in
-        your terminal, talks to any model, and keeps every change reviewable.
+        an open coding agent for your terminal, built only for openrouter. a swarm of
+        cheap workers takes the busywork, so your main model spends tokens on the hard parts.
       </p>
       <div class="hero-cta fade-up fade-up-3">
         <CopyCommand command={SITE.installCommand} />
         <a class="button button-ghost" href="/docs/quickstart/">read the docs →</a>
       </div>
       <p class="hero-foot fade-up fade-up-4">
-        works with openai, gemini, codex, grok, ollama, lm studio, and 200+ models.
+        claude, gpt, gemini, deepseek, qwen, glm, and the rest of the openrouter catalog.
       </p>
     </div>
   </section>
@@ -100,13 +99,14 @@ const jsonLd = [
         <h2 id="demo-heading">an agent loop you can watch.</h2>
       </div>
       <Terminal>
-        <span class="ln"><span class="t-prompt">$</span> openclaude</span>
-        <span class="ln t-dim">openclaude · provider: ollama · model: qwen3-coder</span>
+        <span class="ln"><span class="t-prompt">$</span> huberclaude</span>
+        <span class="ln t-dim">huberclaude · openrouter · qwen/qwen3-coder · enxame: on (10 workers)</span>
         <span class="ln">&nbsp;</span>
         <span class="ln"><span class="t-prompt">&gt;</span> add retry with backoff to the fetch client</span>
         <span class="ln">&nbsp;</span>
         <span class="ln"><span class="t-info">●</span> Read src/lib/fetchClient.ts</span>
         <span class="ln"><span class="t-info">●</span> Grep "fetchWithTimeout" — 3 matches</span>
+        <span class="ln"><span class="t-info">●</span> Enxame 3 tasks <span class="t-dim">— glm-4.7-flash · summarized callers</span></span>
         <span class="ln"><span class="t-ok">●</span> Edit src/lib/fetchClient.ts <span class="t-dim">+18 -2</span></span>
         <span class="ln"><span class="t-ok">●</span> Bash bun test fetchClient <span class="t-dim">— 7 pass</span></span>
         <span class="ln">&nbsp;</span>
@@ -137,19 +137,19 @@ const jsonLd = [
   <section class="section" aria-labelledby="providers-heading">
     <div class="container">
       <div class="section-head">
-        <p class="eyebrow">// providers</p>
-        <h2 id="providers-heading">bring your own model.</h2>
+        <p class="eyebrow">// openrouter</p>
+        <h2 id="providers-heading">one key. the whole catalog.</h2>
         <p class="lede">
-          one agent, every backend. wire a provider once with <code>/provider</code> and
-          switch models mid-session.
+          paste your openrouter key with <code>/login</code>, pick a model with
+          <code>/model</code>, and switch mid-session. no provider setup.
         </p>
       </div>
-      <ul class="provider-strip" aria-label="supported providers">
-        {providers.map(p => <li>{p}</li>)}
+      <ul class="provider-strip" aria-label="model families on openrouter">
+        {models.map(m => <li>{m}</li>)}
       </ul>
       <p class="text-body-dim provider-foot">
-        plus bedrock, vertex, codex oauth, atomic chat, opengateway, and any
-        openai-compatible endpoint. <a href="/docs/providers/">see all providers →</a>
+        and every other model openrouter serves. <a href="/docs/providers/">openrouter setup →</a>
+        · <a href="/docs/enxame/">enxame mode →</a>
       </p>
     </div>
   </section>
@@ -207,7 +207,7 @@ const jsonLd = [
     <div class="container">
       <div class="section-head">
         <p class="eyebrow">// install</p>
-        <h2 id="install-heading">one line. then write a task.</h2>
+        <h2 id="install-heading">build it. then write a task.</h2>
       </div>
       <div class="install-grid">
         <CopyCommand command={SITE.installCommand} />
@@ -216,21 +216,21 @@ const jsonLd = [
             <span class="step-num">01</span>
             <div>
               <strong>install</strong>
-              <p>requires node ≥ 22. <a href="/docs/installation/">platform guides →</a></p>
+              <p>build from source; needs node ≥ 22 and bun. <a href="/docs/installation/">install guide →</a></p>
             </div>
           </li>
           <li>
             <span class="step-num">02</span>
             <div>
               <strong>start</strong>
-              <p>run <code>openclaude</code> in any repo.</p>
+              <p>run <code>huberclaude</code> in any repo, then <code>/login</code> with your openrouter key.</p>
             </div>
           </li>
           <li>
             <span class="step-num">03</span>
             <div>
-              <strong>pick a provider</strong>
-              <p>type <code>/provider</code> to wire openai, ollama, gemini, or a gateway.</p>
+              <strong>turn on the swarm</strong>
+              <p>type <code>/enxame</code> and add a z.ai key to send the busywork to cheap workers.</p>
             </div>
           </li>
         </ol>

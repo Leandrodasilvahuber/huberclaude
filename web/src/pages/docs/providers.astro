@@ -1,97 +1,66 @@
 ---
 import DocsLayout from '../../layouts/DocsLayout.astro'
-import { providerGroups, providersInGroup, providers } from '../../data/providers'
 
 const toc = [
-  { id: 'how-it-works', label: 'how provider setup works' },
-  ...providerGroups.map(g => ({ id: g.id, label: g.label })),
+  { id: 'why-openrouter-only', label: 'why openrouter only' },
+  { id: 'login', label: 'sign in with /login' },
+  { id: 'models', label: 'pick a model' },
+  { id: 'usage', label: 'track spend with /usage' },
   { id: 'env-setup', label: 'env-var setup' },
 ]
 ---
 
 <DocsLayout
-  title={`openclaude providers — ${providers.length}+ backends: OpenAI, Gemini, Grok, Ollama & more`}
-  description="Connect openclaude to any model provider: Anthropic, OpenAI, Codex OAuth, xAI Grok, Gemini, DeepSeek, Kimi, GLM, Cloudflare Workers AI, NVIDIA NIM, Ollama, LM Studio, Bedrock, Vertex, and any OpenAI-compatible endpoint."
-  heading="model providers"
-  lede={`One agent, every backend — ${providers.length} first-class providers plus any compatible endpoint. Wire one once and switch models mid-session.`}
+  title="huberclaude on OpenRouter — one key, every model"
+  description="huberclaude runs only on OpenRouter. Sign in with /login, pick any model from the OpenRouter catalog with /model, and track your balance with /usage."
+  heading="openrouter"
+  lede="huberclaude is dedicated to OpenRouter. One API key gets you the whole catalog, and you skip provider setup entirely."
   toc={toc}
 >
-  <h2 id="how-it-works">how provider setup works</h2>
+  <h2 id="why-openrouter-only">why openrouter only</h2>
   <p>
-    Run <code>/provider</code> inside a session for guided setup. It walks you through
-    auth, lets you pick a model, and saves the result as a profile so future sessions —
-    and other clones of the repo — boot the same way. You can also configure everything
-    through <a href="/docs/configuration/">environment variables</a>, which is handy for
-    CI and scripted <code>--print</code> runs.
+    huberclaude is a fork of <a href="https://github.com/Gitlawb/openclaude" rel="noopener">openclaude</a>
+    with multi-provider support removed. Every request goes to
+    <code>https://openrouter.ai/api/v1</code>. Any inherited <code>OPENAI_BASE_URL</code>
+    or model, such as one exported for a local proxy, is overridden, so a stray export
+    can't send your code somewhere else. Because there is one transport, there's one
+    behavior to learn.
   </p>
   <p>
-    Switch models any time with <code>/model</code>, or pass
-    <code>--provider</code> / <code>--model</code> on the command line — see the
-    <a href="/docs/cli-reference/">CLI reference</a>. If a provider rate-limits you,
-    a <code>providerFallbackChain</code> in settings retries the turn on the next
-    profile automatically.
+    To spend fewer tokens, pair OpenRouter with <a href="/docs/enxame/">enxame mode</a>,
+    which offloads mechanical sub-tasks to a swarm of cheap z.ai workers.
   </p>
 
-  {providerGroups.map(g => (
-    <>
-      <h2 id={g.id}>{g.label}</h2>
-      <p>{g.blurb}</p>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th scope="col">provider</th>
-              <th scope="col">setup</th>
-              <th scope="col">notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            {providersInGroup(g.id).map(p => (
-              <tr id={p.id}>
-                <td>
-                  {p.name}
-                  {p.badge && <span class={`badge badge-${p.badge}`}>{p.badge}</span>}
-                </td>
-                <td>{p.setup}</td>
-                <td>
-                  {p.notes}
-                  {p.envVars && <span class="env-list"> uses <code>{p.envVars.join(', ')}</code></span>}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </>
-  ))}
+  <h2 id="login">sign in with /login</h2>
+  <p>
+    Start <code>huberclaude</code> and run <code>/login</code>. Paste your key from
+    <a href="https://openrouter.ai/keys" rel="noopener">openrouter.ai/keys</a>. You can
+    also set a custom base URL there. The key is saved to
+    <code>~/.openclaude/config.json</code> with owner-only (<code>0600</code>) permissions.
+  </p>
+
+  <h2 id="models">pick a model</h2>
+  <p>
+    Run <code>/model</code> to browse the OpenRouter catalog and switch models
+    mid-session. The default is <code>qwen/qwen3-coder</code>. Pick models with strong
+    tool and function calling for the best agent results.
+  </p>
+
+  <h2 id="usage">track spend with /usage</h2>
+  <p>
+    <code>/usage</code> shows your OpenRouter balance and spend as a fuel gauge
+    scaled to your last recharge.
+  </p>
 
   <h2 id="env-setup">env-var setup</h2>
-  <p>The fastest OpenAI-compatible setup (works for OpenRouter, DeepSeek, Groq, LM Studio, LiteLLM, and any /v1 server):</p>
-  <pre><code>export CLAUDE_CODE_USE_OPENAI=1
-export OPENAI_API_KEY=sk-your-key-here
-export OPENAI_BASE_URL=https://openrouter.ai/api/v1   # optional, defaults to OpenAI
-export OPENAI_MODEL=deepseek/deepseek-chat
-
-openclaude</code></pre>
+  <p>For CI and scripted <code>--print</code> runs, export the key instead of using <code>/login</code>:</p>
+  <pre><code>export HUBERCLAUDE_OPENROUTER_API_KEY=sk-or-...
+huberclaude -p "explain this repo"</code></pre>
   <p>
-    Local Ollama needs no key at all — point <code>/provider</code> at it and pick a
-    pulled model. The full environment variable list lives on the
-    <a href="/docs/configuration/#environment-variables">configuration page</a>.
+    A key saved with <code>/login</code> takes precedence. The generic
+    <code>OPENROUTER_API_KEY</code> is ignored on purpose, so an unrelated export can't
+    switch the account your session uses. See the
+    <a href="/docs/configuration/#environment-variables">configuration page</a> for the
+    other variables.
   </p>
 </DocsLayout>
-
-<style>
-  .badge {
-    display: inline-block;
-    margin-left: 0.5rem;
-    padding: 0.1rem 0.4rem;
-    border: 1px solid var(--line);
-    font-size: 0.6rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    vertical-align: middle;
-    white-space: nowrap;
-  }
-  .badge-recommended { color: var(--green); border-color: var(--green); }
-  .badge-sponsor { color: var(--accent); border-color: var(--accent); }
-</style>

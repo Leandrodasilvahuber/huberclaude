@@ -50,10 +50,9 @@ export const flagGroups: FlagGroup[] = [
   },
   {
     id: 'model',
-    label: 'model & provider',
+    label: 'model',
     flags: [
-      { flag: '--model', arg: '<model>', description: "Model for the session: an alias like 'sonnet' or 'opus', or a full model name." },
-      { flag: '--provider', arg: '<provider>', description: 'AI provider to use (anthropic, openai, gemini, github, bedrock, vertex, ollama, …).' },
+      { flag: '--model', arg: '<model>', description: "OpenRouter model id for the session, e.g. 'qwen/qwen3-coder' or 'anthropic/claude-sonnet-4'." },
       { flag: '--effort', arg: '<level>', description: 'Effort level for model usage: low, medium, high, xhigh, max, or ultracode.' },
       { flag: '--fallback-model', arg: '<model>', description: 'Automatic fallback model when the default model is overloaded.' },
       { flag: '--agent', arg: '<agent>', description: "Agent for the current session. Overrides the 'agent' setting." },
@@ -126,62 +125,47 @@ export const flagGroups: FlagGroup[] = [
 export const subcommands: Subcommand[] = [
   {
     name: 'mcp',
-    usage: 'openclaude mcp [add|remove|list|doctor]',
+    usage: 'huberclaude mcp [add|remove|list|doctor]',
     description: 'Manage MCP server configuration from the command line.',
   },
   {
     name: 'auth',
-    usage: 'openclaude auth <login|status|logout>',
+    usage: 'huberclaude auth <login|status|logout>',
     description: 'Manage authentication.',
   },
   {
-    name: 'auth xai',
-    usage: 'openclaude auth xai <login|device|logout|status>',
-    description: 'Sign in to xAI (Grok) with browser OAuth, or device code for remote hosts.',
-  },
-  {
     name: 'skills',
-    usage: 'openclaude skills <list|show|validate|install|remove>',
-    description: 'List, inspect, validate, and manage OpenClaude skills.',
+    usage: 'huberclaude skills <list|show|validate|install|remove>',
+    description: 'List, inspect, validate, and manage HuberClaude skills.',
   },
   {
     name: 'plugin',
-    usage: 'openclaude plugin <validate|list|install|uninstall|enable|disable|update|marketplace>',
-    description: 'Manage OpenClaude plugins and marketplaces.',
+    usage: 'huberclaude plugin <validate|list|install|uninstall|enable|disable|update|marketplace>',
+    description: 'Manage HuberClaude plugins and marketplaces.',
   },
   {
     name: 'agents',
-    usage: 'openclaude agents',
+    usage: 'huberclaude agents',
     description: 'List configured agents.',
   },
   {
     name: 'doctor',
-    usage: 'openclaude doctor [report]',
+    usage: 'huberclaude doctor [report]',
     description: "Check installation health; 'doctor report' prints a redacted diagnostic report for GitHub issues.",
   },
   {
     name: 'update',
-    usage: 'openclaude update',
+    usage: 'huberclaude update',
     description: 'Check for updates and install if available (alias: upgrade).',
   },
   {
     name: 'install',
-    usage: 'openclaude install [stable|latest|<version>]',
-    description: 'Install the OpenClaude native build.',
-  },
-  {
-    name: 'setup-token',
-    usage: 'openclaude setup-token',
-    description: 'Set up a long-lived authentication token (requires Claude subscription).',
-  },
-  {
-    name: 'aimlapi',
-    usage: 'openclaude aimlapi topup',
-    description: 'Top up an AI/ML API balance and configure the provider.',
+    usage: 'huberclaude install [stable|latest|<version>]',
+    description: 'Install the HuberClaude native build.',
   },
   {
     name: 'ssh',
-    usage: 'openclaude ssh <host> [dir]',
-    description: 'Run OpenClaude on a remote host over SSH. Deploys the binary and tunnels API auth back through your local machine — no remote setup needed.',
+    usage: 'huberclaude ssh <host> [dir]',
+    description: 'Run HuberClaude on a remote host over SSH. Deploys the binary and tunnels API auth back through your local machine — no remote setup needed.',
   },
 ]

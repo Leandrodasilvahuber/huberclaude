@@ -3,7 +3,8 @@ import { SITE } from '../data/site'
 
 const links = [
   { href: '/docs/', label: 'docs' },
-  { href: '/docs/providers/', label: 'providers' },
+  { href: '/docs/providers/', label: 'openrouter' },
+  { href: '/docs/enxame/', label: 'enxame' },
   { href: '/buddy/', label: 'buddy' },
   { href: SITE.releasesUrl, label: "what's new", newTab: true },
   { href: SITE.github, label: 'github' },
@@ -15,9 +16,9 @@ const path = Astro.url.pathname
 
 <header class="site-nav" id="site-nav">
   <div class="container">
-    <a class="brand" href="/" aria-label="openclaude home">
+    <a class="brand" href="/" aria-label="huberclaude home">
       <img src="/openclaude.png" alt="" width="22" height="22" />
-      <span>openclaude</span>
+      <span>huberclaude</span>
     </a>
     <nav class="nav-links" aria-label="primary">
       {links.map(l => (

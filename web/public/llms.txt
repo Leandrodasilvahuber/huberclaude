@@ -1,38 +1,23 @@
-# OpenClaude
+# HuberClaude
 
-> OpenClaude is an open-source coding-agent CLI for cloud and local model providers. It is an independent community project — not affiliated with, endorsed by, or sponsored by Anthropic. The CLI lets you use OpenAI, Gemini, DeepSeek, Ollama, and 200+ other models through one terminal-first workflow: prompts, tools, agents, MCP, slash commands, and streaming output.
+> HuberClaude is an open-source coding-agent CLI dedicated to OpenRouter: one API key gives access to the whole OpenRouter model catalog through one terminal-first workflow (prompts, tools, agents, MCP, slash commands, streaming output). Its Enxame mode ("swarm") lets the main model offload small, mechanical sub-tasks to up to 10 cheap z.ai GLM flash workers to save tokens. It is an independent fork of OpenClaude and is not affiliated with, endorsed by, or sponsored by Anthropic, OpenRouter, or Z.ai.
 
-OpenClaude originated from the Claude Code codebase and has since been substantially modified to support multiple providers and open use. "Claude" and "Claude Code" are trademarks of Anthropic PBC.
+OpenClaude originated from the Claude Code codebase. "Claude" and "Claude Code" are trademarks of Anthropic PBC.
 
 ## Project
 
-- [GitHub repository](https://github.com/Gitlawb/openclaude): source code, releases, and issue tracker
-- [npm package](https://www.npmjs.com/package/@gitlawb/openclaude): `@gitlawb/openclaude`
-- [GitLawb mirror](https://gitlawb.com/node/repos/z6MkqDnb/openclaude)
-- [Security policy](https://github.com/Gitlawb/openclaude/security/policy)
-- [License notice](https://github.com/Gitlawb/openclaude/blob/main/LICENSE): MIT applies only to OpenClaude contributors' modifications; the underlying Claude Code code is Anthropic's proprietary software.
+- [GitHub repository](https://github.com/Leandrodasilvahuber/huberclaude): source code and issue tracker
+- [Upstream OpenClaude](https://github.com/Gitlawb/openclaude)
+- [License notice](https://github.com/Leandrodasilvahuber/huberclaude/blob/main/LICENSE): MIT applies only to contributors' modifications; the underlying Claude Code code is Anthropic's proprietary software.
 
 ## Install
 
-- [Quick start (Mac/Linux)](https://github.com/Gitlawb/openclaude/blob/main/docs/quick-start-mac-linux.md)
-- [Quick start (Windows)](https://github.com/Gitlawb/openclaude/blob/main/docs/quick-start-windows.md)
-- [Non-technical setup](https://github.com/Gitlawb/openclaude/blob/main/docs/non-technical-setup.md)
-- [Android install](https://github.com/Gitlawb/openclaude/blob/main/ANDROID_INSTALL.md)
-- [npm install](https://www.npmjs.com/package/@gitlawb/openclaude): `npm install -g @gitlawb/openclaude@latest` (requires Node >= 22)
-- [AUR package: openclaude](https://aur.archlinux.org/packages/openclaude)
+- Build from source (requires Node >= 22 and Bun): `git clone https://github.com/Leandrodasilvahuber/huberclaude && cd huberclaude && bun install && bun run build && npm install -g .`
+- Then run `huberclaude`, `/login` with an OpenRouter key, and optionally `/enxame` with a z.ai key.
 
 ## Documentation
 
-- [README](https://github.com/Gitlawb/openclaude/blob/main/README.md): overview, supported providers, features
-- [Advanced setup](https://github.com/Gitlawb/openclaude/blob/main/docs/advanced-setup.md)
-- [Smart routing](https://github.com/Gitlawb/openclaude/blob/main/docs/smart-routing.md)
-- [Agent routing](https://github.com/Gitlawb/openclaude/blob/main/docs/agent-routing.md)
-- [Headless gRPC server](https://github.com/Gitlawb/openclaude/blob/main/docs/grpc-server.md)
-- [Repository map](https://github.com/Gitlawb/openclaude/blob/main/docs/repo-map.md)
-- [VS Code extension](https://github.com/Gitlawb/openclaude/blob/main/vscode-extension/openclaude-vscode/README.md)
-
-## Community
-
-- [Discord](https://discord.gg/k68zFR6AcB)
-- [GitHub Discussions](https://github.com/Gitlawb/openclaude/discussions)
-- [X / Twitter](https://x.com/gitlawb)
+- [README](https://github.com/Leandrodasilvahuber/huberclaude/blob/main/README.md): overview, OpenRouter setup, Enxame mode, commands
+- [OpenRouter setup](/docs/providers/)
+- [Enxame mode](/docs/enxame/)
+- [Agent routing](https://github.com/Leandrodasilvahuber/huberclaude/blob/main/docs/agent-routing.md)
