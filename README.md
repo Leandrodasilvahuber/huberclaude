@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/assets/openclaude-wordmark.png" alt="HüberClaude — a coding-agent CLI dedicated to OpenRouter" width="830">
+  <img src="docs/assets/huberclaude-wordmark.png" alt="HüberClaude — a coding-agent CLI dedicated to OpenRouter" width="830">
 </div>
 
 HüberClaude is an open-source coding-agent CLI **dedicated to OpenRouter**.
