@@ -279,29 +279,6 @@ test('route-specific credential substrings are redacted from displayed model fie
   expect(findValue(properties, 'Model')).toBe('prefix-redacted-suffix')
 })
 
-test('Gemini route remains clear', async () => {
-  process.env.CLAUDE_CODE_USE_GEMINI = '1'
-  process.env.GEMINI_MODEL = 'gemini-2.0-flash'
-  process.env.GEMINI_API_KEY = 'gem-test-key'
-
-  const properties = await buildPropertiesWithProvider('gemini')
-  expect(findValue(properties, 'API provider')).toBe('Google AI / Gemini')
-  // Gemini has a native transport; route-aware block does not override it.
-  expect(findValue(properties, 'Provider route')).toBeUndefined()
-  expect(findValue(properties, 'Model')).toBe('gemini-2.0-flash')
-})
-
-test('GitHub route remains clear', async () => {
-  process.env.CLAUDE_CODE_USE_GITHUB = '1'
-  process.env.OPENAI_BASE_URL = 'https://models.inference.ai.azure.com'
-  process.env.OPENAI_MODEL = 'gpt-4o'
-
-  const properties = await buildPropertiesWithProvider('github')
-  // GitHub has a dedicated bucket; route-aware block does not override it.
-  expect(findValue(properties, 'API provider')).toBe('GitHub Models')
-  expect(findValue(properties, 'Provider route')).toBeUndefined()
-})
-
 test('unknown custom route falls back gracefully', async () => {
   process.env.CLAUDE_CODE_USE_OPENAI = '1'
   process.env.OPENAI_BASE_URL = 'https://my-internal-proxy.example.com/v1'

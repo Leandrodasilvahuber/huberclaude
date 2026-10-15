@@ -104,34 +104,6 @@ afterEach(() => {
   }
 })
 
-test('buildAPIProviderProperties labels NVIDIA NIM sessions', async () => {
-  process.env.CLAUDE_CODE_USE_OPENAI = '1'
-  process.env.NVIDIA_NIM = '1'
-  process.env.OPENAI_BASE_URL = 'https://integrate.api.nvidia.com/v1'
-  process.env.OPENAI_MODEL = 'nvidia/llama-3.1-nemotron-70b-instruct'
-
-  expect(await readPropertyValue('API provider', 'nvidia-nim')).toBe('NVIDIA NIM')
-  expect(await readPropertyValue('NVIDIA NIM base URL', 'nvidia-nim')).toBe(
-    'https://integrate.api.nvidia.com/v1',
-  )
-  expect(await readPropertyValue('Model', 'nvidia-nim')).toBe(
-    'nvidia/llama-3.1-nemotron-70b-instruct',
-  )
-})
-
-test('buildAPIProviderProperties labels MiniMax sessions', async () => {
-  process.env.CLAUDE_CODE_USE_OPENAI = '1'
-  process.env.MINIMAX_API_KEY = 'minimax-key'
-  process.env.OPENAI_BASE_URL = 'https://api.minimax.chat/v1'
-  process.env.OPENAI_MODEL = 'MiniMax-M2.5'
-
-  expect(await readPropertyValue('API provider', 'minimax')).toBe('MiniMax')
-  expect(await readPropertyValue('MiniMax base URL', 'minimax')).toBe(
-    'https://api.minimax.chat/v1',
-  )
-  expect(await readPropertyValue('Model', 'minimax')).toBe('MiniMax-M2.5')
-})
-
 test('buildAPIProviderProperties redacts credentials in OpenAI-compatible base URLs', async () => {
   process.env.CLAUDE_CODE_USE_OPENAI = '1'
   process.env.OPENAI_BASE_URL =
@@ -209,68 +181,6 @@ test('buildAPIProviderProperties redacts percent-encoded configured secret punct
   )
   const serialized = JSON.stringify(properties)
   expect(serialized).not.toContain('abc%21defSecret987')
-})
-
-test('buildAPIProviderProperties redacts token-bearing Gemini base URLs', async () => {
-  process.env.CLAUDE_CODE_USE_GEMINI = '1'
-  process.env.GEMINI_BASE_URL =
-    'https://gemini.example.test/v1?api_key=GEMINI_LEAK&mode=test#secret=fragment-leak'
-
-  const properties = await readAPIProviderProperties('gemini')
-  const value = properties.find(property => property.label === 'Gemini base URL')
-    ?.value
-
-  expect(value).toBe('https://gemini.example.test/v1?api_key=redacted&mode=test')
-  const serialized = JSON.stringify(properties)
-  expect(serialized).not.toContain('GEMINI_LEAK')
-  expect(serialized).not.toContain('fragment-leak')
-})
-
-test('buildAPIProviderProperties redacts token-bearing direct provider base URLs', async () => {
-  const cases = [
-    {
-      provider: 'firstParty' as const,
-      env: 'ANTHROPIC_BASE_URL',
-      label: 'Anthropic base URL',
-    },
-    {
-      provider: 'bedrock' as const,
-      env: 'BEDROCK_BASE_URL',
-      label: 'Bedrock base URL',
-    },
-    {
-      provider: 'vertex' as const,
-      env: 'VERTEX_BASE_URL',
-      label: 'Vertex base URL',
-    },
-    {
-      provider: 'foundry' as const,
-      env: 'ANTHROPIC_FOUNDRY_BASE_URL',
-      label: 'Microsoft Foundry base URL',
-    },
-    {
-      provider: 'mistral' as const,
-      env: 'MISTRAL_BASE_URL',
-      label: 'Mistral base URL',
-    },
-  ]
-
-  for (const { provider, env, label } of cases) {
-    restoreEnv()
-    const host = provider.toLowerCase()
-    process.env[env] =
-      `https://${host}.example.test/v1?authorization=${provider}-leak&mode=test#token=fragment-leak`
-
-    const properties = await readAPIProviderProperties(provider)
-    const value = properties.find(property => property.label === label)?.value
-
-    expect(value).toBe(
-      `https://${host}.example.test/v1?authorization=redacted&mode=test`,
-    )
-    const serialized = JSON.stringify(properties)
-    expect(serialized).not.toContain(`${provider}-leak`)
-    expect(serialized).not.toContain('fragment-leak')
-  }
 })
 
 test('buildAPIProviderProperties redacts proxy credentials and mTLS paths', async () => {

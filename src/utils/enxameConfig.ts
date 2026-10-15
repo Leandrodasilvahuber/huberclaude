@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { createCombinedAbortSignal } from './combinedAbortSignal.js'
 import { getClaudeConfigHomeDir } from './envUtils.js'
 import { sleep } from './sleep.js'
 
@@ -164,7 +165,9 @@ async function chatOnce(
   signal: AbortSignal | undefined,
   timeoutMs: number,
 ): Promise<{ ok: true; text: string } | { ok: false; status?: number; message: string }> {
-  const timeout = AbortSignal.timeout(timeoutMs)
+  const { signal: requestSignal, cleanup } = createCombinedAbortSignal(signal, {
+    timeoutMs,
+  })
   try {
     const response = await fetchImpl(`${account.baseUrl}/chat/completions`, {
       method: 'POST',
@@ -180,7 +183,7 @@ async function chatOnce(
         max_tokens: maxTokens,
         thinking: { type: 'disabled' },
       }),
-      signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
+      signal: requestSignal,
     })
     if (response.ok) {
       const data = (await response.json().catch(() => undefined)) as
@@ -201,6 +204,8 @@ async function chatOnce(
       ok: false,
       message: error instanceof Error ? error.message : String(error),
     }
+  } finally {
+    cleanup()
   }
 }
 
