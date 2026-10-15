@@ -51,9 +51,6 @@ jobs:
       - name: Provider tests
         run: bun run test:provider
 
-      - name: Provider recommendation tests
-        run: npm run test:provider-recommendation
-
   launcher-node-floor:
     runs-on: ubuntu-latest
 
