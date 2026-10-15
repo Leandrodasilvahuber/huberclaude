@@ -6,7 +6,7 @@ export type Theme = {
   bashBorder: string
   claude: string
   claudeShimmer: string // Lighter version of claude color for shimmer effect
-  // OpenClaude brand accent (gitlawb orange). Values MUST be rgb() strings in
+  // OpenClaude brand accent (lagartixa green). Values MUST be rgb() strings in
   // truecolor themes — spinner shimmer/stall interpolation parses them with
   // parseRGB, which silently fails on hex.
   brand: string
@@ -123,10 +123,10 @@ export type ThemeSetting = (typeof THEME_SETTINGS)[number]
 const lightTheme: Theme = {
   autoAccept: 'rgb(135,0,255)', // Electric violet
   bashBorder: 'rgb(255,0,135)', // Vibrant pink
-  claude: 'rgb(209,87,0)', // Brand orange darkened for contrast on white
-  claudeShimmer: 'rgb(255,122,26)', // Full brand orange as the shimmer highlight
-  brand: 'rgb(209,87,0)', // Brand orange darkened for contrast on white
-  brandShimmer: 'rgb(255,122,26)', // Full brand orange as the shimmer highlight
+  claude: 'rgb(95,110,25)', // Brand lizard green darkened for contrast on white
+  claudeShimmer: 'rgb(150,175,55)', // Full brand lizard green as the shimmer highlight
+  brand: 'rgb(95,110,25)', // Brand lizard green darkened for contrast on white
+  brandShimmer: 'rgb(150,175,55)', // Full brand lizard green as the shimmer highlight
   claudeBlue_FOR_SYSTEM_SPINNER: 'rgb(87,105,247)', // Medium blue for system spinner
   claudeBlueShimmer_FOR_SYSTEM_SPINNER: 'rgb(117,135,255)', // Lighter blue for system spinner shimmer
   permission: 'rgb(87,105,247)', // Medium blue
@@ -168,7 +168,7 @@ const lightTheme: Theme = {
   // Chrome colors
   chromeYellow: 'rgb(251,188,4)', // Chrome yellow
   // TUI V2 colors
-  clawd_body: 'rgb(209,87,0)', // Brand orange (light variant)
+  clawd_body: 'rgb(95,110,25)', // Brand lizard green (light variant)
   clawd_background: 'rgb(0,0,0)',
   userMessageBackground: 'rgb(240, 240, 240)', // Slightly darker grey for optimal contrast
   userMessageBackgroundHover: 'rgb(252, 252, 252)', // ≥250 to quantize distinct from base at 256-color level
@@ -183,7 +183,7 @@ const lightTheme: Theme = {
   fastModeShimmer: 'rgb(255,150,50)', // Lighter orange for shimmer
   // Brief/assistant mode
   briefLabelYou: 'rgb(37,99,235)', // Blue
-  briefLabelClaude: 'rgb(209,87,0)', // Brand orange (light variant, matches claude)
+  briefLabelClaude: 'rgb(95,110,25)', // Brand lizard green (light variant, matches claude)
   rainbow_red: 'rgb(235,95,87)',
   rainbow_orange: 'rgb(245,139,87)',
   rainbow_yellow: 'rgb(250,195,95)',
@@ -379,10 +379,10 @@ const darkAnsiTheme: Theme = {
 const lightDaltonizedTheme: Theme = {
   autoAccept: 'rgb(135,0,255)', // Electric violet
   bashBorder: 'rgb(0,102,204)', // Blue instead of pink
-  claude: 'rgb(200,100,0)', // Brand orange darkened for white bg, luminance-separated from warning
-  claudeShimmer: 'rgb(255,150,40)', // Lighter brand orange for shimmer effect
-  brand: 'rgb(200,100,0)', // Brand orange darkened for white bg, luminance-separated from warning
-  brandShimmer: 'rgb(255,150,40)', // Lighter brand orange for shimmer effect
+  claude: 'rgb(100,115,30)', // Brand lizard green darkened for white bg, luminance-separated from warning
+  claudeShimmer: 'rgb(150,175,55)', // Lighter brand lizard green for shimmer effect
+  brand: 'rgb(100,115,30)', // Brand lizard green darkened for white bg, luminance-separated from warning
+  brandShimmer: 'rgb(150,175,55)', // Lighter brand lizard green for shimmer effect
   claudeBlue_FOR_SYSTEM_SPINNER: 'rgb(51,102,255)', // Bright blue for system spinner
   claudeBlueShimmer_FOR_SYSTEM_SPINNER: 'rgb(101,152,255)', // Lighter bright blue for system spinner shimmer
   permission: 'rgb(51,102,255)', // Bright blue
@@ -424,7 +424,7 @@ const lightDaltonizedTheme: Theme = {
   // Chrome colors
   chromeYellow: 'rgb(251,188,4)', // Chrome yellow
   // TUI V2 colors
-  clawd_body: 'rgb(200,100,0)', // Brand orange (light daltonized variant)
+  clawd_body: 'rgb(100,115,30)', // Brand lizard green (light daltonized variant)
   clawd_background: 'rgb(0,0,0)',
   userMessageBackground: 'rgb(220, 220, 220)', // Slightly darker grey for optimal contrast
   userMessageBackgroundHover: 'rgb(232, 232, 232)', // ≥230 to quantize distinct from base at 256-color level
@@ -438,7 +438,7 @@ const lightDaltonizedTheme: Theme = {
   fastMode: 'rgb(255,106,0)', // Electric orange (color-blind safe)
   fastModeShimmer: 'rgb(255,150,50)', // Lighter orange for shimmer
   briefLabelYou: 'rgb(37,99,235)', // Blue
-  briefLabelClaude: 'rgb(200,100,0)', // Brand orange adjusted for deuteranopia (matches claude)
+  briefLabelClaude: 'rgb(100,115,30)', // Brand lizard green adjusted for deuteranopia (matches claude)
   rainbow_red: 'rgb(235,95,87)',
   rainbow_orange: 'rgb(245,139,87)',
   rainbow_yellow: 'rgb(250,195,95)',
@@ -464,9 +464,9 @@ const lightDaltonizedTheme: Theme = {
 const darkTheme: Theme = {
   autoAccept: 'rgb(175,135,255)', // Electric violet
   bashBorder: 'rgb(253,93,177)', // Bright pink
-  claude: 'rgb(255,122,26)', // OpenClaude brand orange
+  claude: 'rgb(150,175,55)', // HuberClaude brand lizard green
   claudeShimmer: 'rgb(255,177,95)', // Lighter brand orange for shimmer effect
-  brand: 'rgb(255,122,26)', // OpenClaude brand orange
+  brand: 'rgb(150,175,55)', // HuberClaude brand lizard green
   brandShimmer: 'rgb(255,177,95)', // Lighter brand orange for shimmer effect
   claudeBlue_FOR_SYSTEM_SPINNER: 'rgb(147,165,255)', // Blue for system spinner
   claudeBlueShimmer_FOR_SYSTEM_SPINNER: 'rgb(177,195,255)', // Lighter blue for system spinner shimmer
@@ -509,7 +509,7 @@ const darkTheme: Theme = {
   // Chrome colors
   chromeYellow: 'rgb(251,188,4)', // Chrome yellow
   // TUI V2 colors
-  clawd_body: 'rgb(255,122,26)', // Brand orange
+  clawd_body: 'rgb(150,175,55)', // Brand lizard green
   clawd_background: 'rgb(0,0,0)',
   userMessageBackground: 'rgb(55, 55, 55)', // Lighter grey for better visual contrast
   userMessageBackgroundHover: 'rgb(70, 70, 70)',
@@ -523,7 +523,7 @@ const darkTheme: Theme = {
   fastMode: 'rgb(255,120,20)', // Electric orange for dark bg
   fastModeShimmer: 'rgb(255,165,70)', // Lighter orange for shimmer
   briefLabelYou: 'rgb(122,180,232)', // Light blue
-  briefLabelClaude: 'rgb(255,122,26)', // Brand orange (matches claude)
+  briefLabelClaude: 'rgb(150,175,55)', // Brand lizard green (matches claude)
   rainbow_red: 'rgb(235,95,87)',
   rainbow_orange: 'rgb(245,139,87)',
   rainbow_yellow: 'rgb(250,195,95)',
@@ -549,9 +549,9 @@ const darkTheme: Theme = {
 const darkDaltonizedTheme: Theme = {
   autoAccept: 'rgb(175,135,255)', // Electric violet
   bashBorder: 'rgb(51,153,255)', // Bright blue
-  claude: 'rgb(255,150,40)', // Brand orange adjusted for deuteranopia (luminance-separated from error/warning)
+  claude: 'rgb(160,180,70)', // Brand lizard green adjusted for deuteranopia (luminance-separated from error/warning)
   claudeShimmer: 'rgb(255,195,115)', // Lighter brand orange for shimmer effect
-  brand: 'rgb(255,150,40)', // Brand orange adjusted for deuteranopia (luminance-separated from error/warning)
+  brand: 'rgb(160,180,70)', // Brand lizard green adjusted for deuteranopia (luminance-separated from error/warning)
   brandShimmer: 'rgb(255,195,115)', // Lighter brand orange for shimmer effect
   claudeBlue_FOR_SYSTEM_SPINNER: 'rgb(153,204,255)', // Light blue for system spinner
   claudeBlueShimmer_FOR_SYSTEM_SPINNER: 'rgb(183,224,255)', // Lighter blue for system spinner shimmer
@@ -594,7 +594,7 @@ const darkDaltonizedTheme: Theme = {
   // Chrome colors
   chromeYellow: 'rgb(251,188,4)', // Chrome yellow
   // TUI V2 colors
-  clawd_body: 'rgb(255,150,40)', // Brand orange (dark daltonized variant)
+  clawd_body: 'rgb(160,180,70)', // Brand lizard green (dark daltonized variant)
   clawd_background: 'rgb(0,0,0)',
   userMessageBackground: 'rgb(55, 55, 55)', // Lighter grey for better visual contrast
   userMessageBackgroundHover: 'rgb(70, 70, 70)',
@@ -608,7 +608,7 @@ const darkDaltonizedTheme: Theme = {
   fastMode: 'rgb(255,120,20)', // Electric orange for dark bg (color-blind safe)
   fastModeShimmer: 'rgb(255,165,70)', // Lighter orange for shimmer
   briefLabelYou: 'rgb(122,180,232)', // Light blue
-  briefLabelClaude: 'rgb(255,150,40)', // Brand orange adjusted for deuteranopia (matches claude)
+  briefLabelClaude: 'rgb(160,180,70)', // Brand lizard green adjusted for deuteranopia (matches claude)
   rainbow_red: 'rgb(235,95,87)',
   rainbow_orange: 'rgb(245,139,87)',
   rainbow_yellow: 'rgb(250,195,95)',

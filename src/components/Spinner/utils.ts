@@ -5,7 +5,7 @@ import type { RGBColor as RGBColorType } from './types.js'
 // Shapes with broad font support, so no per-terminal variants are needed
 // (the old asterisk set required Ghostty/darwin special-casing for ✽/✳).
 export function getDefaultCharacters(): string[] {
-  return ['·', '∘', '○', '◎', '◉', '●']
+  return ['·', '⋆', '★', '★', '⋆']
 }
 
 // Interpolate between two RGB colors

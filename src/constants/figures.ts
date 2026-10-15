@@ -5,7 +5,7 @@ export const BLACK_CIRCLE = env.platform === 'darwin' ? '⏺' : '●'
 export const BULLET_OPERATOR = '∙'
 // Historically '✻' (hence the name); now '◎' to match the dot-pulse spinner
 // glyph family (· ∘ ○ ◎ ◉ ●) introduced with the OpenClaude rebrand.
-export const TEARDROP_ASTERISK = '◎'
+export const TEARDROP_ASTERISK = '★'
 export const UP_ARROW = '\u2191' // ↑ - used for opus 1m merge notice
 export const DOWN_ARROW = '\u2193' // ↓ - used for scroll hint
 export const LIGHTNING_BOLT = '↯' // \u21af - used for fast mode indicator

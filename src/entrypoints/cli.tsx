@@ -561,11 +561,15 @@ export async function main(
     await importers.providerValidation()
   await validateProviderEnvForStartupOrExit()
 
-  // Print the gradient startup screen before the Ink UI loads. Plain CLI
-  // management subcommands should stay script-friendly and avoid the banner.
-  if (args[0] !== 'skills') {
-    const { printStartupScreen } = await importers.startupScreen()
-    printStartupScreen(earlyModelFlag)
+  // Clear the shell scrollback so the session header starts on a clean screen
+  // (interactive TTY sessions only; print mode and subcommands stay untouched).
+  if (
+    process.stdout.isTTY &&
+    !process.env.CI &&
+    args[0] !== 'skills' &&
+    !args.some(a => a === '-p' || a === '--print')
+  ) {
+    process.stdout.write('\x1b[2J\x1b[3J\x1b[H')
   }
 
   // For all other paths, load the startup profiler

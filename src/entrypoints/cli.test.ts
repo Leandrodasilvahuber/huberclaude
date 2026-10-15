@@ -544,9 +544,6 @@ describe('cli.tsx — background routing behavior', () => {
     expect(mockApplyModelFlagFromArgs).toHaveBeenCalledWith([
       '--model=deepseek/deepseek-v4-flash',
     ])
-    expect(mockPrintStartupScreen).toHaveBeenCalledWith(
-      'deepseek/deepseek-v4-flash',
-    )
   })
 
   it('does not treat a spaced root model value as a nested command path', async () => {
@@ -555,7 +552,6 @@ describe('cli.tsx — background routing behavior', () => {
     await runCliEntrypoint(args, bgOptions)
 
     expect(mockApplyModelFlagFromArgs).toHaveBeenCalledWith(args)
-    expect(mockPrintStartupScreen).toHaveBeenCalledWith('aimlapi')
   })
 
   it('does not treat a required root option value as a nested command path', async () => {
@@ -570,9 +566,6 @@ describe('cli.tsx — background routing behavior', () => {
     await runCliEntrypoint(args, bgOptions)
 
     expect(mockApplyModelFlagFromArgs).toHaveBeenCalledWith(args)
-    expect(mockPrintStartupScreen).toHaveBeenCalledWith(
-      'deepseek/deepseek-v4-flash',
-    )
   })
 
   it('does not treat --model after a real end-of-options marker as a root model', async () => {
@@ -611,9 +604,6 @@ describe('cli.tsx — background routing behavior', () => {
       providerOverride,
     )
     expect(mockApplyModelFlagFromArgs).not.toHaveBeenCalled()
-    expect(mockPrintStartupScreen).toHaveBeenCalledWith(
-      'actual-provider-model',
-    )
   })
 
   it('stops before provider validation when a model override is rejected', async () => {
@@ -642,7 +632,6 @@ describe('cli.tsx — background routing behavior', () => {
     )
     expect(exitMock).toHaveBeenCalledWith(1)
     expect(mockValidateProviderEnvForStartupOrExit).not.toHaveBeenCalled()
-    expect(mockPrintStartupScreen).not.toHaveBeenCalled()
     expect(mockCliMain).not.toHaveBeenCalled()
   })
 

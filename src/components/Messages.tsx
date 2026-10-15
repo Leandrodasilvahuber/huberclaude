@@ -61,7 +61,7 @@ const LogoHeader = React.memo(function LogoHeader(t0: {
   } = t0;
   let t1;
   if ($[0] === Symbol.for("react.memo_cache_sentinel")) {
-    t1 = null;
+    t1 = <LogoV2 />;
     $[0] = t1;
   } else {
     t1 = $[0];
