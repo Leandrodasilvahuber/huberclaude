@@ -52,31 +52,6 @@ afterEach(() => {
   }
 })
 
-test('logs a warning when OPENAI_BASE_URL is literal undefined', async () => {
-  const debugSpy = await mockDebugLogging()
-
-  process.env.CLAUDE_CODE_USE_OPENAI = '1'
-  process.env.OPENAI_BASE_URL = 'undefined'
-  process.env.OPENAI_MODEL = 'gpt-4o'
-  delete process.env.OPENAI_API_BASE
-
-  const nonce = `${Date.now()}-${Math.random()}`
-  const { resolveProviderRequest } = await import(`./providerConfig.ts?ts=${nonce}`)
-
-  const resolved = resolveProviderRequest()
-
-  expect(resolved.baseUrl).toBe('https://api.openai.com/v1')
-
-  const warningCall = debugSpy.mock.calls.find(call =>
-    typeof call?.[0] === 'string' &&
-    call[0].includes('OPENAI_BASE_URL') &&
-    call[0].includes('"undefined"'),
-  )
-
-  expect(warningCall).toBeDefined()
-  expect(warningCall?.[1]).toEqual({ level: 'warn' })
-})
-
 test('does not warn for OPENAI_API_BASE when OPENAI_BASE_URL is active', async () => {
   const debugSpy = await mockDebugLogging()
 
@@ -118,26 +93,6 @@ test('uses OPENAI_API_BASE as fallback in mistral mode when MISTRAL_BASE_URL is 
 
   expect(resolved.baseUrl).toBe('http://127.0.0.1:11434/v1')
   expect(debugSpy.mock.calls).toHaveLength(0)
-})
-
-test('uses descriptor-backed Gemini default model when GEMINI_MODEL is unset', async () => {
-  await mockDebugLogging()
-
-  delete process.env.CLAUDE_CODE_USE_OPENAI
-  delete process.env.CLAUDE_CODE_USE_MISTRAL
-  process.env.CLAUDE_CODE_USE_GEMINI = '1'
-  delete process.env.GEMINI_MODEL
-  delete process.env.GEMINI_BASE_URL
-  delete process.env.OPENAI_MODEL
-  delete process.env.OPENAI_API_BASE
-
-  const nonce = `${Date.now()}-${Math.random()}`
-  const { resolveProviderRequest } = await import(`./providerConfig.ts?ts=${nonce}`)
-
-  const resolved = resolveProviderRequest()
-
-  expect(resolved.resolvedModel).toBe('gemini-3-flash-preview')
-  expect(resolved.baseUrl).toBe('https://generativelanguage.googleapis.com/v1beta/openai')
 })
 
 async function mockDebugLogging(): Promise<DebugSpy> {

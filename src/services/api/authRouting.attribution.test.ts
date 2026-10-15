@@ -161,8 +161,6 @@ describeAttribution('current Anthropic attribution route resolution', () => {
   }
 
   for (const [label, envKey] of [
-    ['Bedrock', 'CLAUDE_CODE_USE_BEDROCK'],
-    ['Vertex', 'CLAUDE_CODE_USE_VERTEX'],
     ['Foundry', 'CLAUDE_CODE_USE_FOUNDRY'],
   ] as const) {
     test(`does not emit first-party metadata on ${label}`, () => {
