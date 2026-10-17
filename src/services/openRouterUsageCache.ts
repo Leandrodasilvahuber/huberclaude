@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
+  fuelCells,
   fuelTank,
   fetchOpenRouterUsage,
   RESERVE_USD,
@@ -26,7 +27,10 @@ let pollTimer: ReturnType<typeof setInterval> | null = null
 let inflight: Promise<void> | null = null
 
 /** Refresh interval for the OpenRouter usage snapshot (ms). */
-const POLL_INTERVAL_MS = 60_000
+const POLL_INTERVAL_MS = 15_000
+
+/** Width of the status-line fuel bar, in cells. */
+const FUEL_CELLS = 10
 
 async function refresh(): Promise<void> {
   if (!resolveOpenRouterApiKey()) {
@@ -83,6 +87,8 @@ export function getOpenRouterUsageState(): OpenRouterUsageState {
 
 export function getOpenRouterFuelGauge(): {
   text: string
+  /** Compact 5-cell form used when the status line is short on width. */
+  shortText: string
   color: 'error' | 'warning' | undefined
   available: boolean
 } | null {
@@ -91,17 +97,29 @@ export function getOpenRouterFuelGauge(): {
   const balance = snapshot.credits.totalCredits - snapshot.credits.totalUsage
   const tank = fuelTank(snapshot.lastRecharge ?? snapshot.credits.totalCredits)
   const ratio = tank > 0 ? Math.max(0, Math.min(1, balance / tank)) : 0
-  const cells = 5
-  const filled = balance <= 0 ? 0 : Math.max(1, Math.round(ratio * cells))
+  const filled = fuelCells(balance, tank, FUEL_CELLS)
+  const halfAt = FUEL_CELLS / 2
+  // E empty, ┊ half-tank, F full.
   let bar = ''
-  for (let i = 0; i < cells; i++) bar += i < filled ? '▰' : '▱'
+  for (let i = 0; i < FUEL_CELLS; i++) {
+    bar += i < filled ? '▰' : '▱'
+    if (i + 1 === halfAt) bar += '┊'
+  }
+  let shortBar = ''
+  const shortFilled = balance <= 0 ? 0 : Math.max(1, Math.round(ratio * 5))
+  for (let i = 0; i < 5; i++) shortBar += i < shortFilled ? '▰' : '▱'
   const color: 'error' | 'warning' | undefined =
     balance <= RESERVE_USD
       ? 'error'
       : ratio <= 0.5
         ? 'warning'
         : undefined
-  return { text: `fuel ${bar}`, color, available: true }
+  return {
+    text: `fuel E${bar}F`,
+    shortText: `fuel ${shortBar}`,
+    color,
+    available: true,
+  }
 }
 
 export function useOpenRouterUsage(): OpenRouterUsageState {

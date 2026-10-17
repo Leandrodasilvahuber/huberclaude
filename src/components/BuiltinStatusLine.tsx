@@ -56,6 +56,8 @@ export type BuiltinStatusData = {
   contextIsEstimated?: boolean;
   /** Inline fuel gauge string (e.g. "fuel ▰▰▰▱▱"), or null when balance is unavailable. */
   fuel: string | null;
+  /** Compact fuel form used when width is tight. */
+  fuelShort?: string | null;
   fuelColor?: keyof Theme;
   /** Worst rate-limit window, or null when no utilization data (API-key users). */
   rateLimit: {
@@ -98,7 +100,7 @@ export function buildBuiltinStatusSegments(data: BuiltinStatusData): StatusSegme
       key: 'cost',
       priority: 2,
       text: data.fuel,
-      shortText: data.fuel,
+      shortText: data.fuelShort ?? data.fuel,
       color: data.fuelColor
     });
   }
@@ -223,6 +225,7 @@ function BuiltinStatusLineInner({
     ...computed,
     rateLimit: getWorstRateLimit(),
     fuel: fuelGauge?.text ?? null,
+    fuelShort: fuelGauge?.shortText ?? null,
     fuelColor: fuelGauge?.color
   }),
   // paddingX from the footer (2 each side) is already outside this Box;
