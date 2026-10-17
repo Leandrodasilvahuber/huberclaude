@@ -148,6 +148,31 @@ function isQuotaExhausted(error: unknown): boolean {
   )
 }
 
+const DEFAULT_QUOTA_REMEDY =
+  'Add credits or raise the API key limit at https://openrouter.ai/settings/keys'
+
+/**
+ * Builds the quota error shown to the user, keeping the provider's own reason
+ * (e.g. OpenRouter's "Key limit exceeded (monthly limit) ... resets ...") and
+ * its remedy hint instead of hiding them behind generic billing guidance.
+ */
+export function formatQuotaExhaustedMessage(error: unknown): string {
+  const body = (error as { error?: unknown } | null)?.error as
+    | {
+        error?: { message?: unknown; metadata?: { remedy_hint?: unknown } }
+        message?: unknown
+      }
+    | undefined
+  const reason = body?.error?.message ?? body?.message
+  const remedy = body?.error?.metadata?.remedy_hint
+  return (
+    'API quota exhausted or not enabled.\n' +
+    (typeof reason === 'string' && reason.trim() ? `${reason.trim()}\n` : '') +
+    'Fix:\n' +
+    `- ${typeof remedy === 'string' && remedy.trim() ? remedy.trim() : DEFAULT_QUOTA_REMEDY}`
+  )
+}
+
 function isTransientCapacityError(error: unknown): boolean {
   return (
     is529Error(error) || (error instanceof APIError && error.status === 429)
@@ -330,12 +355,7 @@ export async function* withRetry<T>(
       }
       if (isQuotaExhausted(error)) {
         throw new CannotRetryError(
-          new Error(
-            'API quota exhausted or not enabled.\n' +
-            'Fix:\n' +
-            '- Enable billing for your provider\n' +
-            '- Or switch provider via /provider',
-          ),
+          new Error(formatQuotaExhaustedMessage(error)),
           retryContext,
         )
       }

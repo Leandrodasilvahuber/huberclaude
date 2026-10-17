@@ -2,11 +2,11 @@ import { feature } from 'bun:bundle';
 import * as React from 'react';
 import { memo, useMemo } from 'react';
 import { getKairosActive, getSdkBetas } from '../bootstrap/state.js';
-import { getTotalCost } from '../cost-tracker.js';
 import { useMainLoopModel } from '../hooks/useMainLoopModel.js';
 import type { ReadonlySettings } from '../hooks/useSettings.js';
 import { useTerminalSize } from '../hooks/useTerminalSize.js';
 import { Box, Text } from '../ink.js';
+import { getOpenRouterFuelGauge, useOpenRouterUsage } from '../services/openRouterUsageCache.js';
 import { getRawUtilization } from '../services/claudeAiLimits.js';
 import { useClaudeAiLimits } from '../services/claudeAiLimitsHook.js';
 import { useAppState } from '../state/AppState.js';
@@ -54,7 +54,9 @@ export type BuiltinStatusData = {
   contextWindow: number | null;
   /** When true, token counts are transcript-based estimates (e.g. all-zero provider response). */
   contextIsEstimated?: boolean;
-  costUSD: number;
+  /** Inline fuel gauge string (e.g. "fuel ▰▰▰▱▱"), or null when balance is unavailable. */
+  fuel: string | null;
+  fuelColor?: keyof Theme;
   /** Worst rate-limit window, or null when no utilization data (API-key users). */
   rateLimit: {
     label: string;
@@ -91,13 +93,13 @@ export function buildBuiltinStatusSegments(data: BuiltinStatusData): StatusSegme
       color: roundedPct >= 90 ? 'error' : roundedPct >= 70 ? 'warning' : undefined
     });
   }
-  if (data.costUSD > 0) {
-    const cost = data.costUSD;
+  if (data.fuel) {
     segments.push({
       key: 'cost',
       priority: 2,
-      text: cost >= 100 ? `$${cost.toFixed(0)}` : `$${cost.toFixed(2)}`,
-      shortText: `$${cost.toFixed(0)}`
+      text: data.fuel,
+      shortText: data.fuel,
+      color: data.fuelColor
     });
   }
   if (data.rateLimit) {
@@ -184,6 +186,8 @@ function BuiltinStatusLineInner({
   const mainLoopModel = useMainLoopModel();
   // Subscribe to rate-limit header updates so the segment stays fresh.
   useClaudeAiLimits();
+  // Subscribe to OpenRouter usage updates so the fuel gauge stays fresh.
+  const { snapshot: usageSnapshot } = useOpenRouterUsage();
   const {
     columns
   } = useTerminalSize();
@@ -206,16 +210,20 @@ function BuiltinStatusLineInner({
       contextUsedPercent: contextPercentages.used,
       contextInputTokens: inputTokens,
       contextWindow: contextWindowSize,
-      contextIsEstimated: currentUsage?.is_estimated,
-      costUSD: getTotalCost()
+      contextIsEstimated: currentUsage?.is_estimated
     };
     // messagesRef is stable; lastAssistantMessageId is the messages-changed signal
     // eslint-disable-next-line react-hooks/exhaustive-deps
     // biome-ignore lint/correctness/useExhaustiveDependencies: intentional
   }, [lastAssistantMessageId, permissionMode, mainLoopModel, messagesRef]);
+  // Compute the fuel gauge once for both text and color, so the segment
+  // stays in sync with the OpenRouter usage snapshot that just refreshed.
+  const fuelGauge = usageSnapshot ? getOpenRouterFuelGauge() : null;
   const segments = fitSegments(buildBuiltinStatusSegments({
     ...computed,
-    rateLimit: getWorstRateLimit()
+    rateLimit: getWorstRateLimit(),
+    fuel: fuelGauge?.text ?? null,
+    fuelColor: fuelGauge?.color
   }),
   // paddingX from the footer (2 each side) is already outside this Box;
   // keep a 1-col safety margin against the truncate ellipsis. No artificial

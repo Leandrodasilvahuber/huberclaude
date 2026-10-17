@@ -541,7 +541,7 @@ export function classifyOpenAIHttpFailure(options: {
       retryable: false,
       status: options.status,
       message: body,
-      hint: 'Provider quota or usage allotment has run out. Enable billing or switch provider.',
+      hint: 'Provider quota or usage allotment has run out. Add credits or raise the API key limit.',
     }
   }
 

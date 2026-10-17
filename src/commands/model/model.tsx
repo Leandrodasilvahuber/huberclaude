@@ -12,7 +12,7 @@ import {
 } from '../../utils/openclaudeConfig.js'
 import { OpenRouterModelPicker } from './OpenRouterModelPicker.js'
 
-type OnDone = (
+export type OnDone = (
   result?: string,
   options?: { display?: CommandResultDisplay },
 ) => void
@@ -24,7 +24,7 @@ export function persistOpenRouterModel(model: string): void {
   saveOpenRouterConfig({ model })
 }
 
-function useSetOpenRouterModel(onDone: OnDone): (model: string) => void {
+export function useSetOpenRouterModel(onDone: OnDone): (model: string) => void {
   const setAppState = useSetAppState()
   return (model: string) => {
     try {

@@ -110,14 +110,14 @@ export function OpenRouterModelPicker({
           {'Output'.padStart(MODEL_COLUMN_WIDTHS.price)}
         </Text>
       }
-      renderItem={(model, isFocused) => {
+      renderItem={model => {
         const cells = formatOpenRouterModelColumns(model)
         const priceColor = isFreeOpenRouterModel(model) ? 'success' : undefined
         return (
-          <Text color={isFocused ? 'suggestion' : undefined}>
+          <Text>
             {fitColumn(model.id, idWidth)}
             {COLUMN_GAP}
-            <Text dimColor={!isFocused}>{cells.context}</Text>
+            <Text dimColor>{cells.context}</Text>
             {COLUMN_GAP}
             <Text color={priceColor}>{cells.input}</Text>
             {COLUMN_GAP}

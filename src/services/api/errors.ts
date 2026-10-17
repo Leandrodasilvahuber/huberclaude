@@ -129,7 +129,7 @@ function mapOpenAICompatibilityFailureToAssistantMessage(options: {
 
     case 'quota_exhausted':
       return createAssistantAPIErrorMessage({
-        content: `${API_ERROR_MESSAGE_PREFIX}: Provider quota or usage allotment has run out. Please enable billing for your provider or switch provider via /provider.`,
+        content: `${API_ERROR_MESSAGE_PREFIX}: Provider quota or usage allotment has run out. Add credits or raise the API key limit at https://openrouter.ai/settings/keys.`,
         error: 'rate_limit',
       })
 

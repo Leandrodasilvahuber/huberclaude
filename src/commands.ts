@@ -28,6 +28,7 @@ import knowledge from './commands/knowledge/index.js'
 import memory from './commands/memory/index.js'
 import repomap from './commands/repomap/index.js'
 import help from './commands/help/index.js'
+import huber from './commands/huber/index.js'
 import ide from './commands/ide/index.js'
 import init from './commands/init.js'
 import initVerifiers from './commands/init-verifiers.js'
@@ -310,6 +311,7 @@ const COMMANDS = memoize((): Command[] => [
   files,
   heapDump,
   help,
+  huber,
   ide,
   init,
   keybindings,
@@ -670,6 +672,7 @@ export const REMOTE_SAFE_COMMANDS: Set<Command> = new Set([
   exit, // Exit the TUI
   clear, // Clear screen
   help, // Show help
+  huber, // Huber recommended models
   theme, // Change terminal theme
   color, // Change agent color
   vim, // Toggle vim mode
