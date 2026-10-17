@@ -12,7 +12,7 @@ const fullData: BuiltinStatusData = {
   contextUsedPercent: 37.4,
   contextInputTokens: 74000,
   contextWindow: 200000,
-  costUSD: 1.234,
+  fuel: '$1.23',
   rateLimit: { label: '5h', usedPercent: 42 },
 }
 
@@ -43,10 +43,10 @@ describe('buildBuiltinStatusSegments', () => {
     expect(segments.find(s => s.key === 'context')).toBeUndefined()
   })
 
-  it('omits cost at $0 and rate limit without utilization data', () => {
+  it('omits cost when fuel is empty/null and rate limit without utilization data', () => {
     const segments = buildBuiltinStatusSegments({
       ...fullData,
-      costUSD: 0,
+      fuel: null,
       rateLimit: null,
     })
     expect(segments.map(s => s.key)).toEqual(['model', 'context'])
