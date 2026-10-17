@@ -4,7 +4,6 @@ import DocsLayout from '../../layouts/DocsLayout.astro'
 const toc = [
   { id: 'start', label: 'start the agent' },
   { id: 'login', label: 'sign in to openrouter' },
-  { id: 'enxame', label: 'turn on the swarm' },
   { id: 'first-task', label: 'give it a task' },
   { id: 'review', label: 'review the changes' },
   { id: 'next-steps', label: 'next steps' },
@@ -13,7 +12,7 @@ const toc = [
 
 <DocsLayout
   title="huberclaude quickstart — first session in 5 minutes"
-  description="Run your first huberclaude session: start the agent in a repo, sign in to OpenRouter, turn on the Enxame swarm, give it a task, and review the diff."
+  description="Run your first huberclaude session: start the agent in a repo, sign in to OpenRouter, give it a task, and review the diff."
   heading="quickstart"
   lede="From a fresh install to a reviewed diff in about five minutes."
   toc={toc}
@@ -33,14 +32,7 @@ huberclaude</code></pre>
     for details and env-var setup.
   </p>
 
-  <h2 id="enxame">3. turn on the swarm (optional)</h2>
-  <p>
-    Type <code>/enxame</code> and paste a z.ai API key. Your OpenRouter model can then hand
-    mechanical sub-tasks to up to 10 cheap GLM flash workers, which saves tokens on bulk
-    work. See <a href="/docs/enxame/">enxame mode</a>.
-  </p>
-
-  <h2 id="first-task">4. give it a task</h2>
+  <h2 id="first-task">3. give it a task</h2>
   <p>Write a task the way you'd brief a teammate:</p>
   <pre><code>&gt; add retry with exponential backoff to the fetch client, then run the tests</code></pre>
   <p>

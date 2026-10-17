@@ -19,7 +19,6 @@ export const docsNav: DocsNavGroup[] = [
       { title: 'Installation', href: '/docs/installation/' },
       { title: 'Quickstart', href: '/docs/quickstart/' },
       { title: 'OpenRouter', href: '/docs/providers/' },
-      { title: 'Enxame mode', href: '/docs/enxame/' },
     ],
   },
   {

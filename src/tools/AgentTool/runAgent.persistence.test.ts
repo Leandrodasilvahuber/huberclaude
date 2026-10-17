@@ -3,7 +3,6 @@ import type { AgentDefinition } from './loadAgentsDir.js'
 import type { ToolUseContext } from '../../Tool.js'
 
 // These tests exercise non-swarm routing; keep a locally enabled swarm out of them.
-process.env.OPENCLAUDE_ENXAME_ENABLED = '0'
 
 // Track how many times each storage function is called
 let metadataWriteCount = 0

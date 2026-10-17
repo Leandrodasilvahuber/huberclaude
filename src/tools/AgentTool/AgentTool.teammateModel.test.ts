@@ -8,7 +8,6 @@ import type { SettingsJson } from '../../utils/settings/types.js'
 import type { AgentDefinition } from './loadAgentsDir.js'
 
 // These tests exercise non-swarm routing; keep a locally enabled swarm out of them.
-process.env.OPENCLAUDE_ENXAME_ENABLED = '0'
 
 type ModelAllowlistModule = typeof import('../../utils/model/modelAllowlist.js')
 type SettingsModule = typeof import('../../utils/settings/settings.js')

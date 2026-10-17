@@ -1,6 +1,6 @@
 # HuberClaude
 
-> HuberClaude is an open-source coding-agent CLI dedicated to OpenRouter: one API key gives access to the whole OpenRouter model catalog through one terminal-first workflow (prompts, tools, agents, MCP, slash commands, streaming output). Its Enxame mode ("swarm") lets the main model offload small, mechanical sub-tasks to up to 10 cheap z.ai GLM flash workers to save tokens. It is an independent fork of OpenClaude and is not affiliated with, endorsed by, or sponsored by Anthropic, OpenRouter, or Z.ai.
+> HuberClaude is an open-source coding-agent CLI dedicated to OpenRouter: one API key gives access to the whole OpenRouter model catalog through one terminal-first workflow (prompts, tools, agents, MCP, slash commands, streaming output). It is an independent fork of OpenClaude and is not affiliated with, endorsed by, or sponsored by Anthropic, OpenRouter, or Z.ai.
 
 OpenClaude originated from the Claude Code codebase. "Claude" and "Claude Code" are trademarks of Anthropic PBC.
 
@@ -13,11 +13,10 @@ OpenClaude originated from the Claude Code codebase. "Claude" and "Claude Code" 
 ## Install
 
 - Build from source (requires Node >= 22 and Bun): `git clone https://github.com/Leandrodasilvahuber/huberclaude && cd huberclaude && bun install && bun run build && npm install -g .`
-- Then run `huberclaude`, `/login` with an OpenRouter key, and optionally `/enxame` with a z.ai key.
+- Then run `huberclaude`, `/login` with an OpenRouter key.
 
 ## Documentation
 
-- [README](https://github.com/Leandrodasilvahuber/huberclaude/blob/main/README.md): overview, OpenRouter setup, Enxame mode, commands
+- [README](https://github.com/Leandrodasilvahuber/huberclaude/blob/main/README.md): overview, OpenRouter setup, commands
 - [OpenRouter setup](/docs/providers/)
-- [Enxame mode](/docs/enxame/)
 - [Agent routing](https://github.com/Leandrodasilvahuber/huberclaude/blob/main/docs/agent-routing.md)

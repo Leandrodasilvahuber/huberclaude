@@ -49,7 +49,6 @@ import { ExitPlanModeV2Tool } from './tools/ExitPlanModeTool/ExitPlanModeV2Tool.
 import { TestingPermissionTool } from './tools/testing/TestingPermissionTool.js'
 import { GrepTool } from './tools/GrepTool/GrepTool.js'
 import { RepoMapTool } from './tools/RepoMapTool/RepoMapTool.js'
-import { EnxameTool } from './tools/EnxameTool/EnxameTool.js'
 // Lazy require to break circular dependency: tools.ts -> TeamCreateTool/TeamDeleteTool -> ... -> tools.ts
 /* eslint-disable @typescript-eslint/no-require-imports */
 const getTeamCreateTool = () =>
@@ -191,8 +190,6 @@ export function getAllBaseTools(): Tools {
     // to these fast tools, so the dedicated Glob/Grep tools are unnecessary.
     ...(hasEmbeddedSearchTools() ? [] : [GlobTool, GrepTool]),
     RepoMapTool,
-    // Gated by isEnabled(): only while /enxame is on in tool or both mode.
-    EnxameTool,
     ExitPlanModeV2Tool,
     FileReadTool,
     FileEditTool,

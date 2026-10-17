@@ -3,7 +3,7 @@ export const SITE = {
   name: 'huberclaude',
   title: 'huberclaude — coding agent CLI dedicated to OpenRouter',
   description:
-    'Open-source coding agent for your terminal, dedicated to OpenRouter: one key, every model. Enxame mode offloads mechanical work to a swarm of cheap z.ai workers to save tokens.',
+    'Open-source coding agent for your terminal, dedicated to OpenRouter: one key, every model.',
   installCommand:
     'git clone https://github.com/Leandrodasilvahuber/huberclaude && cd huberclaude && bun install && bun run build && npm install -g .',
   npmUrl: 'https://github.com/Leandrodasilvahuber/huberclaude',

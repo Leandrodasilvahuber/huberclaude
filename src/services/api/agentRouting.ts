@@ -5,7 +5,6 @@ import { isModelAlias } from '../../utils/model/aliases.js'
 import { parseModelFlagValue } from '../../utils/cliArgs.js'
 import { argsBeforeModelOwningSubcommand } from '../../utils/printFlag.js'
 import { resolveRouteIdFromBaseUrl } from '../../integrations/routeMetadata.js'
-import { getEnxameAccount } from '../../utils/enxameConfig.js'
 
 /**
  * Provider override resolved from agent routing config.
@@ -198,20 +197,6 @@ export function resolveAgentRunModelRouting({
   settings: SettingsJson | null
   permissionMode?: PermissionMode
 }): AgentRunModelRouting {
-  // While the swarm is on, EVERY subagent (any type, any requested model) is
-  // forced onto the registered z.ai account; only the main loop stays put.
-  const account = getEnxameAccount()
-  if (account?.enabled) {
-    return {
-      mainLoopModel: account.model,
-      providerOverride: {
-        model: account.model,
-        baseURL: account.baseUrl,
-        apiKey: account.apiKey,
-      },
-    }
-  }
-
   const toolRequestedModel = toolSpecifiedModel?.trim()
   if (toolRequestedModel) {
     // Tool-specified models are explicit. If the request is not a configured

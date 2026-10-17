@@ -6,21 +6,18 @@ O HüberClaude é um CLI de agente de código, open source e **dedicado ao OpenR
 
 Uma chave de API, milhares de modelos e um fluxo de trabalho feito para o
 terminal: prompts, ferramentas, agentes, MCP, comandos de barra e saída em
-streaming. Além disso, o **modo Enxame** repassa subtarefas pequenas e mecânicas
-para workers baratos do GLM flash da z.ai, de modo que o seu modelo principal no
-OpenRouter só gaste tokens com planejamento e raciocínio difícil.
+streaming.
 
 O HüberClaude é um fork do [OpenClaude](https://github.com/Gitlawb/openclaude).
 Enquanto o OpenClaude suporta vários provedores, o HüberClaude faz uma coisa só:
 roda no OpenRouter e tenta gastar o mínimo possível de tokens.
 
-[Por que o HüberClaude](#por-que-o-hüberclaude) | [A ideia](#a-ideia-por-trás) | [Capturas de tela](#capturas-de-tela) | [Início rápido](#início-rápido) | [OpenRouter](#openrouter) | [Modo Enxame](#modo-enxame-economize-tokens-com-um-enxame) | [Comandos](#comandos-do-hüberclaude) | [Desenvolvimento](#desenvolvimento)
+[Por que o HüberClaude](#por-que-o-hüberclaude) | [A ideia](#a-ideia-por-trás) | [Capturas de tela](#capturas-de-tela) | [Início rápido](#início-rápido) | [OpenRouter](#openrouter) | [Comandos](#comandos-do-hüberclaude) | [Desenvolvimento](#desenvolvimento)
 
 ## Por que o HüberClaude
 
 - **Só OpenRouter, sem configurar provedor.** Rode `/login`, cole sua chave do OpenRouter e pronto. Não há perfis de provedor, URLs base para ajustar nem comportamentos específicos de cada provedor para aprender.
 - **Todos os modelos atrás de uma chave.** Claude, GPT, Gemini, DeepSeek, Qwen, GLM, Kimi e o resto do catálogo do OpenRouter, escolhidos pelo `/model`.
-- **Modo Enxame para economizar tokens.** O modelo principal planeja e decide. Um enxame de até 10 workers baratos da z.ai cuida do trabalho em massa: resumir, extrair, classificar e fazer pequenas edições bem delimitadas.
 - **Gasto visível.** O `/usage` mostra o saldo do OpenRouter como um marcador de combustível, na escala da sua última recarga.
 - **Um agente de código completo.** Bash, leitura/escrita/edição de arquivos, grep, glob, subagentes, tarefas, MCP, skills, hooks e busca na web.
 - **Visual próprio.** Cabeçalho verde com o mascote "H" em blocos e um spinner de estrela. A tela é limpa ao iniciar.
@@ -30,17 +27,6 @@ roda no OpenRouter e tenta gastar o mínimo possível de tokens.
 O HüberClaude nasceu para ser um **CLI enxuto, dedicado apenas ao OpenRouter**.
 Sem camadas para dezenas de provedores, o código do CLI fica menor, mais simples
 de manter e mais fácil de entender.
-
-Em paralelo, você pode cadastrar uma **chave de API da z.ai** e usar um **enxame
-de agentes** em vários modos (**Ferramenta**, **Agente** ou **Ambos**):
-
-| Serviço | Papel |
-| --- | --- |
-| **OpenRouter** | O cérebro: uma integração com milhares de modelos. O modelo principal planeja, raciocina e decide. |
-| **z.ai** | O enxame: até 10 workers rápidos e baratos cuidam do trabalho braçal, em paralelo. |
-
-Combinar os dois serviços **economiza tokens** do modelo caro e dá **mais poder de
-processamento**, porque vários workers trabalham ao mesmo tempo.
 
 ## Capturas de tela
 
@@ -63,12 +49,6 @@ processamento**, porque vários workers trabalham ao mesmo tempo.
     <td align="center" width="50%">
       <img src="docs/assets/screenshots/usage.png" alt="Saldo do OpenRouter como marcador de combustível"><br>
       <sub><code>/usage</code>: saldo, total comprado e total gasto</sub>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" colspan="2">
-      <img src="docs/assets/screenshots/enxame.png" alt="Menu do modo Enxame" width="545"><br>
-      <sub><code>/enxame</code>: conta z.ai, modo e número de workers</sub>
     </td>
   </tr>
 </table>
@@ -122,7 +102,6 @@ Na primeira execução:
 
 1. Rode `/login` e cole sua chave de API do OpenRouter (crie uma em [openrouter.ai/settings/keys](https://openrouter.ai/settings/keys)).
 2. Rode `/model` para escolher um modelo. O padrão é `qwen/qwen3-coder`.
-3. Opcional: rode `/enxame` para cadastrar uma chave da z.ai e ligar o enxame.
 
 ## OpenRouter
 
@@ -151,63 +130,6 @@ A variável genérica `OPENROUTER_API_KEY` é ignorada de propósito, para que u
 Para melhores resultados, escolha modelos com bom suporte a tool calling
 (chamada de ferramentas/funções).
 
-## Modo Enxame: economize tokens com um enxame
-
-A ideia é simples: **o modelo caro do OpenRouter é o gerente, e os workers da
-z.ai são o enxame.** O gerente fica com o planejamento, o raciocínio difícil e as
-decisões finais. Ele distribui trabalho barato e bem delimitado para modelos GLM
-flash rápidos (`glm-4.7-flash`, com fallback para `glm-4.5-flash`) e só lê de
-volta resultados curtos e estruturados.
-
-### Configuração
-
-```text
-/enxame
-```
-
-Cole uma chave de API da z.ai e use o menu (as opções aparecem em inglês na interface):
-
-| Opção | O que faz |
-| --- | --- |
-| Enable / Disable swarm | Liga ou desliga o enxame sem remover a chave |
-| Mode | Escolhe **Ferramenta**, **Agente** ou **Ambos** (padrão) |
-| Workers | Define o máximo de workers rodando ao mesmo tempo (1–10, padrão 10) |
-| Test connection | Envia uma requisição rápida para validar a chave e o modelo |
-| Replace / Remove account | Altera ou apaga a chave da z.ai salva |
-
-### Modos
-
-- **Ferramenta**: o modo mais barato. O gerente recebe uma ferramenta `Enxame` que dispara vários prompts **sem estado** em paralelo. Cada worker vê só o prompt que recebeu, sem histórico, arquivos ou ferramentas, e devolve uma resposta curta. Os resultados voltam como um array JSON de `{id, ok, text}`. Serve para resumir N trechos, extrair campos, classificar itens, traduzir ou gerar boilerplate a partir de código colado.
-- **Agente**: o gerente pode lançar subagentes `enxame-worker` que rodam na z.ai **com ferramentas**. Eles podem ler e buscar arquivos, rodar um comando ou fazer uma edição pequena. Workers nunca criam outros agentes e não carregam arquivos de memória do projeto, o que os mantém enxutos.
-- **Ambos**: as duas opções ficam disponíveis e o gerente escolhe a cada tarefa.
-
-As requisições são escalonadas para respeitar os limites de taxa da z.ai. Se um
-worker recebe `429`, ele espera, tenta de novo e depois cai para o modelo
-secundário. Como os workers são modelos mais fracos, o gerente é instruído a
-conferir a saída deles antes de confiar nela. Nunca coloque segredos no prompt
-de um worker.
-
-### Sub-agentes forçados em GLM
-
-Com o enxame ligado, **todo** subagente da ferramenta Agent (`general-purpose`,
-`Explore`, `Plan`, `enxame-worker`...) roda na z.ai (`glm-4.7-flash`), seja qual
-for o modelo pedido, e essa rota ignora o `availableModels`. Só o gerente fica no
-modelo principal. Com o enxame desligado, os subagentes herdam o modelo do gerente.
-
-Para automação e benchmarks, estas variáveis valem só no processo e não alteram o
-`config.json`: `OPENCLAUDE_ENXAME_ENABLED=0|1`, `OPENCLAUDE_ENXAME_MODE=tool|agent|both`
-e `OPENCLAUDE_ENXAME_USAGE_LOG=<arquivo>` (grava um JSON por chamada z.ai da
-ferramenta `Enxame`, com os tokens usados).
-
-### Benchmark de tokens
-
-Comparação de tokens do gerente e de cada agente, com e sem enxame, nos modos
-`io` (ferramenta Enxame), `agent` (`enxame-worker`) e `task` (`general-purpose`):
-[docs/benchmarks/benchmark_tokens_enxame.pdf](docs/benchmarks/benchmark_tokens_enxame.pdf).
-Na tarefa pequena testada (3 módulos TS + LEIA-ME), o enxame **não economizou
-tokens**: o gerente gastou mais para montar briefings e ler as respostas, e o
-total subiu. A delegação tende a compensar só em tarefas maiores e paralelizáveis.
-
 ## Comandos do HüberClaude
 
 Além dos comandos padrão do agente (`/clear`, `/compact`, `/resume`,
@@ -218,7 +140,6 @@ Além dos comandos padrão do agente (`/clear`, `/compact`, `/resume`,
 | `/login` | Configura a chave de API e a URL base do OpenRouter |
 | `/model` | Escolhe um modelo do OpenRouter |
 | `/usage` | Saldo e gasto no OpenRouter, mostrados como marcador de combustível |
-| `/enxame` | Cadastra a conta da z.ai e configura o enxame (liga/desliga, modo, workers) |
 | `/search` | Escolhe o backend de busca na web (Exa por padrão) ou adiciona uma chave de API de busca |
 | `/buddy` | Choca um companheiro em pixel art ao lado do prompt |
 
@@ -269,9 +190,7 @@ Agentes nativos e personalizados rodam no seu modelo do OpenRouter por padrão.
 Você pode direcionar agentes específicos para outros modelos do OpenRouter com
 `agentModels` e `agentRouting` em `~/.openclaude/settings.json`, e limitar os
 passos de ferramenta dos subagentes com `maxSteps`. Veja
-[Roteamento de agentes e limite de passos](docs/agent-routing.md). O agente
-`enxame-worker` é direcionado automaticamente para a z.ai quando o modo Enxame
-permite agentes.
+[Roteamento de agentes e limite de passos](docs/agent-routing.md).
 
 ## Desenvolvimento
 
@@ -295,7 +214,7 @@ validação antes do push.
 
 ## Estrutura do repositório
 
-- `src/` - núcleo do CLI e runtime (`src/tools/EnxameTool/` e `src/utils/enxame*.ts` contêm o enxame)
+- `src/` - núcleo do CLI e runtime
 - `scripts/` - scripts de build, verificação e manutenção
 - `docs/` - documentação de configuração e para contribuidores
 - `web/` - site de documentação

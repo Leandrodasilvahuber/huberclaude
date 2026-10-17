@@ -72,7 +72,6 @@ import bughunterSecurity from './commands/bughunter-security/index.js'
 import bughunterPerf from './commands/bughunter-perf/index.js'
 import terminalSetup from './commands/terminalSetup/index.js'
 import usage from './commands/usage/index.js'
-import enxame from './commands/enxame/index.js'
 import theme from './commands/theme/index.js'
 import vim from './commands/vim/index.js'
 import { feature } from 'bun:bundle'
@@ -357,7 +356,6 @@ const COMMANDS = memoize((): Command[] => [
   extraUsageNonInteractive,
   rateLimitOptions,
   usage,
-  enxame,
   usageReport,
   vim,
   wiki,

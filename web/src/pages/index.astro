@@ -13,12 +13,6 @@ const features = [
     link: 'openrouter setup →',
   },
   {
-    title: 'enxame: a swarm that saves tokens',
-    body: 'your main model plans and decides. up to 10 cheap z.ai glm flash workers handle summaries, extraction, classification, and small scoped edits.',
-    href: '/docs/enxame/',
-    link: 'enxame mode →',
-  },
-  {
     title: 'see what you spend',
     body: '/usage shows your openrouter balance as a fuel gauge scaled to your last recharge, so you see the cost before the bill does.',
     href: '/docs/slash-commands/#models',
@@ -76,11 +70,10 @@ const jsonLd = [
     <div class="container hero-inner">
       <p class="pill fade-up"><span class="dot" aria-hidden="true"></span>open source · openrouter-only · token-frugal</p>
       <h1 id="hero-heading" class="text-hero fade-up fade-up-1">
-        one key.<br />every model. fewer tokens.
+        one key.<br />every model.
       </h1>
       <p class="hero-sub fade-up fade-up-2">
-        an open coding agent for your terminal, built only for openrouter. a swarm of
-        cheap workers takes the busywork, so your main model spends tokens on the hard parts.
+        an open coding agent for your terminal, built only for openrouter.
       </p>
       <div class="hero-cta fade-up fade-up-3">
         <CopyCommand command={SITE.installCommand} />
@@ -100,13 +93,12 @@ const jsonLd = [
       </div>
       <Terminal>
         <span class="ln"><span class="t-prompt">$</span> huberclaude</span>
-        <span class="ln t-dim">huberclaude · openrouter · qwen/qwen3-coder · enxame: on (10 workers)</span>
+        <span class="ln t-dim">huberclaude · openrouter · qwen/qwen3-coder</span>
         <span class="ln">&nbsp;</span>
         <span class="ln"><span class="t-prompt">&gt;</span> add retry with backoff to the fetch client</span>
         <span class="ln">&nbsp;</span>
         <span class="ln"><span class="t-info">●</span> Read src/lib/fetchClient.ts</span>
         <span class="ln"><span class="t-info">●</span> Grep "fetchWithTimeout" — 3 matches</span>
-        <span class="ln"><span class="t-info">●</span> Enxame 3 tasks <span class="t-dim">— glm-4.7-flash · summarized callers</span></span>
         <span class="ln"><span class="t-ok">●</span> Edit src/lib/fetchClient.ts <span class="t-dim">+18 -2</span></span>
         <span class="ln"><span class="t-ok">●</span> Bash bun test fetchClient <span class="t-dim">— 7 pass</span></span>
         <span class="ln">&nbsp;</span>
@@ -149,7 +141,6 @@ const jsonLd = [
       </ul>
       <p class="text-body-dim provider-foot">
         and every other model openrouter serves. <a href="/docs/providers/">openrouter setup →</a>
-        · <a href="/docs/enxame/">enxame mode →</a>
       </p>
     </div>
   </section>
@@ -224,13 +215,6 @@ const jsonLd = [
             <div>
               <strong>start</strong>
               <p>run <code>huberclaude</code> in any repo, then <code>/login</code> with your openrouter key.</p>
-            </div>
-          </li>
-          <li>
-            <span class="step-num">03</span>
-            <div>
-              <strong>turn on the swarm</strong>
-              <p>type <code>/enxame</code> and add a z.ai key to send the busywork to cheap workers.</p>
             </div>
           </li>
         </ol>

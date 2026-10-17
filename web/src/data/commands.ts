@@ -32,8 +32,8 @@ export const commandCategories: { id: CommandCategory; label: string; blurb: str
   },
   {
     id: 'models',
-    label: 'openrouter, models & enxame',
-    blurb: 'Sign in to OpenRouter, pick a model, watch your balance, and configure the Enxame swarm.',
+    label: 'openrouter & models',
+    blurb: 'Sign in to OpenRouter, pick a model, watch your balance.',
   },
   {
     id: 'workflow',
@@ -99,7 +99,6 @@ export const commands: SlashCommand[] = [
   { name: 'smartroute', description: 'Configure smart auto-routing (experimental): route simple turns to your configured simple model', category: 'models', args: '[on|off|simple <key>|strong <key>]' },
   { name: 'login', description: 'Configure the OpenRouter API key and base URL', category: 'models' },
   { name: 'usage', description: 'Show OpenRouter balance and spend as a fuel gauge scaled to the last recharge', category: 'models' },
-  { name: 'enxame', description: 'Register the z.ai account and configure the swarm: on/off, mode (tool/agent/both), and workers (1-10)', category: 'models' },
 
   // ── code review & git ────────────────────────────────────────────────
   { name: 'diff', description: 'View uncommitted changes and per-turn diffs', category: 'workflow' },
