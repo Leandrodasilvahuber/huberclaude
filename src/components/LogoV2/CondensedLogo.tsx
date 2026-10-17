@@ -10,8 +10,6 @@ import { formatModelAndBilling, getLogoDisplayData, truncatePath } from '../../u
 import { renderModelSetting } from '../../utils/model/model.js';
 import { OffscreenFreeze } from '../OffscreenFreeze.js';
 import { GreenStar } from './Clawd.js';
-import { useUsagePoller } from '../../hooks/useUsagePoller.js';
-import { fuelCells } from '../../commands/usage/openRouterUsage.js';
 
 const SPRITE_WIDTH = 13;
 
@@ -28,24 +26,15 @@ export function CondensedLogo() {
   const truncatedVersion = truncate(version.replace(/^HuberClaude\s*/, ''), Math.max(textWidth - BRAND_NAME.length - 2, 6));
   const { shouldSplit, truncatedModel, truncatedBilling } = formatModelAndBilling(modelDisplayName + getEffortSuffix(model, effortValue), billingType, textWidth);
   const path = truncatePath(cwd, Math.max(textWidth - (agentName ? agentName.length + 4 : 0), 10));
-
-  // Fetch usage data
-  const { usage } = useUsagePoller();
-  const usageDisplay = usage && usage.key ?
-    usage.key.isFreeTier ?
-      '· ∞' :
-      ' · ' + '▰'.repeat(fuelCells(usage.key.usage, usage.key.limit || usage.key.usage, 5)) + '▱'.repeat(5 - fuelCells(usage.key.usage, usage.key.limit || usage.key.usage, 5)) :
-    null;
   return <OffscreenFreeze>
       <Box flexDirection="row" gap={2} alignItems="center" paddingX={1}>
         <GreenStar />
         <Box flexDirection="column">
           <Text><Text bold={true} color="brand">{BRAND_NAME}</Text> <Text dimColor={true}>{truncatedVersion}</Text></Text>
-          <Text dimColor={true}>
-            {truncatedModel}
-            {truncatedBilling && ` · ${truncatedBilling}`}
-            {usageDisplay && ` · ${usageDisplay}`}
-          </Text>
+          {shouldSplit ? <>
+              <Text dimColor={true}>{truncatedModel}</Text>
+              <Text dimColor={true}>{truncatedBilling}</Text>
+            </> : <Text dimColor={true}>{truncatedModel} · {truncatedBilling}</Text>}
           <Text dimColor={true}>{agentName ? `@${agentName} · ${path}` : path}</Text>
         </Box>
       </Box>
