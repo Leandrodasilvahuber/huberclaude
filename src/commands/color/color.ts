@@ -13,10 +13,18 @@ import {
   getTranscriptPath,
   saveAgentColor,
 } from '../../utils/sessionStorage.js'
+import instances from '../../ink/instances.js'
 import { saveGlobalConfig } from '../../utils/config.js'
 import { isTeammate } from '../../utils/teammate.js'
 
 const RESET_ALIASES = ['default', 'reset', 'none', 'gray', 'grey'] as const
+
+// The header logo is usually already in scrollback, where Ink's diff can't
+// reach it. Repaint the whole screen once the new color has rendered so the
+// logo and prompt border switch together.
+function repaintAfterColorChange(): void {
+  setTimeout(() => instances.get(process.stdout)?.forceRedraw(), 50)
+}
 
 export async function call(
   onDone: LocalJSXCommandOnDone,
@@ -62,6 +70,7 @@ export async function call(
     }))
 
     onDone('Session color reset to default', { display: 'system' })
+    repaintAfterColorChange()
     return null
   }
 
@@ -93,5 +102,6 @@ export async function call(
   }))
 
   onDone(`Session color set to: ${colorArg}`, { display: 'system' })
+  repaintAfterColorChange()
   return null
 }
