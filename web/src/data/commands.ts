@@ -87,9 +87,7 @@ export const commands: SlashCommand[] = [
   { name: 'dream', description: 'Run memory consolidation — synthesize recent sessions into durable memories', category: 'context' },
   { name: 'knowledge', description: 'Manage the native Knowledge Graph', category: 'context', args: 'enable <yes|no> | clear | status | list' },
   { name: 'wiki', description: 'Initialize and inspect the HuberClaude project wiki', category: 'context', args: '[init|status|scan|ingest <path>]' },
-  { name: 'cost', description: 'Show the total cost and duration of the current session', category: 'context' },
   { name: 'request-size', description: 'Show estimated request context load and top contributors', category: 'context' },
-  { name: 'cache-stats', description: 'Show per-turn and session cache hit/miss stats', category: 'context' },
 
   // ── models & providers ───────────────────────────────────────────────
   { name: 'model', description: 'Pick an OpenRouter model for the session', category: 'models', args: '[model]' },
@@ -136,12 +134,10 @@ export const commands: SlashCommand[] = [
   { name: 'statusline', description: "Set up HuberClaude's status line UI", category: 'customization' },
   { name: 'terminal-setup', description: 'Install the Shift+Enter key binding for newlines', category: 'customization' },
   { name: 'commit-message', description: 'Configure commit attribution text', category: 'customization', args: '[status|off|default|set "text"|co-author <name> <email>]' },
-  { name: 'buddy', description: 'Hatch, pet, and manage your HuberClaude companion', category: 'customization', args: '[status|mute|unmute|set <form>|name <name>|help]' },
 
   // ── help & diagnostics ───────────────────────────────────────────────
   { name: 'help', description: 'Show help and available commands', category: 'diagnostics' },
   { name: 'status', description: 'Show status including version, model, account, API connectivity, and tool statuses', category: 'diagnostics' },
-  { name: 'doctor', description: 'Diagnose and verify your HuberClaude installation and settings', category: 'diagnostics' },
   { name: 'diagnostics', description: 'Show available LSP diagnostics already captured for this session', category: 'diagnostics' },
   { name: 'stats', description: 'Show your usage statistics and activity', category: 'diagnostics' },
   { name: 'insights', description: 'Generate a report analyzing your HuberClaude sessions', category: 'diagnostics' },

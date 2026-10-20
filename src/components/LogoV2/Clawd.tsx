@@ -18,7 +18,8 @@ export function Clawd() {
   return <Sprite rows={LIZARD_ROWS} />;
 }
 
-/** Green pixel-art star shown in the fixed header. */
-export function GreenStar() {
-  return <Sprite rows={STAR_ROWS} />;
+/** Green pixel-art star shown in the fixed header; `color` tints it (e.g. /color). */
+export function GreenStar({ color }: { color?: string } = {}) {
+  const rows = React.useMemo(() => color ? getStarRows(color) : STAR_ROWS, [color]);
+  return <Sprite rows={rows} />;
 }

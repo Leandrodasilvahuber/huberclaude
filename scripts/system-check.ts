@@ -2,20 +2,13 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
-import {
-  resolveProviderRequest,
-  isLocalProviderUrl as isProviderLocalUrl,
-} from '../src/services/api/providerConfig.js'
+import { resolveProviderRequest } from '../src/services/api/providerConfig.js'
 import {
   getRouteCredentialEnvVars,
   getRouteCredentialValue,
   resolveActiveRouteIdFromEnv,
   resolveRouteIdFromBaseUrl,
 } from '../src/integrations/routeMetadata.js'
-import {
-  getLocalOpenAICompatibleProviderLabel,
-  probeOllamaGenerationReadiness,
-} from '../src/utils/providerDiscovery.js'
 import {
   DEFAULT_GEMINI_MODEL,
   resolveOpenAICredentialEnvState,
@@ -921,7 +914,9 @@ function checkSandboxRuntime(): CheckResult {
 }
 
 function isLocalBaseUrl(baseUrl: string): boolean {
-  return isProviderLocalUrl(baseUrl)
+  // HuberClaude only talks to OpenRouter, which is never a local endpoint.
+  void baseUrl
+  return false
 }
 
 const GEMINI_DEFAULT_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai'
@@ -1246,92 +1241,6 @@ async function checkBaseUrlReachability(): Promise<CheckResult> {
   }
 }
 
-async function checkProviderGenerationReadiness(): Promise<CheckResult> {
-  const useGemini = isTruthy(process.env.CLAUDE_CODE_USE_GEMINI)
-  const useOpenAI = isTruthy(process.env.CLAUDE_CODE_USE_OPENAI)
-  const useGithub = isTruthy(process.env.CLAUDE_CODE_USE_GITHUB)
-  const useMistral = isTruthy(process.env.CLAUDE_CODE_USE_MISTRAL)
-
-  if (!useGemini && !useOpenAI && !useGithub && !useMistral) {
-    return pass('Provider generation readiness', 'Skipped (OpenAI-compatible mode disabled).')
-  }
-
-  if (useGithub && !useOpenAI) {
-    return pass(
-      'Provider generation readiness',
-      'Skipped for GitHub Models (runtime generation uses a different endpoint flow).',
-    )
-  }
-
-  if (useGemini || useMistral) {
-    return pass(
-      'Provider generation readiness',
-      'Skipped for managed provider mode.',
-    )
-  }
-
-  if (!useOpenAI) {
-    return pass('Provider generation readiness', 'Skipped (OpenAI-compatible mode disabled).')
-  }
-
-  const request = resolveProviderRequest({
-    model: process.env.OPENAI_MODEL,
-    baseUrl: process.env.OPENAI_BASE_URL,
-  })
-
-  if (request.transport === 'codex_responses') {
-    return pass(
-      'Provider generation readiness',
-      'Skipped for Codex responses (reachability probe already performs a lightweight generation request).',
-    )
-  }
-
-  if (!isLocalBaseUrl(request.baseUrl)) {
-    return pass('Provider generation readiness', 'Skipped for non-local provider URL.')
-  }
-
-  const localProviderLabel = getLocalOpenAICompatibleProviderLabel(request.baseUrl)
-  if (localProviderLabel !== 'Ollama') {
-    return pass(
-      'Provider generation readiness',
-      `Skipped for ${localProviderLabel} (no provider-specific generation probe).`,
-    )
-  }
-
-  const readiness = await probeOllamaGenerationReadiness({
-    baseUrl: request.baseUrl,
-    model: request.requestedModel,
-  })
-
-  if (readiness.state === 'ready') {
-    return pass(
-      'Provider generation readiness',
-      `Generated a test response with ${safeDisplayValue(readiness.probeModel ?? request.requestedModel, 'the requested model')}.`,
-    )
-  }
-
-  if (readiness.state === 'unreachable') {
-    return fail(
-      'Provider generation readiness',
-      `Could not reach Ollama at ${redactUrlForDisplay(request.baseUrl)}.`,
-    )
-  }
-
-  if (readiness.state === 'no_models') {
-    return fail(
-      'Provider generation readiness',
-      'Ollama is reachable, but no installed models were found. Pull a model first (for example: ollama pull qwen2.5-coder:7b).',
-    )
-  }
-
-  const detail = safeDiagnosticText(readiness.detail, '')
-  const detailSuffix = detail ? ` Detail: ${detail}.` : ''
-  return fail(
-    'Provider generation readiness',
-    `Ollama is reachable, but generation failed for ${safeDisplayValue(readiness.probeModel ?? request.requestedModel, 'the requested model')}.${detailSuffix}`,
-  )
-}
-
 function isAtomicChatUrl(baseUrl: string): boolean {
   try {
     const parsed = new URL(baseUrl)
@@ -1498,8 +1407,6 @@ async function main(): Promise<void> {
   configModule.enableConfigs()
   const { applySafeConfigEnvironmentVariables } = await import('../src/utils/managedEnv.js')
   applySafeConfigEnvironmentVariables()
-  const { hydrateGithubModelsTokenFromSecureStorage } = await import('../src/utils/githubModelsCredentials.js')
-  hydrateGithubModelsTokenFromSecureStorage()
 
   results.push(checkNodeVersion())
   results.push(checkBunRuntime())
@@ -1516,7 +1423,6 @@ async function main(): Promise<void> {
   results.push(...checkWebSearchEnv())
   results.push(...checkOpenAIEnv())
   results.push(await checkBaseUrlReachability())
-  results.push(await checkProviderGenerationReadiness())
   results.push(checkOllamaProcessorMode())
 
   if (!options.json) {

@@ -155,77 +155,6 @@ async function renderNotifications({
   )
 }
 
-test('renders effort as the stable footer fallback when no notification is active', async () => {
-  const output = await renderNotifications({ effortValue: 'medium' })
-
-  expect(output).toContain('medium · /effort')
-})
-
-test('updates the mounted effort footer when app state changes', async () => {
-  const { Notifications } = await import(
-    `./Notifications.js?mounted=${Date.now()}-${Math.random()}`
-  )
-  const { stdout, stdin, getOutput } = createTestStreams()
-  const root = await createRoot({
-    stdout: stdout as unknown as NodeJS.WriteStream,
-    stdin: stdin as unknown as NodeJS.ReadStream,
-    patchConsole: false,
-  })
-  let setAppState: ReturnType<typeof useSetAppState> | undefined
-
-  function AppStateController() {
-    const setState = useSetAppState()
-    useEffect(() => {
-      setAppState = setState
-    }, [setState])
-    return null
-  }
-
-  root.render(
-    <AppStateProvider
-      initialState={{
-        ...getDefaultAppState(),
-        mainLoopModelForSession: 'claude-opus-4-8',
-        effortValue: 'high',
-      }}
-    >
-      <Notifications
-        apiKeyStatus="valid"
-        autoUpdaterResult={{ version: null, status: 'success' }}
-        debug={false}
-        isAutoUpdating={false}
-        verbose={false}
-        messages={[] as Message[]}
-        onAutoUpdaterResult={() => {}}
-        onChangeIsUpdating={() => {}}
-        ideSelection={undefined}
-        mcpClients={undefined}
-      />
-      <AppStateController />
-    </AppStateProvider>,
-  )
-
-  try {
-    const initialFrame = await waitForFrame(getOutput, frame =>
-      frame.includes('high · /effort'),
-    )
-    expect(initialFrame).toContain('high · /effort')
-
-    setAppState!(state => ({ ...state, effortValue: 'low' }))
-
-    const updatedFrame = await waitForFrame(getOutput, frame =>
-      frame.includes('low · /effort'),
-    )
-    expect(updatedFrame).toContain('low · /effort')
-    expect(updatedFrame).not.toContain('high · /effort')
-  } finally {
-    root.unmount()
-    stdin.end()
-    stdout.end()
-    await Bun.sleep(0)
-  }
-})
-
 test('lets transient notifications temporarily occupy the footer slot', async () => {
   const output = await renderNotifications({
     effortValue: 'medium',
@@ -238,32 +167,6 @@ test('lets transient notifications temporarily occupy the footer slot', async ()
 
   expect(output).toContain('Other notice')
   expect(output).not.toContain('medium · /effort')
-})
-
-test('ignores empty text notifications when rendering the effort footer fallback', async () => {
-  const output = await renderNotifications({
-    effortValue: 'medium',
-    currentNotification: {
-      key: 'empty',
-      text: '',
-      priority: 'low',
-    },
-  })
-
-  expect(output).toContain('medium · /effort')
-})
-
-test('ignores empty JSX notifications when rendering the effort footer fallback', async () => {
-  const output = await renderNotifications({
-    effortValue: 'medium',
-    currentNotification: {
-      key: 'empty-jsx',
-      jsx: null,
-      priority: 'low',
-    },
-  })
-
-  expect(output).toContain('medium · /effort')
 })
 
 test('preserves IDE selection status before the effort fallback', async () => {

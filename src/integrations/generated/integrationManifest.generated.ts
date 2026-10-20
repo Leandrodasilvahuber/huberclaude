@@ -45,25 +45,11 @@ export const PROVIDER_PRESET_MANIFEST = [
     "apiKeyEnvVars": [
       "OPENROUTER_API_KEY"
     ]
-  },
-  {
-    "preset": "xai",
-    "routeKind": "vendor",
-    "routeId": "xai",
-    "vendorId": "xai",
-    "description": "xAI Grok OpenAI-compatible endpoint",
-    "apiKeyEnvVars": [
-      "XAI_API_KEY"
-    ],
-    "modelEnvVars": [
-      "OPENAI_MODEL"
-    ]
   }
 ] as const satisfies readonly ProviderPresetManifestEntry[]
 export type ProviderPreset = (typeof PROVIDER_PRESET_MANIFEST)[number]['preset']
 export const ORDERED_PROVIDER_PRESETS = [
   "anthropic",
   "openai",
-  "openrouter",
-  "xai"
+  "openrouter"
 ] as const

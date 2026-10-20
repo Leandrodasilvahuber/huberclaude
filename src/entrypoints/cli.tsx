@@ -273,9 +273,6 @@ type CliEntrypointImporters = {
   >
   settings: () => Promise<typeof import('../utils/settings/settings.js')>
   cliArgs: () => Promise<typeof import('../utils/cliArgs.js')>
-  githubModelsCredentials: () => Promise<
-    typeof import('../utils/githubModelsCredentials.js')
-  >
   startupScreen: () => Promise<typeof import('../components/StartupScreen.js')>
   earlyInput: () => Promise<typeof import('../utils/earlyInput.js')>
   main: () => Promise<typeof import('../main.js')>
@@ -295,8 +292,6 @@ const defaultCliEntrypointImporters: CliEntrypointImporters = {
   agentRouting: () => import('../services/api/agentRouting.js'),
   settings: () => import('../utils/settings/settings.js'),
   cliArgs: () => import('../utils/cliArgs.js'),
-  githubModelsCredentials: () =>
-    import('../utils/githubModelsCredentials.js'),
   startupScreen: () => import('../components/StartupScreen.js'),
   earlyInput: () => import('../utils/earlyInput.js'),
   main: () => import('../main.js'),
@@ -527,16 +522,6 @@ export async function main(
       await bg.handleBgFlag(args);
       return;
     }
-  }
-
-  // Hydrate GitHub credentials after profile is applied so CLAUDE_CODE_USE_GITHUB from profile is available
-  {
-    const {
-      hydrateGithubModelsTokenFromSecureStorage,
-      refreshGithubModelsTokenIfNeeded,
-    } = await importers.githubModelsCredentials()
-    await refreshGithubModelsTokenIfNeeded()
-    hydrateGithubModelsTokenFromSecureStorage()
   }
 
   // #808: --model alone (no --provider) — route to the env var matching the

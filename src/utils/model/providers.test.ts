@@ -182,15 +182,6 @@ test('explicit local openai-compatible base URLs stay on the openai provider', a
   expect(getAPIProvider()).toBe('openai')
 })
 
-test('codex aliases still resolve to the codex provider without a non-codex base URL', async () => {
-  clearProviderEnv()
-  process.env.CLAUDE_CODE_USE_OPENAI = '1'
-  process.env.OPENAI_MODEL = 'codexplan'
-
-  const { getAPIProvider } = await importFreshProvidersModule()
-  expect(getAPIProvider()).toBe('codex')
-})
-
 test('XAI_API_KEY resolves to the xai provider', async () => {
   clearProviderEnv()
   process.env.CLAUDE_CODE_USE_OPENAI = '1'
@@ -247,18 +238,6 @@ test('env-only MiniMax API key resolves to the minimax provider', async () => {
 
   const { getAPIProvider } = await importFreshProvidersModule()
   expect(getAPIProvider()).toBe('minimax')
-})
-
-test('Anthropic-compatible MiniMax profile resolves to the minimax provider', async () => {
-  clearProviderEnv()
-  process.env.ANTHROPIC_BASE_URL = 'https://api.minimax.io/anthropic'
-  process.env.ANTHROPIC_API_KEY = 'minimax-key'
-  process.env.ANTHROPIC_MODEL = 'MiniMax-M2.7'
-
-  const { getAPIProvider, usesAnthropicAccountFlow } =
-    await importFreshProvidersModule()
-  expect(getAPIProvider()).toBe('minimax')
-  expect(usesAnthropicAccountFlow()).toBe(false)
 })
 
 test('conflicting OpenAI base prevents env-only MiniMax provider label', async () => {

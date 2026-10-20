@@ -146,7 +146,6 @@ Além dos comandos padrão do agente (`/clear`, `/compact`, `/resume`,
 | `/model` | Escolhe um modelo do OpenRouter |
 | `/usage` | Saldo e gasto no OpenRouter, mostrados como marcador de combustível |
 | `/search` | Escolhe o backend de busca na web (Exa por padrão) ou adiciona uma chave de API de busca |
-| `/buddy` | Choca um companheiro em pixel art ao lado do prompt |
 
 ### Retomar ou ramificar uma conversa
 

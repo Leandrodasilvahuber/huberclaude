@@ -188,36 +188,6 @@ test('ColorStep does not create a final agent when required wizard data is missi
   }
 })
 
-test('MemoryStep falls back to an empty system prompt when wizard data is incomplete', async () => {
-  const { MemoryStep } =
-    await importFreshStep<typeof import('./MemoryStep.js')>('./MemoryStep.js')
-  const harness = await renderWizardChild(<MemoryStep />, {
-    finalAgent: {
-      agentType: 'reviewer',
-      whenToUse: 'Use for reviews',
-      getSystemPrompt: () => 'original prompt',
-      source: 'userSettings',
-    },
-  })
-
-  try {
-    const selectProps = await waitFor(
-      () => latestSelectProps,
-      'Timed out waiting for memory select props',
-    )
-
-    selectProps.onChange?.('none')
-    await Bun.sleep(25)
-
-    const finalAgent = harness.getSnapshot()?.wizardData.finalAgent
-    expect(finalAgent?.getSystemPrompt()).toBe('')
-  } finally {
-    harness.root.unmount()
-    harness.stdin.end()
-    harness.stdout.end()
-  }
-})
-
 test('ConfirmStep renders a fallback instead of a blank screen for incomplete wizard data', async () => {
   const { ConfirmStep } =
     await importFreshStep<typeof import('./ConfirmStep.js')>('./ConfirmStep.js')

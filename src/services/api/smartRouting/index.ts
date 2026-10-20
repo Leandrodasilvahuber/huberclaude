@@ -183,7 +183,7 @@ export function resetRoutingTally(): void {
 }
 
 /**
- * Format the session routing summary for `/cost`. Returns null when nothing has
+ * Format the session routing summary for the exit cost summary. Returns null when nothing has
  * been routed. The split and escalation count are always shown (the falsifiable
  * core); the estimated-savings line is gated on first-party pricing for both
  * roles and is annotated as unavailable when either price is unknown.
@@ -211,7 +211,7 @@ export function formatRoutingSummary(
 }
 
 /**
- * Build the `/cost` routing summary from the live tally and the configured
+ * Build the exit cost summary's routing section from the live tally and the configured
  * roles' first-party pricing.
  */
 export function getRoutingSummaryForDisplay(settings: SettingsJson | null): string | null {

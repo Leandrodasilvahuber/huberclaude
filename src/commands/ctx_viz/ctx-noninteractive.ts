@@ -242,7 +242,7 @@ export function renderCtxReport(d: RenderInput): string {
     lines.push('')
   }
 
-  lines.push(chalk.dim(`  ${figures.info} Run /context for detailed grid view, /cost for pricing, /stats for history`))
+  lines.push(chalk.dim(`  ${figures.info} Run /context for detailed grid view, /stats for history`))
   lines.push('')
 
   return lines.join('\n')

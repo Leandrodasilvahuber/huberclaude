@@ -10,7 +10,6 @@ import {
 } from '../errors.ts'
 import { createOpenAIShimClient } from '../openaiShim.ts'
 import { formatRetryAfterHint, sleepMs } from './requestExecutor.js'
-import * as realGithubModelsCredentials from '../../../utils/githubModelsCredentials.js'
 
 type FetchType = typeof globalThis.fetch
 

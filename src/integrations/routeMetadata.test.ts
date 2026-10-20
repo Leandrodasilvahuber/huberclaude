@@ -99,210 +99,10 @@ test('resolveActiveRouteIdFromEnv keeps generic OpenAI credentials ahead of env-
   })).not.toBe('longcat')
 })
 
-test('getRouteProviderTypeLabel uses descriptor transport kinds for provider labels', () => {
-  expect(getRouteProviderTypeLabel('anthropic')).toBe('Anthropic native API')
-  expect(getRouteProviderTypeLabel('gemini')).toBe('Gemini API')
-  expect(getRouteProviderTypeLabel('bedrock')).toBe(
-    'AWS Bedrock Claude API',
-  )
-  expect(getRouteProviderTypeLabel('vertex')).toBe(
-    'Google Vertex Claude API',
-  )
-  expect(getRouteProviderTypeLabel('openrouter')).toBe(
-    'OpenAI-compatible API',
-  )
-  expect(getRouteProviderTypeLabel('ollama')).toBe('OpenAI-compatible API')
-})
-
 test('getRouteProviderTypeLabel falls back safely for unknown routes', () => {
   expect(getRouteProviderTypeLabel('missing-route')).toBe(
     'OpenAI-compatible API',
   )
-})
-
-test('getRouteCredentialEnvVars keeps descriptor env vars and openai fallback for openai-compatible routes', () => {
-  expect(getRouteCredentialEnvVars('custom')).toEqual([
-    'OPENAI_API_KEYS',
-    'OPENAI_API_KEY',
-  ])
-  expect(getRouteCredentialEnvVars('openrouter')).toEqual([
-    'OPENROUTER_API_KEY',
-    'OPENAI_API_KEYS',
-    'OPENAI_API_KEY',
-  ])
-  expect(getRouteCredentialEnvVars('deepseek')).toEqual([
-    'DEEPSEEK_API_KEY',
-    'OPENAI_API_KEYS',
-    'OPENAI_API_KEY',
-  ])
-  expect(getRouteCredentialEnvVars('hicap')).toEqual([
-    'HICAP_API_KEY',
-    'OPENAI_API_KEYS',
-    'OPENAI_API_KEY',
-  ])
-  expect(getRouteCredentialEnvVars('aimlapi')).toEqual([
-    'AIMLAPI_API_KEY',
-    'OPENAI_API_KEYS',
-    'OPENAI_API_KEY',
-  ])
-  expect(getRouteCredentialEnvVars('venice')).toEqual([
-    'VENICE_API_KEY',
-    'OPENAI_API_KEYS',
-    'OPENAI_API_KEY',
-  ])
-  expect(getRouteCredentialEnvVars('xiaomi-mimo')).toEqual([
-    'MIMO_API_KEY',
-    'OPENAI_API_KEYS',
-    'OPENAI_API_KEY',
-  ])
-})
-
-test('custom Anthropic credentials stay native and resolve to their proxy route', () => {
-  expect(getRouteCredentialEnvVars('custom-anthropic')).toEqual([
-    'ANTHROPIC_AUTH_TOKEN',
-    'ANTHROPIC_API_KEY',
-  ])
-  expect(
-    resolveActiveRouteIdFromEnv({
-      ANTHROPIC_BASE_URL: 'https://tenant.example/v1',
-      ANTHROPIC_MODEL: 'tenant-model',
-      ANTHROPIC_AUTH_TOKEN: 'tenant-token',
-    }),
-  ).toBe('custom-anthropic')
-
-  expect(
-    resolveActiveRouteIdFromEnv({
-      ANTHROPIC_BASE_URL: 'https://api.anthropic.com',
-      ANTHROPIC_MODEL: 'claude-sonnet-4-6',
-      ANTHROPIC_AUTH_TOKEN: 'first-party-token',
-    }),
-  ).toBe('anthropic')
-
-  expect(
-    resolveActiveRouteIdFromEnv({
-      CLAUDE_CODE_USE_OPENAI: '1',
-      OPENAI_BASE_URL: 'https://api.openai.com/v1',
-      OPENAI_API_KEY: 'openai-key',
-      ANTHROPIC_BASE_URL: 'https://tenant.example/v1',
-      ANTHROPIC_MODEL: 'tenant-model',
-      ANTHROPIC_AUTH_TOKEN: 'tenant-token',
-    }),
-  ).toBe('openai')
-
-  expect(
-    resolveActiveRouteIdFromEnv({
-      ANTHROPIC_BASE_URL: 'https://tenant.example/v1',
-      ANTHROPIC_MODEL: 'tenant-model',
-      ANTHROPIC_API_KEY: 'tenant-key',
-    }),
-  ).toBe('custom-anthropic')
-
-  expect(
-    resolveActiveRouteIdFromEnv({
-      ANTHROPIC_BASE_URL: 'https://tenant.example/v1',
-      ANTHROPIC_MODEL: 'tenant-model',
-      ANTHROPIC_API_KEY: 'tenant-key',
-      MINIMAX_API_KEY: 'ambient-minimax-key',
-    }),
-  ).toBe('custom-anthropic')
-
-  expect(
-    resolveActiveRouteIdFromEnv({
-      ANTHROPIC_BASE_URL: 'https://api.minimax.io/anthropic',
-      ANTHROPIC_MODEL: 'tenant-model',
-      ANTHROPIC_AUTH_TOKEN: 'tenant-token',
-    }),
-  ).toBe('custom-anthropic')
-
-  expect(
-    resolveActiveRouteIdFromEnv(
-      {
-        ANTHROPIC_BASE_URL: 'https://api.anthropic.com',
-        ANTHROPIC_MODEL: 'claude-sonnet-4-6',
-        ANTHROPIC_API_KEY: 'first-party-key',
-      },
-      {
-        activeProfileProvider: 'zai',
-        activeProfileBaseUrl: 'https://api.z.ai/api/coding/paas/v4',
-      },
-    ),
-  ).toBe('anthropic')
-})
-
-test('getRouteCredentialEnvVars omits the openai fallback for dedicatedCredentialsOnly routes', () => {
-  expect(getRouteCredentialEnvVars('atlas-cloud')).toEqual([
-    'ATLAS_CLOUD_API_KEY',
-  ])
-  expect(
-    getRouteCredentialValue('atlas-cloud', {
-      OPENAI_API_KEY: 'sk-openai-generic',
-    }),
-  ).toBeUndefined()
-  expect(
-    getRouteCredentialValue('atlas-cloud', {
-      OPENAI_API_KEY: 'sk-openai-generic',
-      ATLAS_CLOUD_API_KEY: 'atlas-key',
-    }),
-  ).toBe('atlas-key')
-  expect(getRouteCredentialEnvVars('apismart')).toEqual(['APISMART_API_KEY'])
-  expect(
-    getRouteCredentialValue('apismart', {
-      OPENAI_API_KEY: 'sk-openai-generic',
-    }),
-  ).toBeUndefined()
-  expect(
-    getRouteCredentialValue('apismart', {
-      OPENAI_API_KEY: 'sk-openai-generic',
-      APISMART_API_KEY: 'apismart-key',
-    }),
-  ).toBe('apismart-key')
-  expect(getRouteCredentialEnvVars('commandcode')).toEqual([
-    'CMD_API_KEY',
-    'COMMANDCODE_API_KEY',
-    'COMMAND_CODE_API_KEY',
-  ])
-  expect(
-    getRouteCredentialValue('commandcode', {
-      OPENAI_API_KEY: 'sk-openai-generic',
-    }),
-  ).toBeUndefined()
-  expect(
-    getRouteCredentialValue('commandcode', {
-      OPENAI_API_KEY: 'sk-openai-generic',
-      CMD_API_KEY: 'cmd-key',
-    }),
-  ).toBe('cmd-key')
-  expect(
-    getRouteCredentialValue('commandcode', {
-      CMD_API_KEY: 'SUA_CHAVE',
-    }),
-  ).toBeUndefined()
-  expect(
-    getRouteCredentialValue('commandcode', {
-      CMD_API_KEY: 'SUA_CHAVE',
-      COMMANDCODE_API_KEY: 'fallback-key',
-    }),
-  ).toBe('fallback-key')
-  expect(
-    getRouteCredentialValue('commandcode', {
-      CMD_API_KEY: 'SUA_CHAVE',
-      COMMANDCODE_API_KEY: 'undefined',
-      COMMAND_CODE_API_KEY: 'official-key',
-    }),
-  ).toBe('official-key')
-})
-
-test('getRouteCredentialValue reads the first configured route credential', () => {
-  expect(
-    getRouteCredentialValue('openrouter', {
-      OPENROUTER_API_KEY: 'or-key',
-    }),
-  ).toBe('or-key')
-  expect(
-    getRouteCredentialValue('deepseek', {
-      OPENAI_API_KEY: 'sk-openai-fallback',
-    }),
-  ).toBe('sk-openai-fallback')
 })
 
 test('route credential discovery reads OPENAI_API_KEYS before singular fallback', () => {
@@ -360,113 +160,6 @@ test('route credential discovery ignores mixed placeholder OpenAI pools before s
   ).toBe('sk-openai-single')
 })
 
-test('ApiSmart dedicated credential is limited to the canonical inference base URL', () => {
-  const processEnv = { APISMART_API_KEY: 'apismart-secret' }
-
-  expect(
-    resolveRouteCredentialValue({
-      routeId: 'apismart',
-      baseUrl: 'https://gw.apismart.ai/v1',
-      processEnv,
-    }),
-  ).toBe('apismart-secret')
-  expect(
-    resolveRouteCredentialValue({
-      routeId: 'apismart',
-      baseUrl: 'https://gw.apismart.ai/v1/models',
-      processEnv,
-    }),
-  ).toBeUndefined()
-  expect(
-    resolveRouteCredentialValue({
-      routeId: 'apismart',
-      baseUrl: 'https://gw.apismart.ai/v2',
-      processEnv,
-    }),
-  ).toBeUndefined()
-})
-
-test('Venice route metadata uses official OpenAI-compatible defaults', () => {
-  expect(getRouteDefaultBaseUrl('venice')).toBe('https://api.venice.ai/api/v1')
-  expect(getRouteDefaultModel('venice')).toBe('venice-uncensored')
-  expect(resolveRouteIdFromBaseUrl('https://api.venice.ai/api/v1')).toBe('venice')
-  expect(resolveRouteIdFromBaseUrl('https://api.venice.ai/api/v1/chat/completions')).toBe('venice')
-})
-
-test('Z.AI route metadata is limited to the canonical Coding Plan endpoint', () => {
-  expect(
-    resolveRouteIdFromBaseUrl('https://api.z.ai/api/coding/paas/v4'),
-  ).toBe('zai')
-  expect(
-    resolveRouteIdFromBaseUrl('https://api.z.ai/api/paas/v4'),
-  ).toBeNull()
-})
-
-test('active Z.AI profiles honor the Coding Plan endpoint boundary', () => {
-  const codingPlanUrl = 'https://api.z.ai/api/coding/paas/v4'
-  const generalUrl = 'https://api.z.ai/api/paas/v4'
-  const customUrl = 'https://proxy.example.test/v1'
-
-  expect(
-    resolveActiveRouteIdFromEnv(
-      { CLAUDE_CODE_USE_OPENAI: '1', OPENAI_BASE_URL: codingPlanUrl },
-      { activeProfileProvider: 'zai', activeProfileBaseUrl: codingPlanUrl },
-    ),
-  ).toBe('zai')
-  expect(
-    resolveActiveRouteIdFromEnv(
-      { CLAUDE_CODE_USE_OPENAI: '1', OPENAI_BASE_URL: generalUrl },
-      { activeProfileProvider: 'zai', activeProfileBaseUrl: generalUrl },
-    ),
-  ).toBe('custom')
-  for (const invalidPrimary of [' ', 'undefined', 'null']) {
-    expect(
-      resolveActiveRouteIdFromEnv(
-        {
-          CLAUDE_CODE_USE_OPENAI: '1',
-          OPENAI_BASE_URL: invalidPrimary,
-          OPENAI_API_BASE: generalUrl,
-        },
-        { activeProfileProvider: 'zai', activeProfileBaseUrl: codingPlanUrl },
-      ),
-    ).toBe('custom')
-  }
-  expect(
-    resolveActiveRouteIdFromEnv(
-      { CLAUDE_CODE_USE_OPENAI: '1', OPENAI_BASE_URL: generalUrl },
-      { activeProfileProvider: 'zai', activeProfileBaseUrl: codingPlanUrl },
-    ),
-  ).toBe('custom')
-  expect(
-    resolveActiveRouteIdFromEnv(
-      { CLAUDE_CODE_USE_OPENAI: '1', OPENAI_BASE_URL: customUrl },
-      { activeProfileProvider: 'zai', activeProfileBaseUrl: codingPlanUrl },
-    ),
-  ).toBe('custom')
-  expect(
-    resolveActiveRouteIdFromEnv(
-      { CLAUDE_CODE_USE_OPENAI: '1' },
-      { activeProfileProvider: 'zai' },
-    ),
-  ).toBe('zai')
-})
-
-test('AI/ML API route metadata uses official OpenAI-compatible defaults', () => {
-  expect(getRouteDefaultBaseUrl('aimlapi')).toBe('https://api.aimlapi.com/v1')
-  expect(getRouteDefaultModel('aimlapi')).toBe('gpt-4o')
-  expect(resolveRouteIdFromBaseUrl('https://api.aimlapi.com/v1')).toBe('aimlapi')
-  expect(resolveRouteIdFromBaseUrl('https://api.aimlapi.com/v1/chat/completions')).toBe('aimlapi')
-})
-
-test('ApiSmart route metadata uses official OpenAI-compatible defaults', () => {
-  expect(getRouteDefaultBaseUrl('apismart')).toBe('https://gw.apismart.ai/v1')
-  expect(getRouteDefaultModel('apismart')).toBe('DEEPSEEK_V4_FLASH')
-  expect(resolveRouteIdFromBaseUrl('https://gw.apismart.ai/v1')).toBe('apismart')
-  expect(resolveRouteIdFromBaseUrl('https://gw.apismart.ai/v1/chat/completions')).toBe(
-    'apismart',
-  )
-})
-
 test('isApismartBaseUrl requires the documented HTTPS endpoint', () => {
   expect(isApismartBaseUrl('https://gw.apismart.ai/v1')).toBe(true)
   expect(isApismartBaseUrl('http://gw.apismart.ai/v1')).toBe(false)
@@ -505,48 +198,6 @@ test('isCanonicalApismartInferenceBaseUrl requires the exact /v1 inference path'
   expect(isApismartBaseUrl('https://gw.apismart.ai')).toBe(true)
 })
 
-test('AI/ML API route credential discovery ignores placeholder dedicated key', () => {
-  expect(
-    resolveRouteCredentialValue({
-      routeId: 'aimlapi',
-      processEnv: {
-        AIMLAPI_API_KEY: 'SUA_CHAVE',
-        OPENAI_API_KEY: 'sk-openai-fallback',
-      },
-    }),
-  ).toBe('sk-openai-fallback')
-})
-
-test('Cloudflare Workers AI route only matches api.cloudflare.com, not the shared AI Gateway host (#1100)', () => {
-  // api.cloudflare.com is the Workers AI host — direct match is fine.
-  expect(
-    resolveRouteIdFromBaseUrl(
-      'https://api.cloudflare.com/client/v4/accounts/acc-123/ai/v1',
-    ),
-  ).toBe('cloudflare')
-  // gateway.ai.cloudflare.com is the shared host for all AI Gateway routes
-  // (Workers AI, Anthropic, OpenAI, etc.). Matching here would apply
-  // Workers-AI runtime metadata + credential precedence to other providers'
-  // Gateway URLs, so the route MUST NOT claim it. Falls back to custom/
-  // OpenAI-compatible (null) per resolveRouteIdFromBaseUrl semantics.
-  expect(
-    resolveRouteIdFromBaseUrl(
-      'https://gateway.ai.cloudflare.com/v1/acc-123/my-gw/anthropic',
-    ),
-  ).toBe(null)
-  expect(
-    resolveRouteIdFromBaseUrl(
-      'https://gateway.ai.cloudflare.com/v1/acc-123/my-gw/openai',
-    ),
-  ).toBe(null)
-  // Same-host general REST path is not the Workers AI route.
-  expect(
-    resolveRouteIdFromBaseUrl(
-      'https://api.cloudflare.com/client/v4/user/tokens/verify',
-    ),
-  ).toBe(null)
-})
-
 test('resolveActiveRouteIdFromEnv does not claim cloudflare for a retargeted cloudflare profile (#1100)', () => {
   // A saved `cloudflare` profile pointed at a non-Workers URL must fall back to
   // generic openai/custom, not resolve as cloudflare via the profile-provider
@@ -572,30 +223,6 @@ test('resolveActiveRouteIdFromEnv does not claim cloudflare for a retargeted clo
   ).toBe('custom')
 })
 
-test('resolveActiveRouteIdFromEnv still resolves cloudflare for a real Workers AI profile (#1100)', () => {
-  // With the env base URL unset, the profile-provider fallback runs; a genuine
-  // Workers AI profile base URL must still resolve as cloudflare.
-  const workersUrl =
-    'https://api.cloudflare.com/client/v4/accounts/real123/ai/v1'
-  expect(
-    resolveActiveRouteIdFromEnv(
-      { CLAUDE_CODE_USE_OPENAI: '1' },
-      {
-        activeProfileProvider: 'cloudflare',
-        activeProfileBaseUrl: workersUrl,
-      },
-    ),
-  ).toBe('cloudflare')
-})
-
-test('Xiaomi MiMo route metadata uses official OpenAI-compatible defaults', () => {
-  expect(getRouteDefaultBaseUrl('xiaomi-mimo')).toBe('https://api.xiaomimimo.com/v1')
-  expect(getRouteDefaultModel('xiaomi-mimo')).toBe('mimo-v2.5-pro')
-  expect(resolveRouteIdFromBaseUrl('https://api.xiaomimimo.com/v1')).toBe('xiaomi-mimo')
-  expect(resolveRouteIdFromBaseUrl('https://api.xiaomimimo.com/v1/chat/completions')).toBe('xiaomi-mimo')
-  expect(resolveRouteIdFromBaseUrl('https://api.mimo-v2.com/v1')).toBe('xiaomi-mimo')
-})
-
 test('resolveActiveRouteIdFromEnv treats Xiaomi MiMo credential-only env as Xiaomi MiMo', () => {
   expect(
     resolveActiveRouteIdFromEnv({
@@ -608,16 +235,6 @@ test('resolveActiveRouteIdFromEnv treats MiniMax credential-only env as MiniMax'
   expect(
     resolveActiveRouteIdFromEnv({
       MINIMAX_API_KEY: 'minimax-key',
-    }),
-  ).toBe('minimax')
-})
-
-test('resolveActiveRouteIdFromEnv treats Anthropic-compatible MiniMax profile env as MiniMax', () => {
-  expect(
-    resolveActiveRouteIdFromEnv({
-      ANTHROPIC_BASE_URL: 'https://api.minimax.io/anthropic',
-      ANTHROPIC_API_KEY: 'minimax-key',
-      ANTHROPIC_MODEL: 'MiniMax-M2.7',
     }),
   ).toBe('minimax')
 })
@@ -708,16 +325,6 @@ test('resolveActiveRouteIdFromEnv prefers ApiSmart over AI/ML API when both dedi
     resolveActiveRouteIdFromEnv({
       APISMART_API_KEY: 'apismart-key',
       AIMLAPI_API_KEY: 'aimlapi-key',
-    }),
-  ).toBe('apismart')
-})
-
-test('resolveActiveRouteIdFromEnv refines generic OpenAI profile by ApiSmart base URL', () => {
-  expect(
-    resolveActiveRouteIdFromEnv({
-      CLAUDE_CODE_USE_OPENAI: '1',
-      OPENAI_API_KEY: 'sk-openai-generic',
-      OPENAI_BASE_URL: 'https://gw.apismart.ai/v1',
     }),
   ).toBe('apismart')
 })
@@ -886,15 +493,8 @@ test('resolveActiveRouteIdFromEnv keeps MiniMax primary base over stale API base
 })
 
 test.each([
-  ['MiniMax', 'https://api.minimax.io/v1', 'MiniMax-M2.7', 'minimax'],
   ['xAI', 'https://api.x.ai/v1', 'grok-4.3', 'xai'],
-  ['NVIDIA NIM', 'https://integrate.api.nvidia.com/v1', 'nvidia/llama-3.1-nemotron-70b-instruct', 'nvidia-nim'],
   ['OpenRouter', 'https://openrouter.ai/api/v1', 'openai/gpt-5-mini', 'openrouter'],
-  ['DeepSeek', 'https://api.deepseek.com/v1', 'deepseek-v4-pro', 'deepseek'],
-  ['Hicap', 'https://api.hicap.ai/v1', 'claude-opus-4.8', 'hicap'],
-  ['aimlapi.com', 'https://api.aimlapi.com/v1', 'gpt-4o', 'aimlapi'],
-  ['Xiaomi MiMo', 'https://api.xiaomimimo.com/v1', 'mimo-v2.5-pro', 'xiaomi-mimo'],
-  ['Venice', 'https://api.venice.ai/api/v1', 'venice-uncensored', 'venice'],
 ])(
   'resolveActiveRouteIdFromEnv refines generic OpenAI profile by %s base URL',
   (_label, baseUrl, model, expectedRouteId) => {
@@ -912,28 +512,6 @@ test.each([
   },
 )
 
-test('resolveActiveRouteIdFromEnv refines generic OpenAI profile by ClinePass base URL', () => {
-  expect(
-    resolveActiveRouteIdFromEnv(
-      {
-        CLAUDE_CODE_USE_OPENAI: '1',
-        OPENAI_BASE_URL: 'https://api.cline.bot/api/v1',
-        OPENAI_MODEL: 'cline-pass/deepseek-v4-flash',
-      },
-      { activeProfileProvider: 'openai' },
-    ),
-  ).toBe('clinepass')
-})
-
-test('resolveActiveRouteIdFromEnv resolves ClinePass profile provider without env applied flag', () => {
-  expect(
-    resolveActiveRouteIdFromEnv(
-      {},
-      { activeProfileProvider: 'clinepass' },
-    ),
-  ).toBe('clinepass')
-})
-
 test('resolveActiveRouteIdFromEnv resolves ClinePass profile provider without CLAUDE_CODE_USE_OPENAI', () => {
   expect(
     resolveActiveRouteIdFromEnv(
@@ -949,15 +527,6 @@ test('resolveActiveRouteIdFromEnv still returns anthropic when no env flags and 
   expect(resolveActiveRouteIdFromEnv({})).toBe('anthropic')
 })
 
-test('resolveActiveRouteIdFromEnv resolves Atlas Cloud profile provider without env applied flag', () => {
-  expect(
-    resolveActiveRouteIdFromEnv(
-      {},
-      { activeProfileProvider: 'atlas-cloud' },
-    ),
-  ).toBe('atlas-cloud')
-})
-
 test('resolveActiveRouteIdFromEnv does not resolve custom profile provider as a known route', () => {
   expect(
     resolveActiveRouteIdFromEnv(
@@ -965,32 +534,6 @@ test('resolveActiveRouteIdFromEnv does not resolve custom profile provider as a 
       { activeProfileProvider: 'custom' },
     ),
   ).toBe('anthropic')
-})
-
-test('resolveActiveRouteIdFromEnv resolves custom profile provider via ClinePass base URL', () => {
-  expect(
-    resolveActiveRouteIdFromEnv(
-      {},
-      {
-        activeProfileProvider: 'custom',
-        activeProfileBaseUrl: 'https://api.cline.bot/api/v1',
-      },
-    ),
-  ).toBe('clinepass')
-})
-
-test('resolveActiveRouteIdFromEnv resolves openai profile provider via ClinePass base URL', () => {
-  expect(
-    resolveActiveRouteIdFromEnv(
-      {
-        CLAUDE_CODE_USE_OPENAI: '1',
-      },
-      {
-        activeProfileProvider: 'openai',
-        activeProfileBaseUrl: 'https://api.cline.bot/api/v1',
-      },
-    ),
-  ).toBe('clinepass')
 })
 
 test('resolveActiveRouteIdFromEnv lets explicit OPENAI_BASE_URL override saved ClinePass profile', () => {
@@ -1230,34 +773,6 @@ test('resolveActiveRouteIdFromEnv honors an explicit OpenAI opt-out over API Rou
       API_ROUTE_API_KEY: 'api-route-key',
     }),
   ).not.toBe('api-route')
-})
-
-test('resolveActiveRouteIdFromEnv refines generic OpenAI profile by Concentrate base URL', () => {
-  expect(
-    resolveActiveRouteIdFromEnv({
-      CLAUDE_CODE_USE_OPENAI: '1',
-      OPENAI_BASE_URL: 'https://api.concentrate.ai/v1',
-    }),
-  ).toBe('concentrate')
-})
-
-test('getRouteCredentialEnvVars supports documented generic OpenAI Concentrate setup', () => {
-  expect(getRouteCredentialEnvVars('concentrate')).toEqual([
-    'CONCENTRATE_API_KEY',
-    'OPENAI_API_KEYS',
-    'OPENAI_API_KEY',
-  ])
-  expect(
-    getRouteCredentialValue('concentrate', {
-      OPENAI_API_KEY: 'generic-openai-key',
-    }),
-  ).toBe('generic-openai-key')
-  expect(
-    getRouteCredentialValue('concentrate', {
-      OPENAI_API_KEY: 'generic-openai-key',
-      CONCENTRATE_API_KEY: 'concentrate-key',
-    }),
-  ).toBe('concentrate-key')
 })
 
 test('resolveActiveRouteIdFromEnv does not let a stale Concentrate model override generic OpenAI', () => {

@@ -711,18 +711,6 @@ describe('system-check WebSearch diagnostics', () => {
     )
   })
 
-  test('fails native mode for Codex aliases when the runtime tool gate rejects that provider', () => {
-    process.env.WEB_SEARCH_PROVIDER = 'native'
-    process.env.CLAUDE_CODE_USE_OPENAI = '1'
-    process.env.OPENAI_MODEL = 'codexspark'
-
-    expectWebSearchBackend(
-      false,
-      `WEB_SEARCH_PROVIDER=native selected, but codex provider does not support native web search. Configure ${reliableBackendHint}, or switch to an Anthropic, Vertex, Foundry, or Codex responses provider.`,
-      false,
-    )
-  })
-
   test('fails Firecrawl cloud mode when the API key is missing', () => {
     process.env.WEB_SEARCH_PROVIDER = 'firecrawl'
     process.env.FIRECRAWL_API_URL = 'https://api.firecrawl.dev'

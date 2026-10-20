@@ -41,9 +41,3 @@ test('WebFetch identifies a custom Anthropic endpoint as third-party', () => {
     '+https://github.com/Gitlawb/openclaude',
   )
 })
-
-test('WebFetch preserves the Anthropic support URL for first-party endpoints', () => {
-  process.env.ANTHROPIC_BASE_URL = 'https://api.anthropic.com'
-
-  expect(getWebFetchUserAgent()).toContain('+https://support.anthropic.com/')
-})

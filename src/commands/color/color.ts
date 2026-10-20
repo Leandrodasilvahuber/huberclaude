@@ -13,6 +13,7 @@ import {
   getTranscriptPath,
   saveAgentColor,
 } from '../../utils/sessionStorage.js'
+import { saveGlobalConfig } from '../../utils/config.js'
 import { isTeammate } from '../../utils/teammate.js'
 
 const RESET_ALIASES = ['default', 'reset', 'none', 'gray', 'grey'] as const
@@ -49,6 +50,7 @@ export async function call(
     // Use "default" sentinel (not empty string) so truthiness guards
     // in sessionStorage.ts persist the reset across session restarts
     await saveAgentColor(sessionId, 'default', fullPath)
+    saveGlobalConfig(c => ({ ...c, sessionColor: undefined }))
 
     context.setAppState(prev => ({
       ...prev,
@@ -77,6 +79,8 @@ export async function call(
 
   // Save to transcript for persistence across sessions
   await saveAgentColor(sessionId, colorArg, fullPath)
+  // Remember the choice so new sessions start with this color
+  saveGlobalConfig(c => ({ ...c, sessionColor: colorArg }))
 
   // Update AppState for immediate effect
   context.setAppState(prev => ({

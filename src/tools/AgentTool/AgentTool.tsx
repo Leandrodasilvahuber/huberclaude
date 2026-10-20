@@ -23,12 +23,6 @@ import { isAgentSwarmsEnabled } from '../../utils/agentSwarmsEnabled.js';
 import { getCwd, runWithCwdOverride } from '../../utils/cwd.js';
 import { logForDebugging } from '../../utils/debug.js';
 import { isEnvTruthy } from '../../utils/envUtils.js';
-import {
-  getCopilotMaxConcurrentSubagents,
-  isCopilotPremiumOptimizationEnabled,
-  shouldForceSyncSubagentsInCopilotMode,
-  shouldSuppressSubagentsInCopilotMode,
-} from '../../utils/copilotOptimization.js';
 import { AbortError, errorMessage, toError } from '../../utils/errors.js';
 import type { CacheSafeParams } from '../../utils/forkedAgent.js';
 import { lazySchema } from '../../utils/lazySchema.js';
@@ -564,7 +558,6 @@ export const AgentTool = buildTool({
       setAgentColor(selectedAgent.agentType, selectedAgent.color);
     }
 
-    const forceSyncCopilot = shouldForceSyncSubagentsInCopilotMode();
     const forcePlanModeSync = permissionMode === 'plan' || toolUseContext.getAppState().toolPermissionContext.mode === 'plan';
 
     // Use inline env check instead of coordinatorModule to avoid circular
@@ -587,15 +580,7 @@ export const AgentTool = buildTool({
     // Compute shouldRunAsync once, used by both the telemetry log below and
     // the actual run decision. Must be computed before the telemetry so the
     // reported is_async matches the actual execution mode.
-    if (shouldSuppressSubagentsInCopilotMode()) {
-      throw new Error(
-        `Sub-agents are disabled in GitHub Copilot mode to conserve Premium Requests. ` +
-        `Run this task directly instead of delegating to Agent('${selectedAgent.agentType}'). ` +
-        `To re-enable sub-agents, set GITHUB_COPILOT_MAX_SUBAGENTS=1, GITHUB_COPILOT_ALLOW_SUBAGENTS=1, ` +
-        `or GITHUB_COPILOT_OPTIMIZATION_DISABLED=1.`,
-      );
-    }
-    const shouldRunAsync = forceSyncCopilot || forcePlanModeSync
+    const shouldRunAsync = forcePlanModeSync
       ? false
       : (run_in_background === true || selectedAgent.background === true || isCoordinator || forceAsync || assistantForceAsync || (proactiveModule?.isProactiveActive() ?? false)) && !isBackgroundTasksDisabled;
 
@@ -694,37 +679,6 @@ export const AgentTool = buildTool({
       agentType: selectedAgent.agentType,
       isAsync: shouldRunAsync
     };
-    // Use inline env check instead of coordinatorModule to avoid circular
-    // dependency issues during test module loading.
-    // (isCoordinator / forceAsync / assistantForceAsync already computed
-    // above; shouldRunAsync is the single source of truth for the launch
-    // decision. Throws above are gone — they're at the top now.)
-    if (forceSyncCopilot) {
-      const reason = isEnvTruthy(process.env.GITHUB_COPILOT_FORCE_SYNC_SUBAGENTS)
-        ? 'GITHUB_COPILOT_FORCE_SYNC_SUBAGENTS=1'
-        : `GITHUB_COPILOT_MAX_SUBAGENTS=${getCopilotMaxConcurrentSubagents()} (concurrency capped)`;
-      // The remediation depends on the actual cause:
-      //   - FORCE_SYNC=1 → user must unset it (or set OPTIMIZATION_DISABLED=1)
-      //   - MAX=0 → sub-agents are suppressed (NOT just forced sync) — user must
-      //     raise MAX to >=1 or set ALLOW_SUBAGENTS=1
-      //   - MAX>=1 → sub-agents run synchronously one-at-a-time; to restore
-      //     parallel execution set ALLOW_SUBAGENTS=1 or OPTIMIZATION_DISABLED=1
-      const isForcedSync = isEnvTruthy(
-        process.env.GITHUB_COPILOT_FORCE_SYNC_SUBAGENTS,
-      );
-      const remediation = isForcedSync
-        ? 'Unset GITHUB_COPILOT_FORCE_SYNC_SUBAGENTS, or set GITHUB_COPILOT_OPTIMIZATION_DISABLED=1, ' +
-          'to allow background sub-agents.'
-        : getCopilotMaxConcurrentSubagents() === 0
-        ? 'Set GITHUB_COPILOT_MAX_SUBAGENTS=1 (or higher) along with GITHUB_COPILOT_ALLOW_SUBAGENTS=1, ' +
-          'or GITHUB_COPILOT_OPTIMIZATION_DISABLED=1, to allow background sub-agents.'
-        : 'Set GITHUB_COPILOT_ALLOW_SUBAGENTS=1, or GITHUB_COPILOT_OPTIMIZATION_DISABLED=1, ' +
-          'to allow background sub-agents.';
-      logForDebugging(
-        `[CopilotOptimization] Agent '${selectedAgent.agentType}' forced to synchronous execution ` +
-        `because ${reason}. ${remediation}`,
-      );
-    }
     // Assemble the worker's tool pool independently of the parent's.
     // Workers always get their tools from assembleToolPool with their own
     // permission mode, so they aren't affected by the parent's tool
@@ -1010,7 +964,7 @@ export const AgentTool = buildTool({
           type: 'background';
         }> | undefined;
         let cancelAutoBackground: (() => void) | undefined;
-        if (!isBackgroundTasksDisabled && !forceSyncCopilot && !forcePlanModeSync) {
+        if (!isBackgroundTasksDisabled && !forcePlanModeSync) {
           const registration = registerAgentForeground({
             agentId: syncAgentId,
             description,
@@ -1068,10 +1022,10 @@ export const AgentTool = buildTool({
             const elapsed = Date.now() - agentStartTime;
 
             // Show background hint after threshold (but task is already registered)
-            // Skip if background tasks are disabled or if Copilot mode is
-            // forcing synchronous execution (no foreground registration, so
-            // the hint would advertise a non-existent affordance).
-            if (!isBackgroundTasksDisabled && !forceSyncCopilot && !forcePlanModeSync && !backgroundHintShown && elapsed >= PROGRESS_THRESHOLD_MS && toolUseContext.setToolJSX) {
+            // Skip if background tasks are disabled or plan mode is forcing
+            // synchronous execution (no foreground registration, so the hint
+            // would advertise a non-existent affordance).
+            if (!isBackgroundTasksDisabled && !forcePlanModeSync && !backgroundHintShown && elapsed >= PROGRESS_THRESHOLD_MS && toolUseContext.setToolJSX) {
               backgroundHintShown = true;
               toolUseContext.setToolJSX({
                 jsx: <BackgroundHint />,
@@ -1479,17 +1433,7 @@ export const AgentTool = buildTool({
     return `${prefix}${i.prompt}`;
   },
   isConcurrencySafe() {
-    // When Copilot optimizations are disabled, sub-agents are fully
-    // unrestricted and can run concurrently.
-    if (!isCopilotPremiumOptimizationEnabled()) return true
-
-    // Align with the launch path: use shouldForceSyncSubagentsInCopilotMode()
-    // to decide whether the scheduler must serialize sub-agent calls.
-    // This prevents mismatches where the launch path allows async but the
-    // scheduler still serializes, or vice versa (e.g. ALLOW_SUBAGENTS=1
-    // makes launch async but scheduler serialized; FORCE_SYNC=1 + MAX=0
-    // made launch sync but scheduler treated it as concurrency-safe).
-    return !shouldForceSyncSubagentsInCopilotMode()
+    return true
   },
   userFacingName,
   userFacingNameBackgroundColor,

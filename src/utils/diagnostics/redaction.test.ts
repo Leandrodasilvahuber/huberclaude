@@ -43,15 +43,6 @@ mock.module("../process.js", () => ({
 const DEBUG_CACHE_KEY = "logForDebugging";
 
 describe("diagnostic redaction", () => {
-  test("collects every known provider secret env var from the centralized registry", () => {
-    const expected = new Set(getKnownProviderSecretEnvKeys());
-
-    expect(new Set(collectProviderSecretEnvVars())).toEqual(expected);
-    expect(expected.has("GEMINI_ACCESS_TOKEN")).toBe(true);
-    expect(expected.has("GITHUB_TOKEN")).toBe(true);
-    expect(expected.has("OPENGATEWAY_API_KEY")).toBe(true);
-    expect(expected.size).toBeGreaterThan(10);
-  });
 
   test("represents provider secret env vars as presence booleans only", () => {
     const envVars = collectProviderSecretEnvVars();

@@ -81,7 +81,6 @@ function useKeybindingWarnings(warnings, isReload) {
           message = `Found ${warnCount} keybinding ${plural(warnCount, "warning")}`;
         }
       }
-      message = message + " \xB7 /doctor for details";
       addNotification({
         key: "keybinding-config-warning",
         text: message,

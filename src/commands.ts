@@ -18,12 +18,10 @@ import commitPushPr from './commands/commit-push-pr.js'
 import compact from './commands/compact/index.js'
 import config from './commands/config/index.js'
 import { context, contextNonInteractive } from './commands/context/index.js'
-import cost from './commands/cost/index.js'
 import diff from './commands/diff/index.js'
 import diagnostics from './commands/diagnostics/index.js'
 import dream from './commands/dream/index.js'
 import ctx_viz from './commands/ctx_viz/index.js'
-import doctor from './commands/doctor/index.js'
 import knowledge from './commands/knowledge/index.js'
 import memory from './commands/memory/index.js'
 import repomap from './commands/repomap/index.js'
@@ -39,7 +37,6 @@ import logout from './commands/logout/index.js'
 import installGitHubApp from './commands/install-github-app/index.js'
 import installSlackApp from './commands/install-slack-app/index.js'
 import breakCache from './commands/break-cache/index.js'
-import cacheStats from './commands/cacheStats/index.js'
 import mcp from './commands/mcp/index.js'
 import mobile from './commands/mobile/index.js'
 import onboarding from './commands/onboarding/index.js'
@@ -76,7 +73,6 @@ import usage from './commands/usage/index.js'
 import theme from './commands/theme/index.js'
 import vim from './commands/vim/index.js'
 import { feature } from 'bun:bundle'
-import { isBuddyEnabled } from './buddy/feature.js'
 // Dead code elimination: conditional imports
 /* eslint-disable @typescript-eslint/no-require-imports */
 const proactive =
@@ -127,11 +123,6 @@ const peersCmd = feature('UDS_INBOX')
       require('./commands/peers/index.js') as typeof import('./commands/peers/index.js')
     ).default
   : null
-const buddy = isBuddyEnabled()
-  ? (
-      require('./commands/buddy/index.js') as typeof import('./commands/buddy/index.js')
-    ).default
-  : null
 /* eslint-enable @typescript-eslint/no-require-imports */
 import thinkback from './commands/thinkback/index.js'
 import thinkbackPlay from './commands/thinkback-play/index.js'
@@ -165,7 +156,6 @@ import sandboxToggle from './commands/sandbox-toggle/index.js'
 import chrome from './commands/chrome/index.js'
 import stickers from './commands/stickers/index.js'
 import advisor from './commands/advisor.js'
-import ads from './commands/ads.js'
 import smartroute from './commands/smartroute/index.js'
 import { logError } from './utils/log.js'
 import { toError } from './utils/errors.js'
@@ -277,7 +267,6 @@ export const INTERNAL_ONLY_COMMANDS = [
 const COMMANDS = memoize((): Command[] => [
   addDir,
   advisor,
-  ads,
   smartroute,
   agents,
   autoFix,
@@ -286,7 +275,6 @@ const COMMANDS = memoize((): Command[] => [
   bughunterSecurity,
   bughunterPerf,
   btw,
-  cacheStats,
   chrome,
   clear,
   clearContextWindow,
@@ -299,12 +287,10 @@ const COMMANDS = memoize((): Command[] => [
   desktop,
   context,
   contextNonInteractive,
-  cost,
   ctx_viz,
   diff,
   diagnostics,
   dream,
-  doctor,
   effort,
   exit,
   fast,
@@ -362,7 +348,6 @@ const COMMANDS = memoize((): Command[] => [
   vim,
   wiki,
   ...(webCmd ? [webCmd] : []),
-  ...(buddy ? [buddy] : []),
   ...(proactive ? [proactive] : []),
   ...(briefCommand ? [briefCommand] : []),
   ...(assistantCommand ? [assistantCommand] : []),
@@ -676,7 +661,6 @@ export const REMOTE_SAFE_COMMANDS: Set<Command> = new Set([
   theme, // Change terminal theme
   color, // Change agent color
   vim, // Toggle vim mode
-  cost, // Show session cost (local cost tracking)
   ctx_viz, // Context window usage
   usage, // Show usage info
   copy, // Copy last message
@@ -706,7 +690,6 @@ export const BRIDGE_SAFE_COMMANDS: Set<Command> = new Set(
   [
     compact, // Shrink context — useful mid-session from a phone
     clear, // Wipe transcript
-    cost, // Show session cost
     ctx_viz, // Context window usage
     summary, // Summarize conversation
     releaseNotes, // Show changelog

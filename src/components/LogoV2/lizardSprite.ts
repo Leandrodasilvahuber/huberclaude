@@ -78,7 +78,7 @@ export function getLizardRows(): LizardCell[][] {
   return toCells(LIZARD_PIXELS, i => LIZARD_PALETTE[i]!)
 }
 
-/** Terminal rows for the star sprite. */
-export function getStarRows(): LizardCell[][] {
-  return toCells(STAR_PIXELS, i => STAR_PALETTE[i]!)
+/** Terminal rows for the star sprite, optionally tinted with a single color. */
+export function getStarRows(tint?: string): LizardCell[][] {
+  return toCells(STAR_PIXELS, i => tint ?? STAR_PALETTE[i]!)
 }

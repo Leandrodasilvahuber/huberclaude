@@ -105,7 +105,7 @@ export interface CacheConfig {
 export type ModelCatalogSource = 'static' | 'dynamic' | 'hybrid'
 export type DurationString = `${number}m` | `${number}h` | `${number}d`
 export type DiscoveryRefreshMode = 'manual' | 'on-open' | 'background-if-stale' | 'startup'
-export type ReadinessProbeKind = 'ollama-generation' | 'openai-compatible-models'
+export type ReadinessProbeKind = 'openai-compatible-models'
 
 export interface ModelCatalogEntry {
   id: string
@@ -140,13 +140,13 @@ export interface ModelCatalogConfig {
   models?: ModelCatalogEntry[]
 }
 
-export type ModelDiscoveryKind = 'openai-compatible' | 'ollama' | 'custom'
+export type ModelDiscoveryKind = 'openai-compatible' | 'custom'
 
 export interface ModelDiscoveryConfig {
   kind: ModelDiscoveryKind
   requiresAuth?: boolean
   path?: string
-  parse?: 'openai-models-list' | 'ollama-tags' | 'custom'
+  parse?: 'openai-models-list' | 'custom'
   mapModel?: (raw: unknown) => ModelCatalogEntry | null
 }
 
@@ -238,41 +238,14 @@ export interface ProviderPresetManifestEntry {
   badge?: PresetBadge
 }
 
-export type ValidationMetadata =
-  | {
-      routing?: ValidationRoutingMetadata
-      kind: 'credential-env'
-      credentialEnvVars: string[]
-      allowLocalBaseUrlWithoutCredential?: boolean
-      missingCredentialMessage?: string
-      invalidCredentialValues?: InvalidCredentialValue[]
-    }
-  | {
-      routing?: ValidationRoutingMetadata
-      kind: 'gemini-credential'
-      missingCredentialMessage: string
-    }
-  | {
-      routing?: ValidationRoutingMetadata
-      kind: 'github-token'
-      missingCredentialMessage: string
-      expiredCredentialMessage: string
-      invalidCredentialMessage: string
-    }
-  // xAI accepts either an API key (XAI_API_KEY) or stored OAuth
-  // credentials (browser/device-code login). Validation passes when any of
-  // the following hold:
-  //   1. one of `credentialEnvVars` is non-empty in env
-  //   2. one of `credentialSourceEnvMarkers` matches in env (e.g.
-  //      XAI_CREDENTIAL_SOURCE=oauth, set by the OAuth profile)
-  //   3. stored OAuth credentials exist (resolved async via the runtime)
-  | {
-      routing?: ValidationRoutingMetadata
-      kind: 'xai-credential'
-      credentialEnvVars: string[]
-      credentialSourceEnvMarkers?: Record<string, string[]>
-      missingCredentialMessage: string
-    }
+export type ValidationMetadata = {
+  routing?: ValidationRoutingMetadata
+  kind: 'credential-env'
+  credentialEnvVars: string[]
+  allowLocalBaseUrlWithoutCredential?: boolean
+  missingCredentialMessage?: string
+  invalidCredentialValues?: InvalidCredentialValue[]
+}
 
 export interface VendorDescriptor {
   id: string

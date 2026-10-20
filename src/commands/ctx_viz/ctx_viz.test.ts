@@ -242,7 +242,6 @@ describe('/ctx command surface (PR #1610)', () => {
     expect(out).toMatch(/░{30}/)
     // Footer cross-references the sibling commands.
     expect(out).toContain('/context')
-    expect(out).toContain('/cost')
     expect(out).toContain('/stats')
     // Capacity rows (Free space, Autocompact buffer, Compact buffer) should be filtered out.
     expect(out).not.toContain('Free space')

@@ -11,6 +11,7 @@ import {
 } from '../bootstrap/state.js'
 import { clearSystemPromptSections } from '../constants/systemPromptSections.js'
 import { restoreCostStateForSession } from '../cost-tracker.js'
+import { getGlobalConfig } from './config.js'
 import type { AppState } from '../state/AppState.js'
 import type { AgentColorName } from '../tools/AgentTool/agentColorManager.js'
 import {
@@ -185,12 +186,14 @@ export function computeStandaloneAgentContext(
   agentName: string | undefined,
   agentColor: string | undefined,
 ): AppState['standaloneAgentContext'] | undefined {
-  if (!agentName && !agentColor) {
+  // Sessions without their own color fall back to the color saved by /color.
+  const color = agentColor ?? getGlobalConfig().sessionColor
+  if (!agentName && !color) {
     return undefined
   }
   return {
     name: agentName ?? '',
-    color: (agentColor === 'default' ? undefined : agentColor) as
+    color: (color === 'default' ? undefined : color) as
       | AgentColorName
       | undefined,
   }

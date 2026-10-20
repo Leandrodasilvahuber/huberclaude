@@ -37,7 +37,6 @@ import type { Root } from './ink.js';
 import { launchRepl } from './replLauncher.js';
 import { refreshGrowthBookAfterAuthChange } from './services/analytics/growthbook.js';
 import { refreshStartupDiscoveryForActiveRoute } from './integrations/discoveryService.js';
-import { prefetchOllamaModels } from './utils/model/ollamaModels.js';
 import { type DownloadResult, downloadSessionFiles, type FilesApiConfig, parseFileSpecs } from './services/api/filesApi.js';
 import { prefetchPassesEligibility } from './services/api/referral.js';
 import { prefetchOfficialMcpUrls } from './services/mcp/officialRegistry.js';
@@ -173,7 +172,7 @@ import { refreshModelCapabilities } from 'src/utils/model/modelCapabilities.js';
 import { peekForStdinData, writeToStderr } from 'src/utils/process.js';
 import { createHeadlessHeartbeat, parseHeadlessHeartbeatDuration, validateHeadlessHeartbeatPrintMode } from 'src/cli/headlessHeartbeat.js';
 import { setCwd } from 'src/utils/Shell.js';
-import { type ProcessedResume, processResumedConversation } from 'src/utils/sessionRestore.js';
+import { computeStandaloneAgentContext, type ProcessedResume, processResumedConversation } from 'src/utils/sessionRestore.js';
 import { plural } from 'src/utils/stringUtils.js';
 import { type ChannelEntry, getInitialMainLoopModel, getIsNonInteractiveSession, getSdkBetas, getSessionId, getUserMsgOptIn, setAllowedChannels, setChromeFlagOverride, setClientType, setCwdState, setDirectConnectServerUrl, setInitialMainLoopModel, setInlinePlugins, setIsInteractive, setKairosActive, setOriginalCwd, setQuestionPreviewFormat, setSdkBetas, setSessionBypassPermissionsMode, setSessionDangerousPermissionMode, setSessionPersistenceDisabled, setSessionSource, setUserMsgOptIn, switchSession } from './bootstrap/state.js';
 
@@ -2263,8 +2262,6 @@ async function run(): Promise<CommanderCommand> {
     const bgRefreshThrottleMs = getFeatureValue_CACHED_MAY_BE_STALE('tengu_cicada_nap_ms', 0);
     const lastPrefetched = getGlobalConfig().startupPrefetchedAt ?? 0;
     const skipStartupPrefetches = isBareMode() || bgRefreshThrottleMs > 0 && Date.now() - lastPrefetched < bgRefreshThrottleMs;
-    // Always prefetch Ollama models (not gated by throttle — local server, fast & cheap)
-    prefetchOllamaModels();
     void refreshStartupDiscoveryForActiveRoute();
 
     if (!skipStartupPrefetches) {
@@ -2888,6 +2885,7 @@ async function run(): Promise<CommanderCommand> {
       toolPermissionContext: effectiveToolPermissionContext,
       agent: mainThreadAgentDefinition?.agentType,
       agentDefinitions,
+      standaloneAgentContext: computeStandaloneAgentContext(undefined, undefined),
       mcp: {
         clients: [],
         tools: [],
@@ -4230,52 +4228,6 @@ async function run(): Promise<CommanderCommand> {
   }
 
   registerTaskReportCommand(program);
-
-  // Doctor command - check installation health
-  const doctorCommand = program
-    .command('doctor')
-    .description('Check the health of your OpenClaude auto-updater. Note: The workspace trust dialog is skipped and stdio servers from .mcp.json are spawned for health checks. Only use this command in directories you trust.');
-  doctorCommand
-    .command('report')
-    .description('Print a redacted diagnostic report for GitHub issues')
-    .addOption(new Option('--json', 'Print JSON output').conflicts('markdown'))
-    .addOption(new Option('--markdown', 'Print Markdown output').conflicts('json'))
-    .option('--out <file>', 'Write the report to a file')
-    .addOption(new Option('--redacted', 'Keep redaction enabled (default)').default(true).hideHelp())
-    .option('--include-debug', 'Include redacted recent error summaries')
-    .action(async (options: {
-      json?: boolean;
-      markdown?: boolean;
-      out?: string;
-      redacted?: boolean;
-      includeDebug?: boolean;
-    }) => {
-      const {
-        doctorReportHandler,
-        printDoctorReportError,
-      } = await import('./cli/handlers/doctorReport.js');
-      try {
-        await doctorReportHandler({
-          format: options.json ? 'json' : 'markdown',
-          outFile: options.out ?? null,
-          includeDebug: options.includeDebug === true,
-          redacted: options.redacted !== false,
-        });
-        process.exit(0);
-      } catch (error) {
-        printDoctorReportError(error);
-        process.exit(1);
-      }
-    });
-  doctorCommand.action(async () => {
-    const [{
-      doctorHandler
-    }, {
-      createRoot
-    }] = await Promise.all([import('./cli/handlers/util.js'), import('./ink.js')]);
-    const root = await createRoot(getBaseRenderOptions(false));
-    await doctorHandler(root);
-  });
 
   // claude update
   //

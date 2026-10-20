@@ -22,24 +22,6 @@ describe('loaded registry validation', () => {
     expect(result.errors).toHaveLength(0)
   })
 
-  test('MiniMax has shared brand and model descriptors wired to its route catalog', () => {
-    expect(getBrandsForVendor('minimax').map(brand => brand.id)).toContain(
-      'minimax',
-    )
-    expect(getModelsForVendor('minimax').map(model => model.id)).toContain(
-      'minimax-m2.7',
-    )
-    expect(
-      getCatalogEntriesForRoute('minimax').every(entry =>
-        Boolean(entry.modelDescriptorId),
-      ),
-    ).toBe(true)
-    expect(routeSupportsApiFormatSelection('minimax')).toBe(false)
-    expect(routeSupportsAuthHeaders('minimax')).toBe(false)
-    expect(routeSupportsCustomHeaders('minimax')).toBe(false)
-    expect(routeSupportsCustomHeaders('custom-anthropic')).toBe(true)
-  })
-
   test('route catalogs do not duplicate defaultModel with catalog default flags', () => {
     const routes = [...getAllVendors(), ...getAllGateways()]
     expect(

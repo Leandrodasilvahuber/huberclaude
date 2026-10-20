@@ -77,24 +77,6 @@ test('does not warn for OPENAI_API_BASE when OPENAI_BASE_URL is active', async (
   expect(aliasWarning).toBeUndefined()
 })
 
-test('uses OPENAI_API_BASE as fallback in mistral mode when MISTRAL_BASE_URL is unset', async () => {
-  const debugSpy = await mockDebugLogging()
-
-  delete process.env.CLAUDE_CODE_USE_OPENAI
-  process.env.CLAUDE_CODE_USE_MISTRAL = '1'
-  delete process.env.MISTRAL_BASE_URL
-  process.env.MISTRAL_MODEL = 'mistral-medium-latest'
-  process.env.OPENAI_API_BASE = 'http://127.0.0.1:11434/v1'
-
-  const nonce = `${Date.now()}-${Math.random()}`
-  const { resolveProviderRequest } = await import(`./providerConfig.ts?ts=${nonce}`)
-
-  const resolved = resolveProviderRequest()
-
-  expect(resolved.baseUrl).toBe('http://127.0.0.1:11434/v1')
-  expect(debugSpy.mock.calls).toHaveLength(0)
-})
-
 async function mockDebugLogging(): Promise<DebugSpy> {
   actualDebugModule ??= await import(
     `../../utils/debug.ts?providerConfigEnvDiagnosticsActual=${Date.now()}-${Math.random()}`

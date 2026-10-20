@@ -27,8 +27,7 @@
     "src/commands/agents-platform/**",
     "src/assistant/AssistantSessionChooser.tsx",
     "src/commands/assistant/AssistantSessionChooser.ts",
-    "src/utils/protectedNamespace.ts",
-    "src/utils/providerAutoDetect.ts"
+    "src/utils/protectedNamespace.ts"
   ],
   "ignoreDependencies": [
     "@types/bun",

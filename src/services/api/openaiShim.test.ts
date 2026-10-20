@@ -24,7 +24,6 @@ import {
   parseTextToolCalls,
   parseXmlToolCalls,
 } from './openaiShim.ts'
-import * as realGithubModelsCredentials from '../../utils/githubModelsCredentials.js'
 import { tokenCountWithEstimation } from '../../utils/tokens.js'
 import type { AssistantMessage } from '../../types/message.js'
 

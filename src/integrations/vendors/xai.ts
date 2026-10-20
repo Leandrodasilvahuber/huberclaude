@@ -1,11 +1,6 @@
 import { defineVendor } from '../define.js'
 import type { ModelCatalogEntry } from '../descriptors.js'
 
-// Keep chat/coding Grok IDs from https://api.x.ai/v1/models. Imagine, voice,
-// STT/TTS, and embedding entries are not usable on the OpenClaude chat path.
-const XAI_NON_CHAT_PATTERN =
-  /(imagine|voice|tts|stt|whisper|embed|speech-to-speech|speech-to-text|text-to-speech|multi-agent)/i
-
 const XAI_CURATED_MODELS: ModelCatalogEntry[] = [
   {
     id: 'grok-4.6',
@@ -105,16 +100,6 @@ const XAI_CURATED_MODELS: ModelCatalogEntry[] = [
   },
 ]
 
-const XAI_DISCOVERY_SUPPRESSED_IDS = new Set(
-  ['latest', ...XAI_CURATED_MODELS.flatMap(model => model.aliases ?? [])].map(
-    id => id.toLowerCase(),
-  ),
-)
-
-function isPositiveFiniteNumber(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value) && value > 0
-}
-
 export default defineVendor({
   id: 'xai',
   label: 'xAI',
@@ -130,66 +115,8 @@ export default defineVendor({
   transportConfig: {
     kind: 'openai-compatible',
   },
-  preset: {
-    id: 'xai',
-    description: 'xAI Grok OpenAI-compatible endpoint',
-    apiKeyEnvVars: ['XAI_API_KEY'],
-    modelEnvVars: ['OPENAI_MODEL'],
-  },
-  validation: {
-    kind: 'xai-credential',
-    routing: {
-      matchDefaultBaseUrl: true,
-      matchBaseUrlHosts: ['api.x.ai'],
-    },
-    credentialEnvVars: ['XAI_API_KEY'],
-    // Saved OAuth profiles tag their env with this marker so validation
-    // passes without re-reading secure storage.
-    credentialSourceEnvMarkers: {
-      XAI_CREDENTIAL_SOURCE: ['oauth'],
-    },
-    missingCredentialMessage:
-      'XAI_API_KEY is required, or sign in with `openclaude auth xai login` (browser OAuth) or `openclaude auth xai device` (remote hosts).',
-  },
   catalog: {
-    source: 'hybrid',
-    discovery: {
-      kind: 'openai-compatible',
-      mapModel(raw: unknown) {
-        if (!raw || typeof raw !== 'object') {
-          return null
-        }
-        const model = raw as {
-          id?: string
-          active?: boolean
-          context_length?: number
-        }
-        const id = typeof model.id === 'string' ? model.id.trim() : ''
-        if (!id || model.active === false) {
-          return null
-        }
-        if (XAI_NON_CHAT_PATTERN.test(id)) {
-          return null
-        }
-        if (!/^grok/i.test(id)) {
-          return null
-        }
-        if (XAI_DISCOVERY_SUPPRESSED_IDS.has(id.toLowerCase())) {
-          return null
-        }
-        return {
-          id,
-          apiName: id,
-          label: id,
-          ...(isPositiveFiniteNumber(model.context_length)
-            ? { contextWindow: model.context_length }
-            : {}),
-        }
-      },
-    },
-    discoveryCacheTtl: '1d',
-    discoveryRefreshMode: 'background-if-stale',
-    allowManualRefresh: true,
+    source: 'static',
     models: XAI_CURATED_MODELS,
   },
   usage: { supported: false },

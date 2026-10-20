@@ -7,6 +7,8 @@ import {
   releaseSharedMutationLock,
 } from '../test/sharedMutationLock.js'
 
+const actualPolicyLimits = await import('../services/policyLimits/index.js')
+
 type HookChainsModule = typeof import('./hookChains.js')
 
 const tempDirs: string[] = []
@@ -36,6 +38,7 @@ async function importHookChainsModule(options?: {
   }))
 
   mock.module('../services/policyLimits/index.js', () => ({
+    ...actualPolicyLimits,
     isPolicyAllowed: () => allowRemoteSessions,
   }))
 

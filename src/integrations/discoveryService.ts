@@ -9,36 +9,22 @@ import {
 import type {
   ModelCatalogConfig,
   ModelCatalogEntry,
-  ReadinessProbeKind,
 } from './descriptors.js'
 import { resolveRouteIdFromBaseUrl } from './index.js'
 import { filterAvailableCatalogEntries } from './registry.js'
 import {
   getRouteDescriptor,
   isCanonicalApismartInferenceBaseUrl,
-  isCanonicalXaiInferenceBaseUrl,
   resolveActiveRouteIdFromEnv,
   resolveRouteCredentialValue,
 } from './routeMetadata.js'
-import type {
-  AtomicChatReadiness,
-  OllamaGenerationReadiness,
-} from '../utils/providerDiscovery.js'
 import {
   fetchOpenAICompatibleModelsRaw,
   listOpenAICompatibleModels,
-  probeOllamaModelCatalog,
-  probeAtomicChatReadiness,
-  probeOllamaGenerationReadiness,
 } from '../utils/providerDiscovery.js'
 import { firstUsableCredential, hasInvalidCredentialPlaceholder } from '../services/api/credentialPool.js'
 import { parseCustomHeadersEnv } from '../utils/providerCustomHeaders.js'
 import { isEssentialTrafficOnly } from '../utils/privacyLevel.js'
-import {
-  getXaiDiscoveryCacheIdentity,
-  readXaiCredentialsAsync,
-  resolveXaiAccessToken,
-} from '../utils/xaiCredentials.js'
 
 export type RouteDiscoveryResult = {
   routeId: string
@@ -48,16 +34,6 @@ export type RouteDiscoveryResult = {
   error: DiscoveryCacheError | null
   source: 'network' | 'cache' | 'stale-cache' | 'static' | 'error'
 }
-
-export type OpenAICompatibleReadiness =
-  | { state: 'unreachable' }
-  | { state: 'no_models' }
-  | { state: 'ready'; models: string[] }
-
-export type RouteReadinessResult =
-  | OllamaGenerationReadiness
-  | AtomicChatReadiness
-  | OpenAICompatibleReadiness
 
 function shouldSkipNonessentialDiscoveryTraffic(): boolean {
   return (
@@ -203,48 +179,6 @@ function getRouteDiscoveryApiKey(
   )
 }
 
-export async function resolveDiscoveryRequestOptions<
-  T extends {
-    apiKey?: string
-    cacheKey?: string
-    baseUrl?: string
-    headers?: Record<string, string>
-  },
->(
-  routeId: string,
-  options?: T,
-  resolverOptions?: { refreshXaiOAuth?: boolean },
-): Promise<T> {
-  const next = { ...(options ?? {}) } as T
-  if (getRouteDiscoveryApiKey(routeId, next) || routeId !== 'xai') {
-    return next
-  }
-
-  if (!isCanonicalXaiInferenceBaseUrl(getRouteBaseUrl(routeId, next))) {
-    return next
-  }
-
-  let credentials = await readXaiCredentialsAsync()
-  const cacheOnly =
-    shouldSkipNonessentialDiscoveryTraffic() ||
-    resolverOptions?.refreshXaiOAuth === false
-  const token = firstUsableCredential(
-    cacheOnly ? credentials?.accessToken : await resolveXaiAccessToken(),
-  )
-  if (!cacheOnly) {
-    // A refresh can rotate the refresh token. Re-read the persisted blob so
-    // discovery writes under the same stable identity subsequent readers use.
-    credentials = (await readXaiCredentialsAsync()) ?? credentials
-  }
-  if (token) {
-    next.apiKey = token
-    // The access token can rotate while the OAuth account does not. Keep the
-    // cache partition tied to a stable account identity, not a bearer token.
-    next.cacheKey = getXaiDiscoveryCacheIdentity(credentials) ?? token
-  }
-  return next
-}
-
 export function getRouteDiscoveryHeaders(
   routeId: string,
   options?: { baseUrl?: string; headers?: Record<string, string> },
@@ -267,14 +201,6 @@ function toDiscoveredModelEntry(modelId: string): ModelCatalogEntry {
     id: modelId,
     apiName: modelId,
     label: modelId,
-  }
-}
-
-function toOllamaModelEntry(model: { name: string }): ModelCatalogEntry {
-  return {
-    id: model.name,
-    apiName: model.name,
-    label: model.name,
   }
 }
 
@@ -333,16 +259,6 @@ async function runDiscovery(
   }
 
   switch (discovery.kind) {
-    case 'ollama': {
-      const result = await probeOllamaModelCatalog({
-        baseUrl: getRouteBaseUrl(routeId, options),
-      })
-      if (!result.reachable) {
-        return null
-      }
-      return result.models.map(model => toOllamaModelEntry(model))
-    }
-
     case 'openai-compatible': {
       if (discovery.mapModel) {
         const rawModels = await fetchOpenAICompatibleModelsRaw({
@@ -405,9 +321,7 @@ export async function discoverModelsForRoute(
   // Cache-only reads must not refresh an OAuth token: discovery can be
   // disabled by privacy policy, and a refresh can rotate the bearer before a
   // fresh cached result is checked.
-  const cachedOptions = await resolveDiscoveryRequestOptions(routeId, options, {
-    refreshXaiOAuth: false,
-  })
+  const cachedOptions = { ...(options ?? {}) }
   const cacheKey = getDiscoveryCacheKey(routeId, cachedOptions)
   if (!cachedOptions.forceRefresh && ttlMs > 0) {
     const cached = await getCachedModels(cacheKey, ttlMs)
@@ -454,7 +368,7 @@ export async function discoverModelsForRoute(
   }
 
   try {
-    const discoveryOptions = await resolveDiscoveryRequestOptions(routeId, options)
+    const discoveryOptions = { ...(options ?? {}) }
     const discoveryCacheKey = getDiscoveryCacheKey(routeId, discoveryOptions)
     const discovered = await runDiscovery(routeId, discoveryOptions)
     if (discovered === null) {
@@ -519,9 +433,7 @@ export async function refreshStartupDiscoveryForRoute(
   }
 
   const ttlMs = getDiscoveryCacheTtlMs(routeId)
-  const cachedOptions = await resolveDiscoveryRequestOptions(routeId, options, {
-    refreshXaiOAuth: false,
-  })
+  const cachedOptions = { ...(options ?? {}) }
   const cacheKey = getDiscoveryCacheKey(routeId, cachedOptions)
   if (ttlMs > 0) {
     const cached = await getCachedModels(cacheKey, ttlMs)
@@ -587,79 +499,3 @@ export async function refreshStartupDiscoveryForActiveRoute(
   })
 }
 
-function getReadinessProbeKind(routeId: string): ReadinessProbeKind | null {
-  return getRouteDescriptor(routeId)?.startup?.probeReadiness ?? null
-}
-
-export function probeRouteReadiness(
-  routeId: 'ollama',
-  options?: {
-    baseUrl?: string
-    model?: string
-    timeoutMs?: number
-    apiKey?: string
-  },
-): Promise<OllamaGenerationReadiness | null>
-export function probeRouteReadiness(
-  routeId: 'atomic-chat',
-  options?: {
-    baseUrl?: string
-    model?: string
-    timeoutMs?: number
-    apiKey?: string
-  },
-): Promise<AtomicChatReadiness | null>
-export function probeRouteReadiness(
-  routeId: string,
-  options?: {
-    baseUrl?: string
-    model?: string
-    timeoutMs?: number
-    apiKey?: string
-  },
-): Promise<RouteReadinessResult | null>
-export async function probeRouteReadiness(
-  routeId: string,
-  options?: {
-    baseUrl?: string
-    model?: string
-    timeoutMs?: number
-    apiKey?: string
-  },
-): Promise<RouteReadinessResult | null> {
-  const readinessKind = getReadinessProbeKind(routeId)
-  if (!readinessKind) {
-    return null
-  }
-
-  switch (readinessKind) {
-    case 'ollama-generation':
-      return probeOllamaGenerationReadiness({
-        baseUrl: getRouteBaseUrl(routeId, options),
-        model: options?.model,
-        timeoutMs: options?.timeoutMs,
-      })
-
-    case 'openai-compatible-models': {
-      if (routeId === 'atomic-chat') {
-        return probeAtomicChatReadiness({
-          baseUrl: getRouteBaseUrl(routeId, options),
-        })
-      }
-
-      const discovered = await runDiscovery(routeId, options)
-      if (discovered === null) {
-        return { state: 'unreachable' }
-      }
-
-      if (discovered.length === 0) {
-        return { state: 'no_models' }
-      }
-
-      return {
-        state: 'ready',
-        models: discovered.map(entry => entry.apiName),
-      }
-    }
-  }
-}

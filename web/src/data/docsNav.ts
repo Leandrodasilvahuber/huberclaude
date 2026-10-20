@@ -35,7 +35,6 @@ export const docsNav: DocsNavGroup[] = [
     group: 'more',
     items: [
       { title: "What's new", href: SITE.releasesUrl, newTab: true },
-      { title: 'Buddy', href: '/buddy/' },
     ],
   },
 ]

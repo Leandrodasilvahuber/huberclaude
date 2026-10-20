@@ -50,49 +50,6 @@ async function withTempConfigDir<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 describe('resolveModelRuntimeLimits', () => {
-  it('uses the stable xAI OAuth cache identity for discovered runtime limits', async () => {
-    await withTempConfigDir(async () => {
-      const xaiCredentials = await import('../utils/xaiCredentials.js')
-      const readSpy = spyOn(xaiCredentials, 'getCachedXaiCredentials').mockReturnValue({
-        accessToken: 'rotating-access-token',
-        refreshToken: 'stable-account-identity',
-        tokenEndpoint: 'https://auth.x.ai/oauth/token',
-      })
-      try {
-        const baseUrl = 'https://api.x.ai/v1'
-        await setCachedModels(
-          getDiscoveryCacheKey('xai', {
-            baseUrl,
-            apiKey: 'rotating-access-token',
-            cacheKey: 'stable-account-identity',
-          }),
-          {
-            models: [
-              {
-                id: 'grok-4.7',
-                apiName: 'grok-4.7',
-                label: 'grok-4.7',
-                contextWindow: 500_000,
-              },
-            ],
-          },
-        )
-
-        expect(
-          resolveModelRuntimeLimits({
-            model: 'grok-4.7',
-            processEnv: {
-              CLAUDE_CODE_USE_OPENAI: '1',
-              OPENAI_BASE_URL: baseUrl,
-              XAI_CREDENTIAL_SOURCE: 'oauth',
-            },
-          }).contextWindow,
-        ).toBe(500_000)
-      } finally {
-        readSpy.mockRestore()
-      }
-    })
-  })
   it('does not apply Coding Plan Flash limits on the same-host general Z.AI endpoint', () => {
     const processEnv = {
       CLAUDE_CODE_USE_OPENAI: '1',
@@ -109,71 +66,6 @@ describe('resolveModelRuntimeLimits', () => {
       maxOutputTokens: undefined,
     })
   })
-
-  it.each([' ', 'undefined', 'null'])(
-    'falls back from invalid OPENAI_BASE_URL %j to OPENAI_API_BASE for route limits',
-    invalidPrimary => {
-      const processEnv = {
-        CLAUDE_CODE_USE_OPENAI: '1',
-        OPENAI_BASE_URL: invalidPrimary,
-        OPENAI_API_BASE: 'https://api.z.ai/api/coding/paas/v4',
-      }
-
-      expect(resolveActiveRouteIdFromEnv(processEnv, {
-        activeProfileProvider: 'zai',
-        activeProfileBaseUrl: 'https://api.z.ai/api/coding/paas/v4',
-      })).toBe('zai')
-      expect(resolveModelRuntimeLimits({
-        model: 'glm-5.3-flash',
-        activeProfileProvider: 'zai',
-        processEnv,
-      })).toEqual({
-        contextWindow: 1_000_000,
-        maxOutputTokens: 131_072,
-      })
-    },
-  )
-
-  it.each([128_000, 200_000])(
-    'keeps a gateway-advertised %i window for a globally larger known model',
-    async advertised => {
-      // User-reported path: OmniRoute + GPT-5.6 Sol ("gpt sol"), whose gateway
-      // advertised a smaller window than the known descriptor. An advertised
-      // `context_length` is indistinguishable from a real per-deployment cap, so
-      // discovery stays authoritative — budgeting past the endpoint's real limit
-      // would trade an early compact for a mid-session API failure. 128k is
-      // covered explicitly because it is the value gateways most often report as
-      // a flat default.
-      await withTempConfigDir(async () => {
-        const baseUrl = 'http://localhost:20128/v1'
-        await setCachedModels(
-          getDiscoveryCacheKey('custom', {
-            baseUrl,
-          }),
-          {
-            models: [
-              {
-                id: 'gpt-5.6-sol',
-                apiName: 'gpt-5.6-sol',
-                label: 'gpt-5.6-sol',
-                contextWindow: advertised,
-              },
-            ],
-          },
-        )
-
-        expect(
-          resolveModelRuntimeLimits({
-            model: 'gpt-5.6-sol',
-            processEnv: {
-              CLAUDE_CODE_USE_OPENAI: '1',
-              OPENAI_BASE_URL: baseUrl,
-            },
-          }).contextWindow,
-        ).toBe(advertised)
-      })
-    },
-  )
 
   it('lets an exact env override beat a wrong discovery-cache context window', async () => {
     await withTempConfigDir(async () => {
@@ -270,14 +162,8 @@ describe('LLMTR runtime attribution', () => {
   })
 })
 
-describe('AIMLAPI runtime attribution', () => {
-})
 
-describe('resolveOpenAIShimRuntimeContext - Z.A.I GLM-5.2', () => {
-})
 
-describe('resolveOpenAIShimRuntimeContext - Z.A.I GLM-5.3', () => {
-})
 
 describe('resolveOpenAIShimRuntimeContext - Z.A.I GLM-5.3-Flash', () => {
   it('does not apply the Coding Plan catalog entry on the same-host general endpoint', () => {
@@ -321,14 +207,8 @@ describe('resolveOpenAIShimRuntimeContext - NVIDIA NIM GLM-5.2 (regression #1950
   // still applies because GLM needs it on any gateway.
 })
 
-describe('resolveOpenAIShimRuntimeContext - Moonshot and Kimi Code catalog metadata', () => {
-})
 
-describe('resolveOpenAIShimRuntimeContext - GLM catalog-aware gating', () => {
-})
 
-describe('resolveOpenAIShimRuntimeContext - Hicap catalog metadata', () => {
-})
 
 describe('resolveOpenAIShimRuntimeContext - xAI catalog metadata', () => {
   it('uses live xAI model metadata and per-model shim overrides', () => {

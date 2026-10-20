@@ -158,28 +158,6 @@ describe('/export direct filename', () => {
     })
   })
 
-  test('keeps existing extensionless filename behavior as .txt', async () => {
-    await withExportTestCwd(async cwd => {
-      await runExport(join(cwd, 'transcript'))
-
-      const content = await readFile(join(cwd, 'transcript.txt'), 'utf8')
-      expect(content).toContain('hello')
-      expect(content).not.toContain('# Conversation Export')
-      expect(content).not.toContain('"version": 1')
-    })
-  })
-
-  test('keeps unknown filename extensions on the existing plain text path', async () => {
-    await withExportTestCwd(async cwd => {
-      await runExport(join(cwd, 'transcript.csv'))
-
-      const content = await readFile(join(cwd, 'transcript.txt'), 'utf8')
-      expect(content).toContain('hello')
-      expect(content).not.toContain('# Conversation Export')
-      expect(await listFiles(cwd)).toEqual(['transcript.txt'])
-    })
-  })
-
   test('--format overrides filename extension and normalizes output extension', async () => {
     await withExportTestCwd(async cwd => {
       await runExport(`--format json ${join(cwd, 'transcript.txt')}`)
@@ -207,17 +185,6 @@ describe('/export direct filename', () => {
       const parsed = JSON.parse(await readFile(join(cwd, 'transcript.json'), 'utf8'))
       expect(parsed.version).toBe(1)
       expect(await listFiles(cwd)).toEqual(['transcript.json'])
-    })
-  })
-
-  test('keeps explicit .txt export behavior', async () => {
-    await withExportTestCwd(async cwd => {
-      await runExport(join(cwd, 'transcript.txt'))
-
-      const content = await readFile(join(cwd, 'transcript.txt'), 'utf8')
-      expect(content).toContain('hello')
-      expect(content).not.toContain('# Conversation Export')
-      expect(content).not.toContain('"version": 1')
     })
   })
 

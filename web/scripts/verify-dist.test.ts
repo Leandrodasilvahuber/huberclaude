@@ -6,7 +6,6 @@ import { join } from 'node:path'
 import { verifyDist } from './verify-dist'
 import { SITE } from '../src/data/site'
 import { docsPages } from '../src/data/docsNav'
-import { heroes } from '../src/data/buddy'
 import { partners, community } from '../src/data/partners'
 
 function writePage(dist: string, route: string, html: string): void {
@@ -17,7 +16,7 @@ function writePage(dist: string, route: string, html: string): void {
 
 /** Build a minimal dist/ that satisfies every verifyDist assertion. */
 function writeValidFixture(dist: string): void {
-  const navLinks = [`<a href="/buddy/">x</a>`, `<a href="${SITE.releasesUrl}" target="_blank" rel="noopener">x</a>`].join('')
+  const navLinks = [`<a href="${SITE.releasesUrl}" target="_blank" rel="noopener">x</a>`].join('')
   writePage(
     dist,
     '/',
@@ -28,16 +27,9 @@ function writeValidFixture(dist: string): void {
   const sidebar = `${docsPages.map(p => `<a href="${p.href}">x</a>`).join('')}<a href="${SITE.releasesUrl}" target="_blank" rel="noopener">x</a>`
   for (const p of docsPages) writePage(dist, p.href, `<html>${sidebar}</html>`)
   writePage(dist, '/changelog/', `<html><meta http-equiv="refresh" content="0;url=${SITE.releasesUrl}"><meta name="robots" content="noindex">${SITE.releasesUrl}</html>`)
-  writePage(
-    dist,
-    '/buddy/',
-    `<html>${heroes.map(h => `<img src="/buddy/${h.id}.svg"><p>${h.attack}</p>`).join('')}</html>`,
-  )
-  mkdirSync(join(dist, 'buddy'), { recursive: true })
-  for (const h of heroes) writeFileSync(join(dist, 'buddy', `${h.id}.svg`), '<svg/>')
   writeFileSync(
     join(dist, 'sitemap-0.xml'),
-    `<urlset><loc>${SITE.url}/buddy/</loc></urlset>`,
+    `<urlset><loc>${SITE.url}/</loc></urlset>`,
   )
 }
 
@@ -58,8 +50,8 @@ describe('verifyDist', () => {
   })
 
   test('flags a missing page', () => {
-    const failures = withFixture(dist => rmSync(join(dist, 'buddy', 'index.html')))
-    expect(failures).toContain('missing page for route /buddy/')
+    const failures = withFixture(dist => rmSync(join(dist, 'changelog', 'index.html')))
+    expect(failures).toContain('missing page for route /changelog/')
   })
 
   test('flags a present-but-empty page instead of skipping its assertions', () => {
@@ -117,27 +109,14 @@ describe('verifyDist', () => {
     expect(failures).toContain('legacy changelog noindex: missing "<meta name=\\"robots\\" content=\\"noindex\\">"')
   })
 
-  test('flags a missing sprite asset', () => {
-    const hero = heroes[0]!
-    const failures = withFixture(dist => rmSync(join(dist, 'buddy', `${hero.id}.svg`)))
-    expect(failures).toContain(`missing sprite asset /buddy/${hero.id}.svg`)
-  })
-
   test('flags a stale landing page missing a partner link', () => {
     const failures = withFixture(dist => {
-      const html = `<html><a href="/buddy/">x</a><a href="${SITE.releasesUrl}" target="_blank">x</a>${community
+      const html = `<html><a href="${SITE.releasesUrl}" target="_blank">x</a>${community
         .map(c => `<a href="${c.url}">x</a>`)
         .join('')}</html>`
       writeFileSync(join(dist, 'index.html'), html)
     })
     expect(failures.some(f => f.startsWith(`partner link ${partners[0]!.name}`))).toBe(true)
-  })
-
-  test('flags a sitemap missing the new routes', () => {
-    const failures = withFixture(dist =>
-      writeFileSync(join(dist, 'sitemap-0.xml'), `<urlset><loc>${SITE.url}/</loc></urlset>`),
-    )
-    expect(failures.some(f => f.startsWith('sitemap entry /buddy/'))).toBe(true)
   })
 
   test('flags a missing sitemap', () => {

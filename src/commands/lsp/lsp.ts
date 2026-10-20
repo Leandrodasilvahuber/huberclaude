@@ -461,7 +461,7 @@ function renderMarketplaceSetupMessage(
       return 'Anthropic marketplace setup was already attempted and is waiting before retrying.'
     case 'unknown':
     default:
-      return 'Anthropic marketplace setup failed; run /doctor for details.'
+      return 'Anthropic marketplace setup failed.'
   }
 }
 
@@ -586,7 +586,7 @@ async function installLspPlugin(
     message += ` ${refresh.error_count} ${plural(
       refresh.error_count,
       'error',
-    )} during plugin refresh; run /doctor for details.`
+    )} during plugin refresh.`
   }
 
   return message

@@ -233,43 +233,6 @@ describe('getEffectiveContextWindowSize', () => {
     }
   })
 
-  test('uses MiniMax M2 context and output metadata for compact budget', async () => {
-    const { getEffectiveContextWindowSize } = await importAutoCompact()
-    delete process.env.CLAUDE_CODE_USE_GEMINI
-    delete process.env.CLAUDE_CODE_USE_MISTRAL
-    delete process.env.CLAUDE_CODE_USE_GITHUB
-    delete process.env.CLAUDE_CODE_USE_BEDROCK
-    delete process.env.CLAUDE_CODE_USE_VERTEX
-    delete process.env.CLAUDE_CODE_USE_FOUNDRY
-    delete process.env.CLAUDE_CODE_PROVIDER_PROFILE_ENV_APPLIED
-    delete process.env.CLAUDE_CODE_PROVIDER_PROFILE_ENV_APPLIED_ID
-    delete process.env.XAI_API_KEY
-    delete process.env.OPENAI_BASE_URL
-    delete process.env.OPENAI_API_BASE
-    delete process.env.ANTHROPIC_API_KEY
-    delete process.env.ANTHROPIC_BASE_URL
-    delete process.env.ANTHROPIC_MODEL
-    delete process.env.USER_TYPE
-    delete process.env.CLAUDE_CODE_MAX_CONTEXT_TOKENS
-    delete process.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW
-    delete process.env.CLAUDE_CODE_MAX_OUTPUT_TOKENS
-    process.env.CLAUDE_CODE_USE_OPENAI = '1'
-    process.env.OPENAI_API_KEY = 'ambient-openai-key'
-    process.env.MINIMAX_API_KEY = 'minimax-test'
-    process.env.OPENAI_MODEL = 'MiniMax-M2.7'
-
-    try {
-      // MiniMax's recommended Anthropic-compatible endpoint supports the full
-      // M2 window. Compact reserves either the default 20k summary output
-      // tokens or 8k when the slot-reservation cap flag is enabled.
-      expect([184_800, 196_800]).toContain(
-        getEffectiveContextWindowSize('MiniMax-M2.7'),
-      )
-    } finally {
-      restoreEnv()
-    }
-  })
-
   test('uses explicit route runtime limits instead of ambient provider state', async () => {
     const { getEffectiveContextWindowSize } = await importAutoCompact()
     process.env.CLAUDE_CODE_USE_OPENAI = '1'

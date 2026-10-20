@@ -79,8 +79,6 @@ const mockResolveOutOfProcessTeammateProviderFromCliArgs = mock(
 )
 const mockApplyAgentProviderOverrideToEnv = mock((_override: unknown) => {})
 const mockGetInitialSettings = mock(() => ({}))
-const mockRefreshGithubModelsTokenIfNeeded = mock(async () => {})
-const mockHydrateGithubModelsTokenFromSecureStorage = mock(() => {})
 const mockValidateProviderEnvForStartupOrExit = mock(async () => {})
 const mockApplyModelFlagFromArgs = mock(
   (_args: string[]): ReturnType<typeof applyModelFlagFromArgs> => undefined,
@@ -111,8 +109,6 @@ const runtimeMocks = [
   mockResolveOutOfProcessTeammateProviderFromCliArgs,
   mockApplyAgentProviderOverrideToEnv,
   mockGetInitialSettings,
-  mockRefreshGithubModelsTokenIfNeeded,
-  mockHydrateGithubModelsTokenFromSecureStorage,
   mockValidateProviderEnvForStartupOrExit,
   mockApplyModelFlagFromArgs,
   mockPrintStartupScreen,
@@ -335,11 +331,6 @@ const mockImporters = {
   }),
   settings: async () => ({
     getInitialSettings: mockGetInitialSettings,
-  }),
-  githubModelsCredentials: async () => ({
-    hydrateGithubModelsTokenFromSecureStorage:
-      mockHydrateGithubModelsTokenFromSecureStorage,
-    refreshGithubModelsTokenIfNeeded: mockRefreshGithubModelsTokenIfNeeded,
   }),
   startupScreen: async () => ({
     printStartupScreen: mockPrintStartupScreen,
