@@ -73,9 +73,12 @@ funciona no mesmo terminal.
 
 ### Instalar pelos pacotes Linux (.deb e .rpm)
 
-Os pacotes trazem o **Node.js embutido**, então não precisa instalar Node nem npm.
-Eles instalam o comando `huberclaude` em `/usr/bin`, disponível para todos os
-usuários, mais um atalho no menu de aplicativos.
+Por padrão, os pacotes usam o **Node.js do sistema** (requer Node.js >= 22,
+instalado automaticamente como dependência do `.deb`/`.rpm`). Eles instalam o
+comando `huberclaude` em `/usr/bin`, disponível para todos os usuários, mais um
+atalho no menu de aplicativos. Se preferir um pacote **autocontido** com o
+Node.js embutido, gere com `WITH_NODE=1 scripts/build-deb.sh` — nesse caso não
+precisa instalar Node nem npm.
 
 ```bash
 sudo apt install ./huberclaude_*_amd64.deb      # Debian, Ubuntu, Mint
@@ -88,8 +91,10 @@ nova (Ubuntu 20.04+, Debian 10+, Fedora, RHEL 8+); não roda em Alpine.
 
 Para gerar os pacotes: `bun run build`, depois `scripts/build-deb.sh` e, para o
 `.rpm`, `scripts/build-rpm.sh` (veja o cabeçalho do script para rodar dentro de um
-contêiner Fedora). O roteiro `packaging/test-install.sh` valida a instalação, a
-execução e a remoção dentro de contêineres descartáveis.
+contêiner Fedora). Para um `.deb` com o Node.js embutido (pacote autocontido,
+sem dependência de Node no sistema), use `WITH_NODE=1 scripts/build-deb.sh`.
+O roteiro `packaging/test-install.sh` valida a instalação, a execução e a
+remoção dentro de contêineres descartáveis.
 
 ### Iniciar
 

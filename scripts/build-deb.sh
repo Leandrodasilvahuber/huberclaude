@@ -1,14 +1,20 @@
 #!/usr/bin/env bash
 # Gera um pacote .deb do HuberClaude (requer dist/ já buildado: `bun run build`).
-# O Node.js vem embutido no pacote (nao depende de Node no sistema).
 # Uso: scripts/build-deb.sh [saida_dir]   (padrão: ./release)
-# Variaveis: NODE_VERSION (padrao 22.23.2), NODE_CACHE (padrao ~/.cache/huberclaude-build)
+#
+# Por padrão o .deb NAO inclui o Node.js — declara Depends: nodejs (>= 22) e usa
+# o Node do sistema na instalacao. Para um pacote autocontido (Node embutido):
+#   WITH_NODE=1 scripts/build-deb.sh
+#
+# Variaveis: WITH_NODE (padrao 0), NODE_VERSION (padrao 22.23.2),
+#            NODE_CACHE (padrao ~/.cache/huberclaude-build)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="${1:-$ROOT/release}"
 VERSION="$(node -p "require('$ROOT/package.json').version")"
 ARCH="$(dpkg --print-architecture)"
+WITH_NODE="${WITH_NODE:-0}"
 NODE_VERSION="${NODE_VERSION:-22.23.2}"
 case "$ARCH" in
   amd64) NODE_ARCH=x64 ;;
@@ -32,18 +38,21 @@ rm -f "$LIB"/bin/*.test.mjs
 # dependências de runtime (orama, ripgrep, ...)
 ( cd "$LIB" && npm install --omit=dev --no-audit --no-fund --loglevel=error )
 
-# Node.js oficial embutido (so o binario): baixa uma vez, confere o SHA-256 e guarda em cache
-NODE_CACHE="${NODE_CACHE:-$HOME/.cache/huberclaude-build}"
-NODE_TAR="node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz"
-mkdir -p "$NODE_CACHE"
-if [ ! -f "$NODE_CACHE/$NODE_TAR" ]; then
-  curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/$NODE_TAR" -o "$NODE_CACHE/$NODE_TAR"
+# Node.js oficial embutido (opcional): baixa uma vez, confere o SHA-256 e guarda em cache
+# Apenas quando WITH_NODE=1 — caso contrario o pacote usa o Node do sistema.
+if [ "$WITH_NODE" = "1" ]; then
+  NODE_CACHE="${NODE_CACHE:-$HOME/.cache/huberclaude-build}"
+  NODE_TAR="node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz"
+  mkdir -p "$NODE_CACHE"
+  if [ ! -f "$NODE_CACHE/$NODE_TAR" ]; then
+    curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/$NODE_TAR" -o "$NODE_CACHE/$NODE_TAR"
+  fi
+  EXPECTED="$(curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt" | awk -v f="$NODE_TAR" '$2==f {print $1}')"
+  ACTUAL="$(sha256sum "$NODE_CACHE/$NODE_TAR" | cut -d' ' -f1)"
+  [ -n "$EXPECTED" ] && [ "$EXPECTED" = "$ACTUAL" ] || { echo "SHA-256 do Node nao confere ($NODE_TAR)" >&2; rm -f "$NODE_CACHE/$NODE_TAR"; exit 1; }
+  mkdir -p "$LIB/node/bin"
+  tar -xJf "$NODE_CACHE/$NODE_TAR" -C "$LIB/node" --strip-components=1 "node-v${NODE_VERSION}-linux-${NODE_ARCH}/bin/node" "node-v${NODE_VERSION}-linux-${NODE_ARCH}/LICENSE"
 fi
-EXPECTED="$(curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt" | awk -v f="$NODE_TAR" '$2==f {print $1}')"
-ACTUAL="$(sha256sum "$NODE_CACHE/$NODE_TAR" | cut -d' ' -f1)"
-[ -n "$EXPECTED" ] && [ "$EXPECTED" = "$ACTUAL" ] || { echo "SHA-256 do Node nao confere ($NODE_TAR)" >&2; rm -f "$NODE_CACHE/$NODE_TAR"; exit 1; }
-mkdir -p "$LIB/node/bin"
-tar -xJf "$NODE_CACHE/$NODE_TAR" -C "$LIB/node" --strip-components=1 "node-v${NODE_VERSION}-linux-${NODE_ARCH}/bin/node" "node-v${NODE_VERSION}-linux-${NODE_ARCH}/LICENSE"
 
 # /usr/bin/huberclaude: launcher que usa o Node embutido
 install -m 755 "$ROOT/packaging/huberclaude-launcher" "$STAGE/$PKG/usr/bin/huberclaude"
@@ -56,17 +65,24 @@ cp "$ROOT/packaging/post-install.sh" "$STAGE/$PKG/DEBIAN/postinst"
 cp "$ROOT/packaging/post-remove.sh" "$STAGE/$PKG/DEBIAN/postrm"
 chmod 755 "$STAGE/$PKG/DEBIAN/postinst" "$STAGE/$PKG/DEBIAN/postrm"
 
-cat > "$STAGE/$PKG/DEBIAN/control" <<CTL
-Package: huberclaude
-Version: $VERSION
-Section: devel
-Priority: optional
-Architecture: $ARCH
-Maintainer: Huber <emaildohuber@gmail.com>
-Installed-Size: $(du -sk "$STAGE/$PKG/usr" | cut -f1)
-Description: HuberClaude - CLI de agente de código que roda em modelos OpenRouter
- Coding-agent CLI baseado no OpenClaude. Comando: huberclaude
-CTL
+CONTROL_FIELDS=""
+if [ "$WITH_NODE" != "1" ]; then
+  CONTROL_FIELDS="Depends: nodejs (>= 22)"
+fi
+
+# Use printf to avoid a blank line in the control file when WITH_NODE=1
+{
+  printf 'Package: huberclaude\n'
+  printf 'Version: %s\n' "$VERSION"
+  printf 'Section: devel\n'
+  printf 'Priority: optional\n'
+  printf 'Architecture: %s\n' "$ARCH"
+  [ -n "$CONTROL_FIELDS" ] && printf '%s\n' "$CONTROL_FIELDS"
+  printf 'Maintainer: Huber <emaildohuber@gmail.com>\n'
+  printf 'Installed-Size: %s\n' "$(du -sk "$STAGE/$PKG/usr" | cut -f1)"
+  printf 'Description: HuberClaude - CLI de agente de código que roda em modelos OpenRouter\n'
+  printf ' Coding-agent CLI baseado no OpenClaude. Comando: huberclaude\n'
+} > "$STAGE/$PKG/DEBIAN/control"
 
 chmod -R go-w "$STAGE/$PKG"
 mkdir -p "$OUT"

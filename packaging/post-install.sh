@@ -1,6 +1,7 @@
 #!/bin/sh
 # Copia o atalho para a área de trabalho de cada usuário (melhor esforço) e
 # o marca como confiável para GNOME/Cinnamon/MATE (gio) e XFCE (checksum).
+# (nao tem nada aqui sobre Node embutido — o launcher resolve isso em runtime)
 SRC=/usr/share/applications/huberclaude.desktop
 for home in /home/*; do
   [ -d "$home" ] || continue

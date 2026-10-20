@@ -13,6 +13,7 @@ const fullData: BuiltinStatusData = {
   contextInputTokens: 74000,
   contextWindow: 200000,
   fuel: '$1.23',
+  fuelShort: '$1',
   rateLimit: { label: '5h', usedPercent: 42 },
 }
 
@@ -24,12 +25,14 @@ describe('buildBuiltinStatusSegments', () => {
       'context',
       'cost',
       'rateLimit',
+      'testMode',
     ])
     expect(segments.map(s => s.text)).toEqual([
       'Opus 4.8',
       'ctx 74K/200K (37%)',
       '$1.23',
       '5h 42%',
+      'Modo Teste',
     ])
   })
 
@@ -49,7 +52,17 @@ describe('buildBuiltinStatusSegments', () => {
       fuel: null,
       rateLimit: null,
     })
-    expect(segments.map(s => s.key)).toEqual(['model', 'context'])
+    expect(segments.map(s => s.key)).toEqual(['model', 'context', 'testMode'])
+  })
+
+  it('omits context before the first assistant turn', () => {
+    const segments = buildBuiltinStatusSegments({
+      ...fullData,
+      contextUsedPercent: null,
+      contextInputTokens: null,
+      contextWindow: null,
+    })
+    expect(segments.find(s => s.key === 'context')).toBeUndefined()
   })
 
   it('colors context by usage thresholds', () => {
@@ -137,29 +150,30 @@ describe('buildBuiltinStatusSegments', () => {
 
 describe('fitSegments', () => {
   const segments = buildBuiltinStatusSegments(fullData)
-  // 'Opus 4.8 · ctx 74K/200K (37%) · $1.23 · 5h 42%' = 46 cols
+  // 'Opus 4.8 · ctx 74K/200K (37%) · $1.23 · 5h 42% · Modo Teste' = 54 cols
 
   it('keeps everything when the line fits', () => {
-    expect(fitSegments(segments, 120)).toHaveLength(4)
+    expect(fitSegments(segments, 120)).toHaveLength(5)
   })
 
   it('degrades segments to short forms before dropping any', () => {
-    // Full: 'Opus 4.8 · ctx 74K/200K (37%) · $1.23 · 5h 42%' = 46 cols
-    // Degraded shortText: 'Opus 4.8 · ctx 74K/200K · $1 · 5h 42%' = 39 cols
-    const fitted = fitSegments(segments, 40)
+    // Full: 'Opus 4.8 · ctx 74K/200K (37%) · $1.23 · 5h 42% · Modo Teste' = 54 cols
+    // Degraded shortText: 'Opus 4.8 · ctx 74K/200K · $1 · 5h 42% · Teste' = 43 cols
+    const fitted = fitSegments(segments, 45)
     expect(fitted.map(s => s.key)).toEqual([
       'model',
       'context',
       'cost',
       'rateLimit',
+      'testMode',
     ])
     expect(fitted.find(s => s.key === 'context')?.text).toBe('ctx 74K/200K')
     expect(fitted.find(s => s.key === 'cost')?.text).toBe('$1')
   })
 
   it('marks dropped segments with a trailing ellipsis', () => {
-    // Too narrow for all four even degraded; hidden data must be visible as hidden
-    // Full is ~46 cols, degraded shortText is ~39 cols — try width 35
+    // Too narrow for all five even degraded; hidden data must be visible as hidden
+    // Full is ~54 cols, degraded shortText is ~43 cols — try width 35
     const fitted = fitSegments(segments, 35)
     expect(fitted.at(-1)?.key).toBe('truncated')
     expect(fitted.at(-1)?.text).toBe('…')

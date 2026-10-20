@@ -14,6 +14,7 @@ import type { Message } from '../types/message.js';
 import { getGlobalConfig } from '../utils/config.js';
 import { calculateContextPercentages, getContextWindowForModel } from '../utils/context.js';
 import { isFullscreenEnvEnabled } from '../utils/fullscreen.js';
+import { isInBundledMode } from '../utils/bundledMode.js';
 import { getRuntimeMainLoopModel, renderModelName } from '../utils/model/model.js';
 import type { Theme } from '../utils/theme.js';
 import { doesMostRecentAssistantMessageExceed200k, getCurrentUsage } from '../utils/tokens.js';
@@ -111,6 +112,15 @@ export function buildBuiltinStatusSegments(data: BuiltinStatusData): StatusSegme
       priority: 3,
       text: `${data.rateLimit.label} ${pct}%`,
       color: pct >= 85 ? 'error' : pct >= 60 ? 'warning' : undefined
+    });
+  }
+  if (!isInBundledMode()) {
+    segments.push({
+      key: 'testMode',
+      priority: 4,
+      text: 'Modo Teste',
+      shortText: 'Teste',
+      color: 'warning'
     });
   }
   return segments;

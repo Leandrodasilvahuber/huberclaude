@@ -1,3 +1,15 @@
 #!/bin/sh
-# Launcher do HuberClaude: roda com o Node embutido no pacote (nao depende de Node no sistema).
-exec /usr/lib/huberclaude/node/bin/node /usr/lib/huberclaude/bin/openclaude "$@"
+# Launcher do HuberClaude.
+# Se o pacote embutiu o Node (WITH_NODE=1) usa /usr/lib/huberclaude/node/bin/node;
+# caso contrario usa o Node do sistema (node >= 22 declarado como Depends no .deb).
+NODE=""
+if [ -x /usr/lib/huberclaude/node/bin/node ]; then
+  NODE=/usr/lib/huberclaude/node/bin/node
+else
+  NODE="$(command -v node || true)"
+fi
+if [ -z "$NODE" ]; then
+  echo "huberclaude: instale nodejs >= 22 (ou reconstrua o pacote com WITH_NODE=1)." >&2
+  exit 1
+fi
+exec "$NODE" /usr/lib/huberclaude/bin/openclaude "$@"
