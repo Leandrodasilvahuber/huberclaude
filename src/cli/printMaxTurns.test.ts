@@ -12,6 +12,7 @@ import {
   createAssistantMessage,
   createUserMessage,
 } from '../utils/messages.js'
+import * as gracefulShutdownModule from '../utils/gracefulShutdown.js'
 import * as processModule from '../utils/process.js'
 import { asSystemPrompt } from '../utils/systemPromptType.js'
 import { parseMaxTurnsCli, resolveReplMaxTurns } from '../utils/replMaxTurns.js'
@@ -186,6 +187,16 @@ describe('headless --print max-turns', () => {
     const stdoutSpy = spyOn(processModule, 'writeToStdout').mockImplementation(
       () => {},
     )
+    // runHeadless ends by scheduling a real process exit, which would kill the
+    // test runner partway through the next file.
+    const shutdownSyncSpy = spyOn(
+      gracefulShutdownModule,
+      'gracefulShutdownSync',
+    ).mockImplementation(() => {})
+    const shutdownSpy = spyOn(
+      gracefulShutdownModule,
+      'gracefulShutdown',
+    ).mockImplementation(async () => {})
     const askSpy = spyOn(queryEngineModule, 'ask').mockImplementation(
       async function* () {
         yield createHeadlessSuccessResult()
@@ -218,6 +229,8 @@ describe('headless --print max-turns', () => {
       await runPromise?.catch(() => {})
       askSpy.mockRestore()
       stdoutSpy.mockRestore()
+      shutdownSpy.mockRestore()
+      shutdownSyncSpy.mockRestore()
     }
   })
 })

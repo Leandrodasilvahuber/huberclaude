@@ -25,13 +25,14 @@ remove_pkg() {
 
 echo "== conteudo do pacote (so deve haver /usr/bin, /usr/lib/huberclaude, applications e icons)"
 if [ "$MODE" = deb ]; then
-  dpkg-deb -c /release/*.deb | awk '{print $6}' | sed 's|^\./||' | grep -vE '^(usr/(bin/huberclaude|lib/huberclaude(/|$)|share/(applications/huberclaude.desktop|icons/hicolor/512x512/apps/huberclaude.png))|usr/?$|usr/(bin|lib|share|share/applications|share/icons|share/icons/hicolor|share/icons/hicolor/512x512|share/icons/hicolor/512x512/apps)/?$|\.?/?$)' && fail "arquivo fora do esperado" || ok "caminhos esperados"
+  dpkg-deb -c /release/*.deb | awk '{print $6}' | sed 's|^\./||' | grep -vE '^(usr/(bin/(huber|huberclaude)|lib/huberclaude(/|$)|share/(applications/huberclaude.desktop|icons/hicolor/512x512/apps/huberclaude.png|metainfo/huberclaude.metainfo.xml|doc/huberclaude(/copyright)?))|usr/?$|usr/(bin|lib|share|share/applications|share/icons|share/icons/hicolor|share/icons/hicolor/512x512|share/icons/hicolor/512x512/apps|share/metainfo|share/doc|share/doc/huberclaude)/?$|\.?/?$)' && fail "arquivo fora do esperado" || ok "caminhos esperados"
 else
-  rpm -qlp /release/*.rpm | grep -vE '^/usr/(bin/huberclaude|lib/huberclaude|share/applications/huberclaude.desktop|share/icons/hicolor/512x512/apps/huberclaude.png)' && fail "arquivo fora do esperado" || ok "caminhos esperados"
+  rpm -qlp /release/*.rpm | grep -vE '^/usr/(bin/(huber|huberclaude)|lib/huberclaude|share/applications/huberclaude.desktop|share/icons/hicolor/512x512/apps/huberclaude.png)' && fail "arquivo fora do esperado" || ok "caminhos esperados"
 fi
 
 echo "== instalar"
 install_pkg
+[ -x /usr/bin/huber ] || fail "/usr/bin/huber ausente"
 [ -x /usr/bin/huberclaude ] || fail "/usr/bin/huberclaude ausente"
 [ -x /usr/lib/huberclaude/node/bin/node ] || fail "node embutido ausente"
 [ -f /usr/share/applications/huberclaude.desktop ] || fail ".desktop ausente"
@@ -57,7 +58,7 @@ ok "reinstalacao"
 
 echo "== remover"
 remove_pkg
-for f in /usr/bin/huberclaude /usr/lib/huberclaude /usr/share/applications/huberclaude.desktop /home/tester/Desktop/huberclaude.desktop; do
+for f in /usr/bin/huber /usr/bin/huberclaude /usr/lib/huberclaude /usr/share/applications/huberclaude.desktop /home/tester/Desktop/huberclaude.desktop; do
   [ -e "$f" ] && fail "sobrou $f"
 done
 ok "nada sobrou"

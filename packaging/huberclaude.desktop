@@ -2,12 +2,12 @@
 Version=1.0
 Type=Application
 Name=HuberClaude
-GenericName=Agente de código
-Comment=Agente de código no terminal
-Exec=huberclaude
-TryExec=huberclaude
+GenericName=Coding agent
+Comment=Coding agent in the terminal, built for OpenRouter
+Exec=huber
+TryExec=huber
 Icon=huberclaude
 Terminal=true
 StartupNotify=false
 Categories=Development;ConsoleOnly;
-Keywords=claude;agent;ai;code;
+Keywords=huber;claude;agent;ai;code;openrouter;

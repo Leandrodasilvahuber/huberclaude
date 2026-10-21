@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- AppStream: o que a Central de Aplicativos / GNOME Software mostra (autor, site, licença, ícone) -->
+<component type="console-application">
+  <id>org.leandrohuber.huberclaude</id>
+  <name>HuberClaude</name>
+  <summary>Open-source coding agent CLI for Linux, built for OpenRouter</summary>
+  <metadata_license>MIT</metadata_license>
+  <!-- Não é MIT: o código deriva do Claude Code (proprietário); ver o NOTICE em LICENSE -->
+  <project_license>LicenseRef-proprietary</project_license>
+  <developer_name>Leandro Huber</developer_name>
+  <update_contact>emaildohuber@gmail.com</update_contact>
+  <description>
+    <p>HuberClaude is a coding agent that runs in your terminal and is dedicated to OpenRouter: a single key gives access to thousands of models, with prices in plain sight. It streams responses and supports sub-agents, web search, MCP, skills and hooks.</p>
+    <p>/model ships with recommended models by tier (FREE to HIGH) and /usage shows your OpenRouter balance as a fuel gauge.</p>
+    <p>No keys or URLs are bundled: run /login after installing to paste your own. Commands: huber or huberclaude.</p>
+  </description>
+  <icon type="stock">huberclaude</icon>
+  <url type="homepage">https://www.leandrohuber.freeddns.org/</url>
+  <url type="bugtracker">https://github.com/Leandrodasilvahuber/huberclaude/issues</url>
+  <launchable type="desktop-id">huberclaude.desktop</launchable>
+  <provides>
+    <binary>huber</binary>
+    <binary>huberclaude</binary>
+  </provides>
+  <categories>
+    <category>Development</category>
+  </categories>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.31.0" date="2026-10-20"/>
+  </releases>
+</component>

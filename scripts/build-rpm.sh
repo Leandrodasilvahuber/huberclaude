@@ -36,7 +36,7 @@ cat > "$TOP/SPECS/huberclaude.spec" <<SPEC
 Name: huberclaude
 Version: $VERSION
 Release: 1
-Summary: HuberClaude - CLI de agente de codigo que roda em modelos OpenRouter
+Summary: HuberClaude - open-source coding agent CLI for Linux, built for OpenRouter
 License: MIT
 BuildArch: $RPM_ARCH
 AutoReqProv: no
@@ -45,7 +45,9 @@ AutoReqProv: no
 %global _build_id_links none
 
 %description
-Coding-agent CLI baseado no OpenClaude. Comando: huberclaude
+HuberClaude is a coding agent that runs in your terminal and is dedicated to
+OpenRouter: a single key gives access to thousands of models. No keys or URLs
+are bundled: run /login after installing. Commands: huber or huberclaude.
 
 %post
 $(sed 's/^exit 0$//' "$ROOT/packaging/post-install.sh" | tail -n +2)
@@ -56,6 +58,7 @@ $(sed 's/^exit 0$//' "$ROOT/packaging/post-remove.sh" | tail -n +2)
 fi
 
 %files
+/usr/bin/huber
 /usr/bin/huberclaude
 /usr/lib/huberclaude
 /usr/share/applications/huberclaude.desktop
