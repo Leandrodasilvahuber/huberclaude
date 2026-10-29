@@ -112,6 +112,7 @@ import type { Message as MessageType } from './types/message.js';
 import { assertMinVersion } from './utils/autoUpdater.js';
 import { setupClaudeInChrome, shouldAutoEnableClaudeInChrome, shouldEnableClaudeInChrome, waitForClaudeInChromeSetup } from './utils/claudeInChrome/setup.js';
 import { mergeClaudeInChromeStartupConfig, resolveClaudeInChromeStartupMode } from './utils/claudeInChrome/startup.js';
+import { getClaudeCodeBrowserMcpConfig } from './utils/claudeCodeBrowser/setup.js';
 import { getContextWindowForModel } from './utils/context.js';
 import { loadConversationForResume } from './utils/conversationRecovery.js';
 import { buildDeepLinkBanner } from './utils/deepLink/banner.js';
@@ -151,7 +152,7 @@ import { registerMcpDoctorCommand } from 'src/commands/mcp/doctorCommand.js';
 import { registerMcpXaaIdpCommand } from 'src/commands/mcp/xaaIdpCommand.js';
 import { fetchClaudeAIMcpConfigsIfEligible } from 'src/services/mcp/claudeai.js';
 import { clearServerCache } from 'src/services/mcp/client.js';
-import { areMcpConfigsAllowedWithEnterpriseMcpConfig, dedupClaudeAiMcpServers, doesEnterpriseMcpConfigExist, filterMcpServersByPolicy, getClaudeCodeMcpConfigs, getMcpServerSignature, parseMcpConfig, parseMcpConfigFromFilePath } from 'src/services/mcp/config.js';
+import { areMcpConfigsAllowedWithEnterpriseMcpConfig, dedupClaudeAiMcpServers, doesEnterpriseMcpConfigExist, filterMcpServersByPolicy, getClaudeCodeMcpConfigs, getMcpConfigsByScope, getMcpServerSignature, parseMcpConfig, parseMcpConfigFromFilePath } from 'src/services/mcp/config.js';
 import { getHeadlessMcpConfigWarnings } from 'src/services/mcp/headlessErrors.js';
 import type { PluginError } from 'src/types/plugin.js';
 import { excludeCommandsByServer, excludeResourcesByServer } from 'src/services/mcp/utils.js';
@@ -1517,6 +1518,17 @@ async function run(): Promise<CommanderCommand> {
         // Silently skip any errors for the auto-enable
         logForDebugging(`[Claude in Chrome] Error (auto-enable): ${error}`);
       }
+    }
+
+    // ClaudeCodeBrowser (Firefox): auto-register when installed in
+    // ~/.claudecodebrowser, unless the user already configured a server by that name.
+    try {
+      dynamicMcpConfig = {
+        ...dynamicMcpConfig,
+        ...getClaudeCodeBrowserMcpConfig([...Object.keys(dynamicMcpConfig), ...Object.keys(getMcpConfigsByScope('user').servers), ...Object.keys(getMcpConfigsByScope('local').servers), ...Object.keys(getMcpConfigsByScope('project').servers)])
+      };
+    } catch (error) {
+      logForDebugging(`[ClaudeCodeBrowser] Error: ${error}`);
     }
 
     // Extract strict MCP config flag
