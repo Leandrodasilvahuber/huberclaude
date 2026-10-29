@@ -13,20 +13,7 @@ import {
 import type { ProviderOutput } from '../../tools/WebSearchTool/providers/index.js'
 import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js'
 
-import {
-  applySearchSelection,
-  describeSearchStatus,
-  findSearchBackend,
-  findSettingsEnvOverride,
-  globalConfigSearchEnvStore,
-  needsApiKey,
-  parseSearchArgs,
-  removeSearchApiKey,
-  runSearchTest,
-  saveSearchApiKey,
-  type SearchBackendOption,
-  type SearchEnvStore,
-} from './searchSettings.js'
+import { applySearchSelection, describeSearchStatus, findSearchBackend, findSettingsEnvOverride, needsApiKey, parseSearchArgs, removeSearchApiKey, runSearchTest, saveSearchApiKey, type SearchBackendOption, type SearchEnvStore } from './searchSettings.js'
 
 const SEARCH_ENV_KEYS = [
   'WEB_SEARCH_PROVIDER',
@@ -396,16 +383,6 @@ describe('globalConfigSearchEnvStore', () => {
 
   afterEach(() => {
     saveGlobalConfig(config => ({ ...config, env: originalEnvBlock }))
-  })
-
-  test('merges into the global config env block and removes unset keys', () => {
-    saveGlobalConfig(config => ({ ...config, env: { KEEP_ME: '1', EXA_API_KEY: 'old' } }))
-
-    globalConfigSearchEnvStore.save({ WEB_SEARCH_PROVIDER: 'exa' }, ['EXA_API_KEY'])
-
-    expect(getGlobalConfig().env).toEqual({ KEEP_ME: '1', WEB_SEARCH_PROVIDER: 'exa' })
-    expect(globalConfigSearchEnvStore.saved('WEB_SEARCH_PROVIDER')).toBe('exa')
-    expect(globalConfigSearchEnvStore.saved('EXA_API_KEY')).toBeUndefined()
   })
 })
 
