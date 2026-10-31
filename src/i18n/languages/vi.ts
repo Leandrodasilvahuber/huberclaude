@@ -1,6 +1,6 @@
 export const vi = {
   'commands.add-dir.description': 'Thêm thư mục làm việc mới',
-  'commands.agents.description': 'Quản lý cấu hình agent',
+  'commands.agents.description': 'Hiển thị agent dạng sơ đồ; tạo, sửa hoặc xóa',
   'commands.auto-fix.description':
     'Cấu hình tự động sửa: chạy lint/test sau khi AI chỉnh sửa',
   'commands.branch.description':
@@ -73,7 +73,7 @@ export const vi = {
     'Khôi phục mã và/hoặc cuộc hội thoại về điểm trước',
   'commands.security-review.description':
     'Hoàn thành đánh giá bảo mật cho các thay đổi đang chờ trên nhánh hiện tại',
-  'commands.skills.description': 'Liệt kê các kỹ năng có sẵn',
+  'commands.skills.description': 'Hiển thị kỹ năng dạng sơ đồ; tạo, sửa hoặc xóa',
   'commands.stats.description':
     'Hiện thống kê sử dụng và hoạt động OpenClaude',
   'commands.status.description':

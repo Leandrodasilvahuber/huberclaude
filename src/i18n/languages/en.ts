@@ -1,6 +1,6 @@
 export const en = {
   'commands.add-dir.description': 'Add a new working directory',
-  'commands.agents.description': 'Manage agent configurations',
+  'commands.agents.description': 'Show agents as a diagram and create, edit or delete them',
   'commands.auto-fix.description':
     'Configure auto-fix: run lint/test after AI edits',
   'commands.branch.description':
@@ -73,7 +73,7 @@ export const en = {
     'Restore the code and/or conversation to a previous point',
   'commands.security-review.description':
     'Complete a security review of the pending changes on the current branch',
-  'commands.skills.description': 'List available skills',
+  'commands.skills.description': 'Show skills as a diagram and create, edit or delete them',
   'commands.stats.description':
     'Show your OpenClaude usage statistics and activity',
   'commands.status.description':
