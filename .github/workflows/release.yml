@@ -104,7 +104,8 @@ jobs:
         run: bun run build
 
       - name: Run unit tests
-        run: bun test --feature=UNATTENDED_RETRY --max-concurrency=1
+        # test:shared + test:isolated (files that leak module state run with --isolate)
+        run: bun run test
 
       - name: Smoke test
         run: bun run smoke

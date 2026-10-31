@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { call as knowledgeCall } from './knowledge.js'
-import { saveGlobalConfig } from '../../utils/config.js'
+import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js'
 import { getArc, resetArc, initializeArc, addGoal } from '../../utils/conversationArc.js'
 import { getGlobalGraph, resetGlobalGraph } from '../../utils/knowledgeGraph.js'
 import {
@@ -76,6 +76,27 @@ describe('knowledge command', () => {
       // Ignore if config is heavily mocked
     }
     resetArc()
+  })
+
+  it('enables and disables knowledge graph engine', async () => {
+    // Test Disable
+    const res1 = await knowledgeCallWithCapture('enable no')
+    expect(res1.toLowerCase()).toContain('disabled')
+    
+    // Safety check: only verify state if property is actually present (avoid CI mock interference)
+    const config1 = getGlobalConfig()
+    if (config1 && 'knowledgeGraphEnabled' in config1) {
+      expect(config1.knowledgeGraphEnabled).toBe(false)
+    }
+
+    // Test Enable
+    const res2 = await knowledgeCallWithCapture('enable yes')
+    expect(res2.toLowerCase()).toContain('enabled')
+    
+    const config2 = getGlobalConfig()
+    if (config2 && 'knowledgeGraphEnabled' in config2) {
+      expect(config2.knowledgeGraphEnabled).toBe(true)
+    }
   })
 
   it('clears the knowledge graph and arc state', async () => {

@@ -17,7 +17,12 @@ import {
   setClaudeConfigHomeDirForTesting,
 } from '../../utils/envUtils.js'
 import { resetSettingsCache } from '../../utils/settings/settingsCache.js'
-import { _applyRemoteEntriesToLocalForTesting, _setDownloadedEntriesForTesting, redownloadUserSettings } from './index.js'
+import {
+  _applyRemoteEntriesToLocalForTesting,
+  _setDownloadedEntriesForTesting,
+  downloadUserSettings,
+  redownloadUserSettings,
+} from './index.js'
 import { SYNC_KEYS } from './types.js'
 
 const fixturePath = resolve(
@@ -242,6 +247,63 @@ test(
   TEST_TIMEOUT_MS,
 )
 
+test(
+  'a timed-out settings entry is not reported applied and memory still syncs',
+  async () => {
+    await withSyncEnvironment(async ({ root, userMemory, userSettings }) => {
+      writeFileSync(userSettings, '{"env":{"ORIGINAL":"yes"}}\n')
+      const entered = join(root, 'timeout-holder-entered')
+      const completed = join(root, 'timeout-holder-completed')
+      const holder = startHolder(userSettings, 4_500, entered, completed)
+      try {
+        await waitForHolder(entered, holder)
+        const result = await _applyRemoteEntriesToLocalForTesting(
+          {
+            [SYNC_KEYS.USER_SETTINGS]: '{"env":{"REPLACED":"no"}}\n',
+            [SYNC_KEYS.USER_MEMORY]: 'synced memory\n',
+          },
+          null,
+        )
+
+        expect(result).toEqual({
+          appliedCount: 1,
+          settingsFilesWritten: 0,
+          settingsFilesFailed: 1,
+          settingsFilesRejected: 0,
+          memoryFilesWritten: 1,
+        })
+        expect(JSON.parse(readFileSync(userSettings, 'utf8')).env).toEqual({
+          ORIGINAL: 'yes',
+        })
+        expect(readFileSync(userMemory, 'utf8')).toBe('synced memory\n')
+        await finishHolder(holder)
+
+        expect(
+          await _applyRemoteEntriesToLocalForTesting(
+            {
+              [SYNC_KEYS.USER_SETTINGS]: '{"env":{"LATER":"yes"}}\n',
+            },
+            null,
+          ),
+        ).toEqual({
+          appliedCount: 1,
+          settingsFilesWritten: 1,
+          settingsFilesFailed: 0,
+          settingsFilesRejected: 0,
+          memoryFilesWritten: 0,
+        })
+        expect(JSON.parse(readFileSync(userSettings, 'utf8')).env).toEqual({
+          LATER: 'yes',
+        })
+        expect(existsSync(`${userSettings}.lock`)).toBe(false)
+      } finally {
+        await terminateHolder(holder)
+      }
+    })
+  },
+  TEST_TIMEOUT_MS,
+)
+
 test('permanent settings rejections are reported without retry failure', async () => {
   await withSyncEnvironment(async ({ userSettings }) => {
     const oversizedSettings = 'x'.repeat(500 * 1024 + 1)
@@ -269,3 +331,41 @@ test('permanent settings rejections are reported without retry failure', async (
     }
   })
 })
+
+test(
+  'startup and reload downloads return false after a timed-out settings apply',
+  async () => {
+    await withSyncEnvironment(async ({ root, userMemory, userSettings }) => {
+      writeFileSync(userSettings, '{"env":{"ORIGINAL":"yes"}}\n')
+      const entered = join(root, 'download-holder-entered')
+      const completed = join(root, 'download-holder-completed')
+      const holder = startHolder(userSettings, 9_000, entered, completed)
+      try {
+        await waitForHolder(entered, holder)
+        _setDownloadedEntriesForTesting({
+          entries: {
+            [SYNC_KEYS.USER_SETTINGS]: '{"env":{"REPLACED":"no"}}\n',
+            [SYNC_KEYS.USER_MEMORY]: 'best-effort memory\n',
+          },
+          projectId: null,
+        })
+
+        const startupDownload = downloadUserSettings()
+        expect(downloadUserSettings()).toBe(startupDownload)
+        expect(await startupDownload).toBe(false)
+        expect(await redownloadUserSettings()).toBe(false)
+
+        expect(JSON.parse(readFileSync(userSettings, 'utf8')).env).toEqual({
+          ORIGINAL: 'yes',
+        })
+        expect(readFileSync(userMemory, 'utf8')).toBe('best-effort memory\n')
+        await finishHolder(holder)
+        expect(existsSync(`${userSettings}.lock`)).toBe(false)
+      } finally {
+        _setDownloadedEntriesForTesting(null)
+        await terminateHolder(holder)
+      }
+    })
+  },
+  TEST_TIMEOUT_MS,
+)

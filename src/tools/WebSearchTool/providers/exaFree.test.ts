@@ -475,4 +475,24 @@ describe('exaFreeProvider call spacing', () => {
     callTimes.sort((a, b) => a - b)
     expect(callTimes[2]! - callTimes[0]!).toBeGreaterThanOrEqual(950)
   })
+
+  test('cancelled waiters do not delay later calls', async () => {
+    const callTimes: number[] = []
+    mockFetch(() => {
+      callTimes.push(Date.now())
+      return sseResponse(toolResult('No results found.'))
+    })
+
+    await exaFreeProvider.search({ query: 'first' })
+    const controller = new AbortController()
+    const queued = [1, 2, 3].map(i =>
+      exaFreeProvider.search({ query: `queued ${i}` }, controller.signal).catch(() => null),
+    )
+    controller.abort()
+    await Promise.all(queued)
+    await exaFreeProvider.search({ query: 'next' })
+
+    expect(callTimes).toHaveLength(2)
+    expect(callTimes[1]! - callTimes[0]!).toBeLessThan(900)
+  })
 })

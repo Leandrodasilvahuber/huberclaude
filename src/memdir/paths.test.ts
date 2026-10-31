@@ -84,6 +84,12 @@ test('defaults to enabled when no source sets the key and no env override', () =
   expect(isAutoMemoryEnabled()).toBe(true)
 })
 
+test('defaults to disabled in non-interactive (-p) sessions', () => {
+  setIsInteractive(false)
+  mockSources([{ source: 'userSettings', settings: {} }])
+  expect(isAutoMemoryEnabled()).toBe(false)
+})
+
 test('an explicit settings opt-in overrides the non-interactive default', () => {
   setIsInteractive(false)
   mockSources([
