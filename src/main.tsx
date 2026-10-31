@@ -112,7 +112,7 @@ import type { Message as MessageType } from './types/message.js';
 import { assertMinVersion } from './utils/autoUpdater.js';
 import { setupClaudeInChrome, shouldAutoEnableClaudeInChrome, shouldEnableClaudeInChrome, waitForClaudeInChromeSetup } from './utils/claudeInChrome/setup.js';
 import { mergeClaudeInChromeStartupConfig, resolveClaudeInChromeStartupMode } from './utils/claudeInChrome/startup.js';
-import { getClaudeCodeBrowserMcpConfig } from './utils/claudeCodeBrowser/setup.js';
+import { getClaudeCodeBrowserMcpConfig, shouldAutoRegisterClaudeCodeBrowser } from './utils/claudeCodeBrowser/setup.js';
 import { getContextWindowForModel } from './utils/context.js';
 import { loadConversationForResume } from './utils/conversationRecovery.js';
 import { buildDeepLinkBanner } from './utils/deepLink/banner.js';
@@ -155,7 +155,7 @@ import { clearServerCache } from 'src/services/mcp/client.js';
 import { areMcpConfigsAllowedWithEnterpriseMcpConfig, dedupClaudeAiMcpServers, doesEnterpriseMcpConfigExist, filterMcpServersByPolicy, getClaudeCodeMcpConfigs, getMcpConfigsByScope, getMcpServerSignature, parseMcpConfig, parseMcpConfigFromFilePath } from 'src/services/mcp/config.js';
 import { getHeadlessMcpConfigWarnings } from 'src/services/mcp/headlessErrors.js';
 import type { PluginError } from 'src/types/plugin.js';
-import { excludeCommandsByServer, excludeResourcesByServer } from 'src/services/mcp/utils.js';
+import { excludeCommandsByServer, excludeResourcesByServer, getProjectMcpServerStatus } from 'src/services/mcp/utils.js';
 import { isXaaEnabled } from 'src/services/mcp/xaaIdpLogin.js';
 import { getRelevantTips } from 'src/services/tips/tipRegistry.js';
 import { logContextMetrics } from 'src/utils/api.js';
@@ -1520,17 +1520,6 @@ async function run(): Promise<CommanderCommand> {
       }
     }
 
-    // ClaudeCodeBrowser (Firefox): auto-register when installed in
-    // ~/.claudecodebrowser, unless the user already configured a server by that name.
-    try {
-      dynamicMcpConfig = {
-        ...dynamicMcpConfig,
-        ...getClaudeCodeBrowserMcpConfig([...Object.keys(dynamicMcpConfig), ...Object.keys(getMcpConfigsByScope('user').servers), ...Object.keys(getMcpConfigsByScope('local').servers), ...Object.keys(getMcpConfigsByScope('project').servers)])
-      };
-    } catch (error) {
-      logForDebugging(`[ClaudeCodeBrowser] Error: ${error}`);
-    }
-
     // Extract strict MCP config flag
     const strictMcpConfig = options.strictMcpConfig || false;
 
@@ -1546,6 +1535,32 @@ async function run(): Promise<CommanderCommand> {
       if (dynamicMcpConfig && !areMcpConfigsAllowedWithEnterpriseMcpConfig(dynamicMcpConfig)) {
         process.stderr.write(chalk.red('You cannot dynamically configure MCP servers when an enterprise MCP config is present'));
         process.exit(1);
+      }
+    }
+
+    // ClaudeCodeBrowser (Firefox): auto-register when installed in
+    // ~/.claudecodebrowser, unless the user already configured a server by that
+    // name. Placed after the enterprise check for the same reason as chicago
+    // below, and skipped under --strict-mcp-config / --bare, whose contract is
+    // "only the servers I passed". A project server the user rejected does not
+    // count as configured, otherwise the browser would silently disappear.
+    if (shouldAutoRegisterClaudeCodeBrowser({
+      strictMcpConfig,
+      bareMode: isBareMode(),
+      enterpriseMcpConfig: doesEnterpriseMcpConfigExist()
+    })) {
+      try {
+        const {
+          allowed
+        } = filterMcpServersByPolicy(getClaudeCodeBrowserMcpConfig({
+          getExistingServerNames: () => [...Object.keys(dynamicMcpConfig), ...Object.keys(getMcpConfigsByScope('user').servers), ...Object.keys(getMcpConfigsByScope('local').servers), ...Object.keys(getMcpConfigsByScope('project').servers).filter(name => getProjectMcpServerStatus(name) !== 'rejected')]
+        }));
+        dynamicMcpConfig = {
+          ...dynamicMcpConfig,
+          ...allowed
+        };
+      } catch (error) {
+        logForDebugging(`[ClaudeCodeBrowser] Error: ${error}`);
       }
     }
 
