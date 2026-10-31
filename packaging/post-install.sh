@@ -11,10 +11,21 @@ case "${1:-configure}" in
   *) exit 0 ;;
 esac
 
+# Instalação nova: deb "configure" sem versão anterior em $2; rpm com $1 = 1.
+# Numa atualização o atalho não é recolocado (quem apagou não quer de volta).
+FRESH=0
+case "${1:-configure}" in
+  configure) [ -z "${2:-}" ] && FRESH=1 ;;
+  1) FRESH=1 ;;
+esac
+
 SRC=/usr/share/applications/huberclaude.desktop
 for home in /home/*; do
+  [ "$FRESH" = 1 ] || break
   [ -d "$home" ] || continue
-  user="$(basename "$home")"
+  # dono da pasta, não o nome dela (podem ser diferentes)
+  user="$(stat -c %U "$home" 2>/dev/null)" || continue
+  [ -n "$user" ] && [ "$user" != root ] && [ "$user" != UNKNOWN ] || continue
   desk=""
   cfg="$home/.config/user-dirs.dirs"
   if [ -f "$cfg" ]; then
@@ -23,9 +34,10 @@ for home in /home/*; do
   for d in "$desk" "$home/Área de Trabalho" "$home/Desktop" "$home/Escritorio" "$home/Bureau"; do
     [ -n "$d" ] && [ -d "$d" ] || continue
     f="$d/huberclaude.desktop"
-    cp "$SRC" "$f"
-    chown "$user" "$f" 2>/dev/null || true
-    chmod 755 "$f"
+    # Copia como o próprio usuário: como root, cp/chmod/chown seguiriam um link
+    # simbólico plantado em $f e sobrescreveriam qualquer arquivo do sistema.
+    [ -L "$f" ] && break
+    timeout 5 runuser -u "$user" -- install -m 755 "$SRC" "$f" </dev/null >/dev/null 2>&1 || break
     if command -v gio >/dev/null 2>&1; then
       sum="$(sha256sum "$f" | cut -d' ' -f1)"
       timeout 5 runuser -u "$user" -- gio set "$f" metadata::trusted true </dev/null >/dev/null 2>&1 || true
