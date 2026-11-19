@@ -1,7 +1,8 @@
 import { createCombinedAbortSignal } from '../../utils/combinedAbortSignal.js'
 import {
-  getOpenRouterConfig,
-  resolveOpenRouterApiKey,
+  getActiveProvider,
+  getActiveProviderBaseUrl,
+  resolveActiveProviderApiKey,
 } from '../../utils/openclaudeConfig.js'
 
 export type OpenRouterModel = {
@@ -12,9 +13,10 @@ export type OpenRouterModel = {
   promptPrice: number | null
   /** USD per 1M completion tokens, null when unknown. */
   completionPrice: number | null
+  /** Replaces the price cells when the provider reports no per-model pricing. */
+  priceLabel?: string
 }
 
-const DEFAULT_BASE_URL = 'https://openrouter.ai/api/v1'
 const FETCH_TIMEOUT_MS = 15_000
 
 function toPerMillion(value: unknown): number | null {
@@ -25,7 +27,10 @@ function toPerMillion(value: unknown): number | null {
   return n * 1_000_000
 }
 
-export function parseOpenRouterModels(payload: unknown): OpenRouterModel[] {
+export function parseOpenRouterModels(
+  payload: unknown,
+  priceLabel?: string,
+): OpenRouterModel[] {
   const data =
     payload && typeof payload === 'object' && 'data' in payload
       ? (payload as { data: unknown }).data
@@ -54,15 +59,16 @@ export function parseOpenRouterModels(payload: unknown): OpenRouterModel[] {
       contextLength,
       promptPrice: toPerMillion(pricing.prompt),
       completionPrice: toPerMillion(pricing.completion),
+      ...(priceLabel && pricing.prompt === undefined ? { priceLabel } : {}),
     })
   }
   return models.sort((a, b) => a.id.localeCompare(b.id))
 }
 
 export async function fetchOpenRouterModels(): Promise<OpenRouterModel[]> {
-  const config = getOpenRouterConfig()
-  const baseUrl = (config.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '')
-  const apiKey = resolveOpenRouterApiKey()
+  const provider = getActiveProvider()
+  const baseUrl = getActiveProviderBaseUrl()
+  const apiKey = resolveActiveProviderApiKey()
 
   const { signal, cleanup } = createCombinedAbortSignal(undefined, {
     timeoutMs: FETCH_TIMEOUT_MS,
@@ -73,9 +79,9 @@ export async function fetchOpenRouterModels(): Promise<OpenRouterModel[]> {
       signal,
     })
     if (!response.ok) {
-      throw new Error(`OpenRouter returned HTTP ${response.status}`)
+      throw new Error(`${provider.label} returned HTTP ${response.status}`)
     }
-    return parseOpenRouterModels(await response.json())
+    return parseOpenRouterModels(await response.json(), provider.priceLabel)
   } finally {
     cleanup()
   }
@@ -93,6 +99,7 @@ function formatPrice(value: number | null): string {
 
 /** e.g. "$0.15/$0.60 per 1M" or "free". */
 export function formatOpenRouterPrice(model: OpenRouterModel): string {
+  if (model.priceLabel) return model.priceLabel
   if (isFreeOpenRouterModel(model)) return 'free'
   return `$${formatPrice(model.promptPrice)}/$${formatPrice(model.completionPrice)} per 1M`
 }
@@ -120,7 +127,9 @@ export function formatOpenRouterModelColumns(model: OpenRouterModel): {
 } {
   const free = isFreeOpenRouterModel(model)
   const price = (value: number | null) =>
-    (free ? 'free' : value === null ? '?' : `$${formatPrice(value)}`).padStart(
+    (model.priceLabel
+      ? model.priceLabel
+      : free ? 'free' : value === null ? '?' : `$${formatPrice(value)}`).padStart(
       MODEL_COLUMN_WIDTHS.price,
     )
   return {

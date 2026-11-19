@@ -1,4 +1,4 @@
-import { resolveOpenRouterApiKey } from './openclaudeConfig.js'
+import { resolveActiveProviderApiKey } from './openclaudeConfig.js'
 import { hasPrintFlag } from './printFlag.js'
 
 const MISSING_KEY_MESSAGE =
@@ -11,7 +11,7 @@ const MISSING_KEY_MESSAGE =
 export function getProviderValidationError(
   env: NodeJS.ProcessEnv = process.env,
 ): string | null {
-  return resolveOpenRouterApiKey(env) ? null : MISSING_KEY_MESSAGE
+  return resolveActiveProviderApiKey(env) ? null : MISSING_KEY_MESSAGE
 }
 
 /**

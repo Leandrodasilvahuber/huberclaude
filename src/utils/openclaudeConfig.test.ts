@@ -4,8 +4,13 @@ import os from 'node:os'
 import path from 'node:path'
 import {
   applyOpenRouterConfigToEnv,
+  getActiveProviderId,
   getOpenRouterConfig,
+  getProviderSettings,
+  resolveProviderApiKey,
   saveOpenRouterConfig,
+  saveProviderSettings,
+  setActiveProvider,
 } from './openclaudeConfig.js'
 
 let tempDir: string
@@ -85,4 +90,49 @@ test('leaves host-managed provider routing alone', () => {
   }
   expect(applyOpenRouterConfigToEnv(env)).toBe(false)
   expect(env.OPENAI_BASE_URL).toBe('https://api.openai.com/v1')
+})
+
+describe('providers (/provedor)', () => {
+  test('defaults to openrouter', () => {
+    expect(getActiveProviderId()).toBe('openrouter')
+  })
+
+  test('points env at z.ai with its own key and model', () => {
+    saveOpenRouterConfig({ apiKey: 'sk-or-test', model: 'openai/gpt-4o' })
+    saveProviderSettings('zai', { apiKey: 'zai-key', model: 'glm-5.1' })
+    setActiveProvider('zai')
+    const env: NodeJS.ProcessEnv = { OPENROUTER_API_KEY: 'old' }
+    expect(applyOpenRouterConfigToEnv(env)).toBe(true)
+    expect(env).toEqual({
+      OPENROUTER_API_KEY: 'old',
+      CLAUDE_CODE_USE_OPENAI: '1',
+      OPENAI_BASE_URL: 'https://api.z.ai/api/coding/paas/v4',
+      OPENAI_API_KEY: 'zai-key',
+      OPENAI_MODEL: 'glm-5.1',
+    })
+    // OpenRouter settings stay intact.
+    expect(getOpenRouterConfig().model).toBe('openai/gpt-4o')
+  })
+
+  test('uses the provider default model and env key for modelscope', () => {
+    setActiveProvider('modelscope')
+    const env: NodeJS.ProcessEnv = { MODELSCOPE_API_KEY: 'ms-env' }
+    expect(applyOpenRouterConfigToEnv(env)).toBe(true)
+    expect(env.OPENAI_BASE_URL).toBe('https://api-inference.modelscope.cn/v1')
+    expect(env.OPENAI_API_KEY).toBe('ms-env')
+    expect(env.OPENAI_MODEL).toBe('Qwen/Qwen3-Coder-480B-A35B-Instruct')
+  })
+
+  test('keeps per-provider settings separate', () => {
+    saveProviderSettings('zai', { apiKey: 'a' })
+    saveProviderSettings('modelscope', { apiKey: 'b' })
+    saveProviderSettings('zai', { model: 'glm-5' })
+    expect(getProviderSettings('zai')).toEqual({ apiKey: 'a', model: 'glm-5', baseUrl: undefined })
+    expect(resolveProviderApiKey('modelscope', {})).toBe('b')
+  })
+
+  test('falls back to openrouter on an unknown saved provider', () => {
+    saveOpenRouterConfig({ provider: 'nope' })
+    expect(getActiveProviderId()).toBe('openrouter')
+  })
 })

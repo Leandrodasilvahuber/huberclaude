@@ -61,7 +61,7 @@ import {
 } from './utils/replMaxTurns.js';
 import { getInitialFastModeSetting, isFastModeEnabled, prefetchFastModeStatus, resolveFastModeStatusFromCache } from './utils/fastMode.js';
 import { applyConfigEnvironmentVariables } from './utils/managedEnv.js';
-import { resolveOpenRouterApiKey } from './utils/openclaudeConfig.js';
+import { resolveActiveProviderApiKey } from './utils/openclaudeConfig.js';
 import { createSystemMessage, createUserMessage } from './utils/messages.js';
 import { isFirstPartyAnthropicBaseUrl } from './utils/model/providers.js';
 import { getPlatform } from './utils/platform.js';
@@ -1270,7 +1270,7 @@ async function run(): Promise<CommanderCommand> {
 
     // HuberClaude is OpenRouter-only; interactive sessions prompt for the key
     // in showSetupScreens, print/SDK sessions cannot.
-    if (isNonInteractiveSession && !resolveOpenRouterApiKey()) {
+    if (isNonInteractiveSession && !resolveActiveProviderApiKey()) {
       process.stderr.write(chalk.red('Error: No OpenRouter API key configured. Run huberclaude once interactively to configure it, or set HUBERCLAUDE_OPENROUTER_API_KEY.\n'));
       process.exit(1);
     }

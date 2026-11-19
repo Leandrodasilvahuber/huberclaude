@@ -3,6 +3,7 @@ import { FuzzyPicker } from '../../components/design-system/FuzzyPicker.js'
 import { LoadingState } from '../../components/design-system/LoadingState.js'
 import { useTerminalSize } from '../../hooks/useTerminalSize.js'
 import { Box, Text } from '../../ink.js'
+import { getActiveProvider } from '../../utils/openclaudeConfig.js'
 import {
   fetchOpenRouterModels,
   filterOpenRouterModels,
@@ -35,6 +36,7 @@ export function OpenRouterModelPicker({
   const [models, setModels] = React.useState<OpenRouterModel[] | null>(null)
   const [query, setQuery] = React.useState('')
   const { columns } = useTerminalSize()
+  const provider = React.useMemo(() => getActiveProvider(), [])
 
   React.useEffect(() => {
     let cancelled = false
@@ -42,7 +44,7 @@ export function OpenRouterModelPicker({
       .then(result => {
         if (cancelled) return
         if (result.length === 0) {
-          onError('OpenRouter returned no models.')
+          onError(`${provider.label} returned no models.`)
           return
         }
         setModels(result)
@@ -50,7 +52,7 @@ export function OpenRouterModelPicker({
       .catch((error: unknown) => {
         if (!cancelled) {
           onError(
-            `Failed to load OpenRouter models: ${(error as Error).message}`,
+            `Failed to load ${provider.label} models: ${(error as Error).message}`,
           )
         }
       })
@@ -83,12 +85,16 @@ export function OpenRouterModelPicker({
   }, [models, columns])
 
   if (!models) {
-    return <LoadingState message="Loading OpenRouter models…" />
+    return <LoadingState message={`Loading ${provider.label} models…`} />
   }
 
   return (
     <FuzzyPicker
-      title={`OpenRouter models (${models.length}) · prices in USD per 1M tokens`}
+      title={
+        provider.priceLabel
+          ? `${provider.label} models (${models.length}) · /provedor muda o provedor`
+          : `${provider.label} models (${models.length}) · prices in USD per 1M tokens · /provedor muda o provedor`
+      }
       placeholder="Type to filter (e.g. claude, free, qwen coder)…"
       items={items}
       getKey={model => model.id}
@@ -96,7 +102,7 @@ export function OpenRouterModelPicker({
       onQueryChange={setQuery}
       onSelect={model => onSelect(model.id)}
       onCancel={onCancel}
-      emptyMessage={q => `No OpenRouter models match "${q}"`}
+      emptyMessage={q => `No ${provider.label} models match "${q}"`}
       matchLabel={query ? `${items.length} matches` : undefined}
       header={
         <Text dimColor>
@@ -112,7 +118,10 @@ export function OpenRouterModelPicker({
       }
       renderItem={model => {
         const cells = formatOpenRouterModelColumns(model)
-        const priceColor = isFreeOpenRouterModel(model) ? 'success' : undefined
+        const priceColor =
+          isFreeOpenRouterModel(model) || model.priceLabel === 'grátis'
+            ? 'success'
+            : undefined
         return (
           <Text>
             {fitColumn(model.id, idWidth)}

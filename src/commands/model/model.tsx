@@ -7,8 +7,10 @@ import type { AppState } from '../../state/AppState.js'
 import type { LocalJSXCommandCall } from '../../types/command.js'
 import { getMainLoopModel } from '../../utils/model/model.js'
 import {
-  resolveOpenRouterApiKey,
-  saveOpenRouterConfig,
+  getActiveProvider,
+  getActiveProviderId,
+  resolveActiveProviderApiKey,
+  saveProviderSettings,
 } from '../../utils/openclaudeConfig.js'
 import { OpenRouterModelPicker } from './OpenRouterModelPicker.js'
 
@@ -17,11 +19,11 @@ export type OnDone = (
   options?: { display?: CommandResultDisplay },
 ) => void
 
-/** Persist the OpenRouter model and point the running session at it. */
+/** Persist the model for the active provider and point the session at it. */
 export function persistOpenRouterModel(model: string): void {
   // OPENAI_MODEL takes precedence over settings.model for the OpenAI shim.
   process.env.OPENAI_MODEL = model
-  saveOpenRouterConfig({ model })
+  saveProviderSettings(getActiveProviderId(), { model })
 }
 
 export function useSetOpenRouterModel(onDone: OnDone): (model: string) => void {
@@ -40,7 +42,7 @@ export function useSetOpenRouterModel(onDone: OnDone): (model: string) => void {
       mainLoopModel: model,
       mainLoopModelForSession: null,
     }))
-    onDone(`Set model to ${chalk.bold(model)}`)
+    onDone(`Set model to ${chalk.bold(model)} (${getActiveProvider().label})`)
   }
 }
 
@@ -77,7 +79,7 @@ function ShowModelAndClose({ onDone }: { onDone: OnDone }) {
   const mainLoopModel = useAppState((s: AppState) => s.mainLoopModel)
   React.useEffect(() => {
     onDone(
-      `Current OpenRouter model: ${chalk.bold(mainLoopModel ?? getMainLoopModel())}`,
+      `Current ${getActiveProvider().label} model: ${chalk.bold(mainLoopModel ?? getMainLoopModel())}`,
       { display: 'system' },
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -94,14 +96,14 @@ export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
 
   if (COMMON_HELP_ARGS.includes(trimmedArgs)) {
     onDone(
-      'Run /model to pick an OpenRouter model (price and context shown), or /model <openrouter-model-id> to set it directly.',
+      `Run /model to pick a ${getActiveProvider().label} model, or /model <model-id> to set it directly. Use /provedor to switch provider.`,
       { display: 'system' },
     )
     return
   }
 
-  if (!resolveOpenRouterApiKey()) {
-    onDone('No OpenRouter API key configured. Run /login first.', {
+  if (!resolveActiveProviderApiKey()) {
+    onDone(`No ${getActiveProvider().label} API key configured. Run /provedor first.`, {
       display: 'system',
     })
     return

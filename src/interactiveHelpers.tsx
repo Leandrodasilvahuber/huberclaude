@@ -145,9 +145,10 @@ export async function showSetupScreens(root: Root, permissionMode: PermissionMod
   // before the REPL mounts; Esc exits.
   const {
     applyOpenRouterConfigToEnv,
-    resolveOpenRouterApiKey
+    resolveActiveProviderApiKey,
+    setActiveProvider
   } = await import('./utils/openclaudeConfig.js');
-  if (!resolveOpenRouterApiKey()) {
+  if (!resolveActiveProviderApiKey()) {
     const {
       Login
     } = await import('./commands/login/login.js');
@@ -155,6 +156,8 @@ export async function showSetupScreens(root: Root, permissionMode: PermissionMod
     if (!configured) {
       return exitWithError(root, 'HuberClaude needs an OpenRouter API key. Run huberclaude again to configure it.');
     }
+    // The key just entered is an OpenRouter key, so start on OpenRouter.
+    setActiveProvider('openrouter');
   }
   applyOpenRouterConfigToEnv();
 
