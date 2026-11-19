@@ -106,7 +106,7 @@ describe('providers (/provedor)', () => {
     expect(env).toEqual({
       OPENROUTER_API_KEY: 'old',
       CLAUDE_CODE_USE_OPENAI: '1',
-      OPENAI_BASE_URL: 'https://api.z.ai/api/coding/paas/v4',
+      OPENAI_BASE_URL: 'https://api.z.ai/api/paas/v4',
       OPENAI_API_KEY: 'zai-key',
       OPENAI_MODEL: 'glm-5.1',
     })

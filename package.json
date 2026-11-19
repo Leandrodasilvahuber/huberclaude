@@ -1,6 +1,6 @@
 {
   "name": "@gitlawb/huberclaude",
-  "version": "0.32.0",
+  "version": "0.32.1",
   "description": "HuberClaude is a coding-agent CLI that runs on OpenRouter models",
   "type": "module",
   "bin": {

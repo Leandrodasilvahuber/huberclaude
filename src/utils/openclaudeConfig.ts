@@ -44,9 +44,11 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
   {
     id: 'zai',
     label: 'Z.ai (GLM)',
-    description: 'GLM Coding Plan da Zhipu',
-    baseUrl: 'https://api.z.ai/api/coding/paas/v4',
-    defaultModel: 'glm-5.2',
+    // Endpoint geral: os glm-*-flash são grátis. O Coding Plan
+    // (api/coding/paas/v4, glm-5.x) exige pacote pago; sem saldo dá erro 1113.
+    description: 'GLM da Zhipu; glm-4.5-flash e glm-4.7-flash grátis',
+    baseUrl: 'https://api.z.ai/api/paas/v4',
+    defaultModel: 'glm-4.5-flash',
     keyUrl: 'https://z.ai/manage-apikey/apikey-list',
     keyPlaceholder: 'chave da z.ai',
     priceLabel: 'plano',
