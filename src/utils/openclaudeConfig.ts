@@ -26,6 +26,11 @@ export interface ProviderDefinition {
   keyPlaceholder: string
   /** Shown in the /model price columns when the API reports no pricing. */
   priceLabel?: string
+  /**
+   * Models that cost nothing on this provider. /model labels them "grátis",
+   * lists them first and adds them when the provider's /models omits them.
+   */
+  freeModels?: readonly string[]
   /** Extra env names checked (in order) when no key is saved. */
   envKeys: string[]
 }
@@ -51,7 +56,10 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     defaultModel: 'glm-4.5-flash',
     keyUrl: 'https://z.ai/manage-apikey/apikey-list',
     keyPlaceholder: 'chave da z.ai',
-    priceLabel: 'plano',
+    priceLabel: 'saldo',
+    // O /models da Z.ai não lista estes; os demais (glm-4.5, glm-5.x e até
+    // glm-5.3-flash) exigem saldo e respondem 1113 sem ele.
+    freeModels: ['glm-4.5-flash', 'glm-4.7-flash', 'glm-4.6v-flash'],
     envKeys: ['HUBERCLAUDE_ZAI_API_KEY', 'ZAI_API_KEY'],
   },
   {

@@ -65,6 +65,32 @@ export function parseOpenRouterModels(
   return models.sort((a, b) => a.id.localeCompare(b.id))
 }
 
+export const FREE_PRICE_LABEL = 'grátis'
+
+/**
+ * Labels the provider's known free models "grátis", adds the ones its /models
+ * omits and lists them first (the rest keep their order).
+ */
+export function markFreeModels(
+  models: readonly OpenRouterModel[],
+  freeModels: readonly string[] | undefined,
+): OpenRouterModel[] {
+  if (!freeModels?.length) return [...models]
+  const free = new Set(freeModels)
+  const byId = new Map(models.map(model => [model.id, model]))
+  const freeRows = freeModels.map(id => ({
+    ...(byId.get(id) ?? {
+      id,
+      name: id,
+      contextLength: null,
+      promptPrice: null,
+      completionPrice: null,
+    }),
+    priceLabel: FREE_PRICE_LABEL,
+  }))
+  return [...freeRows, ...models.filter(model => !free.has(model.id))]
+}
+
 export async function fetchOpenRouterModels(): Promise<OpenRouterModel[]> {
   const provider = getActiveProvider()
   const baseUrl = getActiveProviderBaseUrl()
@@ -81,7 +107,10 @@ export async function fetchOpenRouterModels(): Promise<OpenRouterModel[]> {
     if (!response.ok) {
       throw new Error(`${provider.label} returned HTTP ${response.status}`)
     }
-    return parseOpenRouterModels(await response.json(), provider.priceLabel)
+    return markFreeModels(
+      parseOpenRouterModels(await response.json(), provider.priceLabel),
+      provider.freeModels,
+    )
   } finally {
     cleanup()
   }
@@ -159,7 +188,10 @@ export function filterOpenRouterModels(
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean)
   if (terms.length === 0) return [...models]
   return models.filter(model => {
-    const haystack = `${model.id} ${model.name}`.toLowerCase()
+    const free =
+      isFreeOpenRouterModel(model) || model.priceLabel === FREE_PRICE_LABEL
+    const haystack =
+      `${model.id} ${model.name} ${model.priceLabel ?? ''}${free ? ' free' : ''}`.toLowerCase()
     return terms.every(term => haystack.includes(term))
   })
 }

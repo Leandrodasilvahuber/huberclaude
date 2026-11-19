@@ -5,6 +5,7 @@ import {
   formatContextLength,
   formatOpenRouterModelColumns,
   formatOpenRouterPrice,
+  markFreeModels,
   MODEL_COLUMN_WIDTHS,
   parseOpenRouterModels,
 } from './openRouterModels.js'
@@ -114,5 +115,32 @@ describe('fitColumn', () => {
     expect(fitColumn('abc', 5)).toBe('abc  ')
     expect(fitColumn('abcdefgh', 5)).toBe('abcd…')
     expect(fitColumn('abc', 0)).toBe('')
+  })
+})
+
+describe('markFreeModels', () => {
+  const zai = parseOpenRouterModels(
+    { data: [{ id: 'glm-4.5' }, { id: 'glm-4.7-flash' }, { id: 'glm-5.3-flash' }] },
+    'saldo',
+  )
+
+  test('lists free models first, adding the ones /models omits', () => {
+    const models = markFreeModels(zai, ['glm-4.5-flash', 'glm-4.7-flash'])
+    expect(models.map(m => [m.id, m.priceLabel])).toEqual([
+      ['glm-4.5-flash', 'grátis'],
+      ['glm-4.7-flash', 'grátis'],
+      ['glm-4.5', 'saldo'],
+      ['glm-5.3-flash', 'saldo'],
+    ])
+  })
+
+  test('"free" and "grátis" filter the free ones', () => {
+    const models = markFreeModels(zai, ['glm-4.5-flash'])
+    expect(filterOpenRouterModels(models, 'free').map(m => m.id)).toEqual(['glm-4.5-flash'])
+    expect(filterOpenRouterModels(models, 'grátis').map(m => m.id)).toEqual(['glm-4.5-flash'])
+  })
+
+  test('leaves the list alone without free models', () => {
+    expect(markFreeModels(zai, undefined)).toEqual(zai)
   })
 })

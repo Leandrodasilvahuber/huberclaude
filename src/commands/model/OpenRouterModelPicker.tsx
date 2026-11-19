@@ -7,6 +7,7 @@ import { getActiveProvider } from '../../utils/openclaudeConfig.js'
 import {
   fetchOpenRouterModels,
   filterOpenRouterModels,
+  FREE_PRICE_LABEL,
   fitColumn,
   formatContextLength,
   formatOpenRouterModelColumns,
@@ -119,7 +120,7 @@ export function OpenRouterModelPicker({
       renderItem={model => {
         const cells = formatOpenRouterModelColumns(model)
         const priceColor =
-          isFreeOpenRouterModel(model) || model.priceLabel === 'grátis'
+          isFreeOpenRouterModel(model) || model.priceLabel === FREE_PRICE_LABEL
             ? 'success'
             : undefined
         return (
