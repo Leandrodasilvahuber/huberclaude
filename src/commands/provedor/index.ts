@@ -7,9 +7,9 @@ export default {
   name: 'provedor',
   aliases: ['provider'],
   get description() {
-    return `Trocar o provedor de modelos: OpenRouter, Z.ai ou ModelScope (atual: ${getActiveProvider().label})`
+    return `Trocar o provedor de modelos: OpenRouter, Z.ai, ModelScope ou DeepSeek (atual: ${getActiveProvider().label})`
   },
-  argumentHint: '[openrouter|zai|modelscope]',
+  argumentHint: '[openrouter|zai|modelscope|deepseek]',
   get immediate() {
     return shouldInferenceConfigCommandBeImmediate()
   },

@@ -38,6 +38,10 @@ for home in /home/*; do
     # simbólico plantado em $f e sobrescreveriam qualquer arquivo do sistema.
     [ -L "$f" ] && break
     timeout 5 runuser -u "$user" -- install -m 755 "$SRC" "$f" </dev/null >/dev/null 2>&1 || break
+    # Logo original na área de trabalho, sobrescrevendo qualquer outro
+    timeout 5 runuser -u "$user" -- install -m 644 /usr/share/icons/hicolor/512x512/apps/huberclaude.png "$d/huberclaude.png" </dev/null >/dev/null 2>&1 || true
+    # Aponta o atalho para o logo original da área de trabalho
+    timeout 5 runuser -u "$user" -- sed -i "s|^Icon=.*|Icon=$d/huberclaude.png|" "$f" </dev/null >/dev/null 2>&1 || true
     if command -v gio >/dev/null 2>&1; then
       sum="$(sha256sum "$f" | cut -d' ' -f1)"
       timeout 5 runuser -u "$user" -- gio set "$f" metadata::trusted true </dev/null >/dev/null 2>&1 || true

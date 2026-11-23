@@ -184,7 +184,11 @@ export const call: LocalJSXCommandCall = async (onDone, context, args) => {
       glm: 'zai',
       zhipu: 'zai',
       ms: 'modelscope',
+      modelscope: 'modelscope',
       or: 'openrouter',
+      openrouter: 'openrouter',
+      deepseek: 'deepseek',
+      ds: 'deepseek',
     }
     initial = getProviderDefinition(alias[arg] ?? arg) ?? null
     if (!initial) {

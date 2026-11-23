@@ -14,7 +14,7 @@ export interface OpenRouterConfig {
   providers?: Record<string, unknown>
 }
 
-export type ProviderId = 'openrouter' | 'zai' | 'modelscope'
+export type ProviderId = 'openrouter' | 'zai' | 'modelscope' | 'deepseek'
 
 export interface ProviderDefinition {
   id: ProviderId
@@ -72,6 +72,17 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     keyPlaceholder: 'ms-…',
     priceLabel: 'grátis',
     envKeys: ['HUBERCLAUDE_MODELSCOPE_API_KEY', 'MODELSCOPE_API_KEY'],
+  },
+  {
+    id: 'deepseek',
+    label: 'DeepSeek',
+    description: 'deepseek-chat e deepseek-reasoner via API',
+    baseUrl: 'https://api.deepseek.com/v1',
+    defaultModel: 'deepseek-chat',
+    keyUrl: 'https://platform.deepseek.com/api_keys',
+    keyPlaceholder: 'sk-…',
+    priceLabel: 'saldo',
+    envKeys: ['HUBERCLAUDE_DEEPSEEK_API_KEY', 'DEEPSEEK_API_KEY'],
   },
 ]
 
