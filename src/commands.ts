@@ -27,7 +27,7 @@ import memory from './commands/memory/index.js'
 import repomap from './commands/repomap/index.js'
 import provedor from './commands/provedor/index.js'
 import melhores from './commands/melhores/index.js'
-import atualizarModelosFree from './commands/atualizarModelosFree/index.js'
+import melhoresAtualizar from './commands/melhoresAtualizar/index.js'
 import help from './commands/help/index.js'
 import ide from './commands/ide/index.js'
 import init from './commands/init.js'
@@ -301,7 +301,7 @@ const COMMANDS = memoize((): Command[] => [
   help,
   provedor,
   melhores,
-  atualizarModelosFree,
+  melhoresAtualizar,
   ide,
   init,
   keybindings,
@@ -662,7 +662,7 @@ export const REMOTE_SAFE_COMMANDS: Set<Command> = new Set([
   clear, // Clear screen
   help, // Show help
   provedor, // Switch model provider
-  melhores, // List best free models
+  melhores, // Pick one of the best free models
   theme, // Change terminal theme
   color, // Change agent color
   vim, // Toggle vim mode

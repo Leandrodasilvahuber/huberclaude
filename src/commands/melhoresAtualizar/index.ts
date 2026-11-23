@@ -3,14 +3,14 @@ import { shouldInferenceConfigCommandBeImmediate } from '../../utils/immediateCo
 
 export default {
   type: 'local-jsx',
-  name: 'atualizar-modelos-free',
-  aliases: ['atualizar-free'],
+  name: 'melhores-atualizar',
+  aliases: ['atualizar-melhores'],
   get description() {
-    return `Busca e testa modelos grátis em todos os provedores e atualiza a lista /melhores`
+    return 'Busca e testa os modelos grátis de todos os provedores e atualiza a lista /melhores'
   },
   argumentHint: '',
   get immediate() {
     return shouldInferenceConfigCommandBeImmediate()
   },
-  load: () => import('./atualizarModelosFree.js'),
+  load: () => import('./melhoresAtualizar.js'),
 } satisfies Command

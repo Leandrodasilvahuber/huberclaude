@@ -1,12 +1,17 @@
-import type { ProviderDefinition, ProviderId } from './openclaudeConfig.js'
+import {
+  getOpenRouterConfig,
+  getProviderSettings,
+  PROVIDERS,
+  resolveProviderApiKey,
+  saveOpenRouterConfig,
+  type MelhorModelo,
+  type ProviderDefinition,
+} from './openclaudeConfig.js'
 import { createCombinedAbortSignal } from './combinedAbortSignal.js'
 
-export interface CandidatoModelo {
-  provider: ProviderId
-  model: string
-  label: string
-  ativo: boolean
-}
+export type { MelhorModelo }
+
+const TOP_POR_PROVEDOR = 3
 
 const FETCH_TIMEOUT_MS = 15_000
 
@@ -138,13 +143,83 @@ function pesoPara(id: string): number {
   return 0
 }
 
-/** Filtra apenas modelos grátis (preço 0/0 ou na lista freeModels do provedor). */
+/**
+ * Filtra apenas modelos grátis: preço 0/0, todos quando o provedor inteiro é
+ * grátis (ModelScope, sem preço no /models) e os freeModels do provedor, mesmo
+ * os que o /models omite (Z.ai).
+ */
 export function filtrarGratis(
   modelos: { id: string; promptPrice: number | null; completionPrice: number | null }[],
   freeModels: readonly string[] | undefined,
+  todosGratis = false,
 ): string[] {
   const free = new Set(freeModels ?? [])
-  return modelos
-    .filter(m => (free.has(m.id) || (m.promptPrice === 0 && m.completionPrice === 0)))
+  const ids = modelos
+    .filter(
+      m =>
+        todosGratis ||
+        free.has(m.id) ||
+        (m.promptPrice === 0 && m.completionPrice === 0),
+    )
     .map(m => m.id)
+  const listados = new Set(ids)
+  return [...ids, ...(freeModels ?? []).filter(id => !listados.has(id))]
+}
+
+/** Lista salva por /melhores-atualizar e lida por /melhores. */
+export function readMelhores(): MelhorModelo[] {
+  return getOpenRouterConfig().melhores ?? []
+}
+
+function baseUrlDe(provider: ProviderDefinition): ProviderDefinition {
+  const override = getProviderSettings(provider.id).baseUrl?.trim()
+  return override ? { ...provider, baseUrl: override } : provider
+}
+
+async function atualizarProvedor(
+  provider: ProviderDefinition,
+): Promise<{ linhas: string[]; ativos: MelhorModelo[] }> {
+  const apiKey = resolveProviderApiKey(provider.id)
+  if (!apiKey) return { linhas: [`${provider.label}: sem chave, pulando`], ativos: [] }
+  const alvo = baseUrlDe(provider)
+  let modelos: Awaited<ReturnType<typeof fetchProviderModels>> = []
+  try {
+    modelos = await fetchProviderModels(alvo, apiKey)
+  } catch {
+    // Sem a lista ainda dá para testar os freeModels conhecidos.
+  }
+  const gratis = filtrarGratis(
+    modelos,
+    provider.freeModels,
+    provider.priceLabel === 'grátis',
+  )
+  if (gratis.length === 0) {
+    return { linhas: [`${provider.label}: nenhum modelo grátis encontrado`], ativos: [] }
+  }
+  const top = ordenarPorCapacidade(
+    gratis.map(id => ({ id, promptPrice: 0, completionPrice: 0 })),
+  ).slice(0, TOP_POR_PROVEDOR)
+  const resultados = await Promise.all(
+    top.map(model => testarModelo(alvo, apiKey, model).catch(() => false)),
+  )
+  const ativos = top
+    .filter((_, i) => resultados[i])
+    .map(model => ({ provider: provider.id, model, label: provider.label }))
+  const falhos = top.filter((_, i) => !resultados[i])
+  const linhas = [
+    `${provider.label}: ${ativos.length ? ativos.map(a => a.model).join(', ') : 'nenhum respondeu'}`,
+    ...(falhos.length ? [`  indisponíveis: ${falhos.join(', ')}`] : []),
+  ]
+  return { linhas, ativos }
+}
+
+/** Busca e testa os grátis de todos os provedores e salva a lista /melhores. */
+export async function atualizarMelhores(): Promise<{
+  linhas: string[]
+  lista: MelhorModelo[]
+}> {
+  const porProvedor = await Promise.all(PROVIDERS.map(atualizarProvedor))
+  const lista = porProvedor.flatMap(r => r.ativos)
+  saveOpenRouterConfig({ melhores: lista })
+  return { linhas: porProvedor.flatMap(r => r.linhas), lista }
 }

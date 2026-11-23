@@ -103,7 +103,27 @@ describe('filtrarGratis', () => {
   })
 
   test('retorna vazio para lista vazia', () => {
-    expect(filtrarGratis([], ['x'])).toEqual([])
+    expect(filtrarGratis([], [])).toEqual([])
+  })
+
+  test('inclui freeModels que o /models omite (Z.ai)', () => {
+    const modelos = [{ id: 'glm-4.5', promptPrice: null, completionPrice: null }]
+    expect(filtrarGratis(modelos, ['glm-4.5-flash', 'glm-4.7-flash'])).toEqual([
+      'glm-4.5-flash',
+      'glm-4.7-flash',
+    ])
+  })
+
+  test('todosGratis aceita modelos sem preço (ModelScope)', () => {
+    const modelos = [
+      { id: 'Qwen/Qwen3-Coder', promptPrice: null, completionPrice: null },
+      { id: 'deepseek-ai/DeepSeek-V3', promptPrice: null, completionPrice: null },
+    ]
+    expect(filtrarGratis(modelos, undefined, true)).toEqual([
+      'Qwen/Qwen3-Coder',
+      'deepseek-ai/DeepSeek-V3',
+    ])
+    expect(filtrarGratis(modelos, undefined)).toEqual([])
   })
 })
 

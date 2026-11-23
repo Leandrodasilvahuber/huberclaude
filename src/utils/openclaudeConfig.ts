@@ -12,6 +12,14 @@ export interface OpenRouterConfig {
   provider?: string
   /** Keys/models for providers other than OpenRouter. */
   providers?: Record<string, unknown>
+  /** Free models that answered on the last /melhores-atualizar. */
+  melhores?: MelhorModelo[]
+}
+
+export interface MelhorModelo {
+  provider: ProviderId
+  model: string
+  label: string
 }
 
 export type ProviderId = 'openrouter' | 'zai' | 'modelscope' | 'deepseek'
@@ -126,6 +134,19 @@ export function getOpenRouterConfig(): OpenRouterConfig {
                 amount: data.lastRecharge.amount,
               }
             : undefined,
+        melhores: Array.isArray(data.melhores)
+          ? (data.melhores as unknown[])
+              .filter(
+                (item): item is MelhorModelo =>
+                  !!item &&
+                  typeof item === 'object' &&
+                  typeof (item as MelhorModelo).provider === 'string' &&
+                  !!getProviderDefinition((item as MelhorModelo).provider) &&
+                  typeof (item as MelhorModelo).model === 'string' &&
+                  typeof (item as MelhorModelo).label === 'string',
+              )
+              .slice(0, 50)
+          : undefined,
       }
     }
   } catch {

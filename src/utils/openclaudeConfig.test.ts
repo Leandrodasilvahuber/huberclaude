@@ -32,6 +32,36 @@ afterEach(() => {
 })
 
 describe('openclaudeConfig', () => {
+  test('saving the /melhores list keeps the provider settings intact', () => {
+    saveProviderSettings('zai', { apiKey: 'zai-key', model: 'glm-4.5-flash' })
+    saveOpenRouterConfig({
+      melhores: [{ provider: 'zai', model: 'glm-4.7-flash', label: 'Z.ai (GLM)' }],
+    })
+    expect(getProviderSettings('zai')).toEqual({
+      apiKey: 'zai-key',
+      baseUrl: undefined,
+      model: 'glm-4.5-flash',
+    })
+    expect(getOpenRouterConfig().melhores).toEqual([
+      { provider: 'zai', model: 'glm-4.7-flash', label: 'Z.ai (GLM)' },
+    ])
+  })
+
+  test('drops /melhores entries for unknown providers', () => {
+    fs.writeFileSync(
+      path.join(tempDir, 'config.json'),
+      JSON.stringify({
+        melhores: [
+          { provider: 'nope', model: 'x', label: 'x' },
+          { provider: 'deepseek', model: 'deepseek-chat', label: 'DeepSeek' },
+        ],
+      }),
+    )
+    expect(getOpenRouterConfig().melhores).toEqual([
+      { provider: 'deepseek', model: 'deepseek-chat', label: 'DeepSeek' },
+    ])
+  })
+
   test('saves owner-only and merges fields', () => {
     saveOpenRouterConfig({ apiKey: 'sk-or-test', baseUrl: 'https://example.test/v1' })
     saveOpenRouterConfig({ model: 'qwen/qwen3-coder' })

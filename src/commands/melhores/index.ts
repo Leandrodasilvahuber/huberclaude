@@ -6,7 +6,7 @@ export default {
   name: 'melhores',
   aliases: ['best'],
   get description() {
-    return `Lista os melhores modelos grátis salvos (use /atualizar-modelos-free)`
+    return 'Lista os melhores modelos grátis salvos (atualize com /melhores-atualizar)'
   },
   argumentHint: '',
   get immediate() {
